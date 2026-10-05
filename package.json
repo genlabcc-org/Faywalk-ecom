@@ -1,0 +1,18 @@
+{
+  "name": "anika-platform-root",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Root workspace workspace tools and environment runners",
+  "scripts": {
+    "dev": "npm run dev --prefix web",
+    "supabase:login": "supabase login",
+    "supabase:init": "supabase init",
+    "supabase:start": "supabase start && supabase db reset && supabase db query --local -f supabase/seed.sql",
+    "supabase:stop": "supabase stop",
+    "supabase:status": "supabase status",
+    "supabase:db:push": "supabase db push",
+    "supabase:functions:serve": "npm run supabase:functions:serve:dev",
+    "supabase:functions:serve:dev": "supabase functions serve --no-verify-jwt --env-file supabase/functions/.env.development.local",
+    "supabase:functions:serve:prod": "supabase functions serve --no-verify-jwt --env-file supabase/functions/.env.production.local"
+  }
+}

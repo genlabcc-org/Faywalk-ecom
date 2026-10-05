@@ -1,0 +1,294 @@
+.footer-parent {
+  background: radial-gradient(circle at center, #C42049 0%, #54061D 100%);
+  color: #e52b50;
+  width: 100%;
+  font-family: 'Inter', sans-serif;
+}
+
+.footer-container {
+  max-width: 1400px;
+  margin: 0 auto;
+  padding: 20px 40px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  flex-direction: column;
+  text-align: start;
+}
+
+.footer-grid {
+  display: grid;
+  grid-template-columns: 1.5fr 1fr 1fr 1.5fr;
+  gap: 60px;
+  margin-bottom: 80px;
+}
+
+.footer-logo {
+  margin-bottom: 30px;
+}
+
+.footer-logo .logo-img {
+  height: 60px;
+  width: auto;
+}
+
+.footer-label {
+  font-size: 14px;
+  font-weight: 600;
+  margin-bottom: 12px;
+  color: rgba(255, 255, 255, 0.9);
+}
+
+.newsletter-section {
+  margin-bottom: 30px;
+  max-width: 320px;
+}
+
+.pill-input-group {
+  position: relative;
+  display: flex;
+  align-items: center;
+  background: rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  border-radius: 10px;
+  padding: 4px;
+  overflow: hidden;
+}
+
+.pill-email-input {
+  background: transparent;
+  border: none;
+  color: #fff;
+  padding: 10px 12px 10px 16px;
+  flex: 1;
+  font-size: 14px;
+  outline: none;
+}
+
+.pill-email-input::placeholder {
+  color: rgba(255, 255, 255, 0.5);
+}
+
+.pill-submit-btn {
+  background: #e52b50;
+  color: #fff;
+  border: none;
+  border-radius: 7px;
+  padding: 10px 20px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: opacity 0.2s;
+  flex-shrink: 0;
+  margin: 0;
+}
+
+.pill-submit-btn:hover {
+  opacity: 0.9;
+}
+
+.socials-section {
+  margin-top: 20px;
+}
+
+.social-box-links {
+  display: flex;
+  gap: 6px;
+}
+
+.social-box-icon {
+  width: 48px;
+  height: 48px;
+  background: transparent;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: transform 0.2s;
+  padding: 7px;
+}
+
+.social-box-icon:hover {
+  transform: translateY(-1.5px);
+}
+
+.social-box-icon img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  display: block;
+  border-radius: 0 !important;
+}
+
+.section-title {
+  font-size: 16px;
+  font-weight: 600;
+  margin-bottom: 24px;
+  color: #fff;
+}
+
+.footer-list {
+  list-style: none;
+  padding: 0;
+}
+
+.footer-list li {
+  margin-bottom: 12px;
+}
+
+.footer-link {
+  color: rgba(255, 255, 255, 0.8);
+  text-decoration: none;
+  font-size: 14px;
+  transition: color 0.2s;
+}
+
+.footer-link:hover {
+  color: #fff;
+}
+
+.address-text {
+  font-size: 13px;
+  line-height: 1.6;
+  color: rgba(255, 255, 255, 0.8);
+  margin-bottom: 15px;
+}
+
+.phone-text {
+  font-size: 14px;
+  font-weight: 500;
+  color: rgba(255, 255, 255, 0.8);
+}
+
+.phone-time{
+  font-size: 12px;
+  font-weight: 500px;
+  color: rgba(255, 255, 255, 0.8);
+  padding-top: 5px;
+}
+
+.footer-bottom {
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+  padding-top: 30px;
+  width: 100%;
+}
+
+.bottom-content {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 13px;
+  color: rgba(255, 255, 255, 0.7);
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.legal-links {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.legal-links a {
+  color: rgba(255, 255, 255, 0.8);
+  text-decoration: none;
+}
+
+.legal-links a:hover {
+  color: #fff;
+}
+
+.dot-sep {
+  color: rgba(255, 255, 255, 0.4);
+}
+
+/* 📱 Mobile Responsiveness */
+@media (max-width: 768px) {
+  .footer-parent {
+    margin: 0;
+    padding: 0;
+    border-radius: 0;
+  }
+
+  .footer-container {
+    padding: 10px;
+  }
+
+  .footer-grid {
+    grid-template-columns: 1fr;
+    gap: 30px;
+    margin-bottom: 30px;
+  }
+
+  .brand-column {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    text-align: left;
+  }
+
+  .brand-header-mobile {
+    display: flex;
+    flex-direction: column;
+    width: 100%;
+    align-items: center;
+    margin-bottom: 20px;
+    gap: 12px;
+  }
+
+  .footer-logo {
+    margin-bottom: 0;
+  }
+
+  .socials-section {
+    margin-top: 0;
+  }
+
+  .social-box-links {
+    justify-content: flex-start;
+    gap: 6px;
+  }
+
+  .social-box-icon {
+    width: 50px;
+    height: 50px;
+    border-radius: 50% !important;
+  }
+
+  .social-box-icon img {
+    border-radius: 0 !important;
+  }
+
+  .newsletter-section {
+    width: 100%;
+    max-width: 400px;
+    text-align: left;
+    margin-bottom: 10px;
+  }
+
+  .pill-input-group {
+    width: 100%;
+  }
+
+  .footer-columns-mobile-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 20px;
+    width: 100%;
+    text-align: left;
+  }
+
+  .section-title {
+    margin-bottom: 15px;
+    font-size: 15px;
+  }
+
+  .footer-list li {
+    margin-bottom: 8px;
+  }
+
+  .bottom-content {
+    flex-direction: column;
+    gap: 15px;
+    text-align: center;
+  }
+}

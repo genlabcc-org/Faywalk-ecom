@@ -1,0 +1,255 @@
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+.jewelry-page {
+  display: flex;
+  height: 100vh;
+  width: 100vw;
+  font-family: 'DM Sans', sans-serif;
+  overflow: hidden;
+}
+
+/* ── LEFT IMAGE PANEL ── */
+.jewelry-left {
+  width: 50%;
+  height: 100%;
+  position: relative;
+  overflow: hidden;
+  flex-shrink: 0;
+}
+
+.jewelry-left img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: center;
+  display: block;
+  border-radius: 0 !important;
+}
+
+/* ── RIGHT FORM PANEL ── */
+.jewelry-right {
+  width: 50%;
+  height: 100%;
+  background: #ffffff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 80px 80px 50px;
+  position: relative;
+}
+
+.jewelry-form-wrapper {
+  width: 100%;
+  max-width: 360px;
+}
+
+.jewelry-logo {
+  position: absolute;
+  top: 80px;
+  left: 50%;
+  transform: translateX(-50%);
+}
+
+.jewelry-logo img {
+  width: 200px;
+  height: auto;
+}
+/* Title */
+.jewelry-title {
+  font-family: "Agraham", serif;
+  font-size: 27px;
+  font-weight: 400;
+  color: #1a1a1a;
+  line-height: 1.15;
+  margin-bottom: 32px;
+  letter-spacing: -0.5px;
+}
+
+/* Label */
+.jewelry-label {
+  display: block;
+  font-size: 13px;
+  font-weight: 400;
+  color: #444;
+  margin-bottom: 8px;
+  letter-spacing: 0.01em;
+}
+
+/* Input */
+.jewelry-input {
+  width: 100%;
+  height: 44px;
+  border: 1.5px solid #d0d0d0;
+  border-radius: 4px;
+  padding: 0 14px;
+  font-size: 15px;
+  font-family: 'DM Sans', sans-serif;
+  color: #1a1a1a;
+  background: #fff;
+  outline: none;
+  transition: border-color 0.2s;
+  margin-bottom: 20px;
+}
+
+.jewelry-input:focus {
+  border-color: #c0392b;
+}
+
+/* OTP Button */
+.jewelry-btn-otp {
+  width: 100%;
+  height: 44px;
+  background: #c0392b;
+  color: #fff;
+  border: none;
+  border-radius: 4px;
+  font-size: 15px;
+  font-weight: 500;
+  font-family: 'DM Sans', sans-serif;
+  cursor: pointer;
+  letter-spacing: 0.03em;
+  transition: background 0.2s, transform 0.15s, opacity 0.2s;
+  margin-bottom: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.jewelry-btn-otp:hover:not(:disabled) {
+  background: #a93226;
+  transform: translateY(-1px);
+}
+
+.jewelry-btn-otp:active:not(:disabled) {
+  transform: translateY(0);
+}
+
+.jewelry-btn-otp:disabled {
+  opacity: 0.7;
+  cursor: not-allowed;
+  transform: none;
+}
+
+.jewelry-btn-loading {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+}
+
+.jewelry-spinner {
+  width: 16px;
+  height: 16px;
+  border: 2px solid rgba(255, 255, 255, 0.35);
+  border-top-color: #ffffff;
+  border-radius: 50%;
+  animation: jewelry-spin 0.75s linear infinite;
+}
+
+@keyframes jewelry-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* Divider */
+.jewelry-divider {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 20px;
+}
+
+.jewelry-divider-line {
+  flex: 1;
+  height: 1px;
+  background: #ddd;
+}
+
+.jewelry-divider-text {
+  font-size: 13px;
+  color: #999;
+}
+
+/* Google Button */
+.jewelry-btn-google {
+  width: 100%;
+  height: 44px;
+  background: #fff;
+  border: 1.5px solid #d0d0d0;
+  border-radius: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  font-size: 14px;
+  font-weight: 400;
+  font-family: 'DM Sans', sans-serif;
+  color: #333;
+  cursor: pointer;
+  transition: border-color 0.2s, box-shadow 0.2s;
+  margin-bottom: 24px;
+}
+
+.jewelry-btn-google:hover {
+  border-color: #aaa;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.08);
+}
+
+/* Google SVG icon */
+.google-icon {
+  width: 18px;
+  height: 18px;
+  flex-shrink: 0;
+}
+
+/* Sign up text */
+.jewelry-signup-text {
+  text-align: center;
+  font-size: 13.5px;
+  color: #555;
+}
+
+.jewelry-signup-text a {
+  color: #c0392b;
+  text-decoration: none;
+  font-weight: 500;
+}
+
+.jewelry-signup-text a:hover {
+  text-decoration: underline;
+}
+
+/* ── RESPONSIVE ── */
+@media (max-width: 700px) {
+  .jewelry-page {
+    flex-direction: column;
+  }
+
+  .jewelry-left {
+    width: 100%;
+    height: 170px;
+  }
+
+  .jewelry-right {
+    width: 100%;
+    height: auto;
+    padding: 120px 24px;
+  }
+
+  .jewelry-title {
+    font-size: 20px;
+  }
+
+  .jewelry-logo {
+    top: 25px;
+  }
+
+  .jewelry-logo img{
+    width: 160px;
+  }
+}

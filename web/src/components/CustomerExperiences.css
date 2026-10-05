@@ -1,0 +1,152 @@
+.customer-experiences {
+  width: auto;
+  /* Changed from 100% to auto to work with margins */
+  background-color: #fffcfa;
+  margin: 10px;
+  padding: 10px;
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 60px;
+  overflow: hidden;
+  border-radius: 10px;
+}
+
+.experiences-text-content {
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  gap: 25px;
+  padding: 10px 40px;
+}
+
+.experiences-title {
+  font-family: 'Agraham', serif;
+  font-size: 3.5rem;
+  margin: 0;
+  line-height: 1.2;
+}
+
+.experiences-subtitle {
+  font-family: 'Inter', sans-serif;
+  font-size: 1.25rem;
+  color: #606060;
+  margin: 0;
+}
+
+.experiences-visual-container {
+  width: 100%;
+  height: 800px;
+  /* Fixed height for the viewing window */
+  position: relative;
+  overflow: hidden;
+  mask-image: linear-gradient(to bottom, transparent, black 10%, black 90%, transparent);
+}
+
+.experiences-grid {
+  display: flex;
+  gap: 24px;
+  justify-content: center;
+  width: 100%;
+  height: 100%;
+}
+
+.grid-column {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+  flex-shrink: 0;
+  will-change: transform;
+  /* Hardware acceleration for smoothness */
+}
+
+.instagram-post-img {
+  width: 320px;
+  height: 400px;
+  object-fit: cover;
+  border-radius: 10px;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.05);
+}
+
+/* ── Animations ── */
+
+.scroll-down {
+  animation: scroll-down 12s linear infinite;
+}
+
+.scroll-up {
+  animation: scroll-up 12s linear infinite;
+}
+
+@keyframes scroll-down {
+  0% {
+    transform: translateY(-50%);
+  }
+
+  100% {
+    transform: translateY(0%);
+  }
+}
+
+@keyframes scroll-up {
+  0% {
+    transform: translateY(0%);
+  }
+
+  100% {
+    transform: translateY(-50%);
+  }
+}
+
+/* Pause on hover */
+.experiences-visual-container:hover .grid-column {
+  animation-play-state: paused;
+}
+
+@media (max-width: 1200px) {
+  .instagram-post-img {
+    width: 260px;
+    height: 320px;
+  }
+
+  .experiences-visual-container {
+    height: 600px;
+  }
+}
+
+@media (max-width: 768px) {
+  .customer-experiences {
+    padding: 10px;
+    /* Equal spacing and margin for mobile view */
+    margin: 10px;
+    gap: 30px;
+  }
+
+  .experiences-text-content {
+    padding: 10px 10px;
+    text-align: center;
+  }
+
+  .experiences-title {
+    font-size: 2.2rem;
+  }
+
+  .instagram-post-img {
+    width: 200px;
+    height: 260px;
+  }
+
+  /* Hide columns 3 and 4 on mobile for better fit */
+  .grid-column:nth-child(n+3) {
+    display: none;
+  }
+
+  .experiences-grid {
+    gap: 10px;
+  }
+
+  .grid-column {
+    gap: 10px;
+  }
+}

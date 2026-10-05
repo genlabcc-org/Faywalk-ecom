@@ -1,0 +1,30 @@
+/* Smooth scrolling for the whole page */
+html {
+  scroll-behavior: smooth;
+}
+ 
+.homepage {
+  overflow-x: hidden;
+}
+
+/* Performance Optimization: Skip rendering for off-screen sections */
+section, 
+.product-section, 
+.banner-section, 
+.category-section, 
+.new-arrivals-section,
+.best-sellers-section,
+.collections-section, 
+.necklace-showcase, 
+.real-experience, 
+.offers, 
+.customer-experiences, 
+.site-footer {
+  content-visibility: auto;
+  contain-intrinsic-size: 1px 500px; /* Estimated height to prevent layout shifts */
+}
+
+/* Ensure the hero section (above the fold) loads immediately */
+.hero-section {
+  content-visibility: visible;
+}

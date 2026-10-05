@@ -1,0 +1,444 @@
+:root {
+  --brand-red: #8b0030;
+  --brand-red-dark: #6e0026;
+  --white: #ffffff;
+  --page-bg: #f9f3f5;
+  --border-gray: #e4e4e4;
+  --text-dark: #1a1a1a;
+  --text-mid: #555555;
+  --text-light: #888888;
+  --vip-bg: #fff8dc;
+  --vip-text: #7a5a00;
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  font-family: 'Lato', sans-serif;
+  background: var(--page-bg);
+  color: var(--text-dark);
+}
+
+/* ── ROOT ─────────────────────────────────────────────────── */
+.aw-root {
+  max-width: 960px;
+  margin: 0 auto;
+  width: 100%;
+  padding: 36px 24px 60px;
+  display: flex;
+  flex-direction: column;
+}
+
+/* ── PAGE HEADING ─────────────────────────────────────────── */
+.aw-profile-title {
+  font-family: "Agraham", serif;
+  font-weight: 400;
+  font-size: 34px;
+  color: var(--text-dark);
+  letter-spacing: -0.5px;
+  margin-bottom: 22px;
+}
+
+/* ── USER INFO ────────────────────────────────────────────── */
+.aw-user-section {
+  display: flex;
+  align-items: flex-start;
+  gap: 14px;
+  margin-bottom: 20px;
+}
+
+.aw-avatar {
+  width: 52px;
+  height: 52px;
+  border-radius: 50%;
+  background: #8b0030;
+  color: #ffffff;
+  font-size: 18px;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+  box-shadow: 0 2px 8px rgba(123, 29, 29, 0.2);
+}
+
+.aw-user-text {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding-top: 2px;
+}
+
+.aw-user-name {
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--text-dark);
+}
+
+.aw-user-meta {
+  font-size: 12.5px;
+  color: var(--text-mid);
+}
+
+.aw-vip-badge {
+  display: inline-block;
+  background: var(--vip-bg);
+  color: var(--vip-text);
+  font-size: 11px;
+  font-weight: 600;
+  padding: 2px 9px;
+  border-radius: 10px;
+  width: fit-content;
+}
+
+/* ── DIVIDER ──────────────────────────────────────────────── */
+.aw-divider {
+  border: none;
+  border-top: 1px solid var(--border-gray);
+  margin-bottom: 22px;
+}
+
+/* ── TABS ─────────────────────────────────────────────────── */
+.aw-tabs {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-bottom: 24px;
+}
+
+.aw-tab {
+  background: var(--white);
+  border: 1px solid var(--border-gray);
+  border-radius: 4px;
+  padding: 6px 18px;
+  font-size: 13px;
+  font-family: 'Lato', sans-serif;
+  color: var(--text-mid);
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s, border-color 0.15s;
+}
+
+.aw-tab:hover {
+  border-color: #bbb;
+  color: var(--text-dark);
+}
+
+.aw-tab--active {
+  background: var(--brand-red);
+  color: var(--white);
+  border-color: var(--brand-red);
+}
+
+/* ── WISHLIST CARD ────────────────────────────────────────── */
+.aw-card {
+  background: var(--white);
+  border: 1px solid var(--border-gray);
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.aw-card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 16px 20px 14px;
+  border-bottom: 1px solid var(--border-gray);
+}
+
+.aw-card-title {
+  font-size: 17px;
+  font-weight: 700;
+  color: var(--text-dark);
+}
+
+.aw-item-count {
+  font-size: 13px;
+  color: var(--text-mid);
+}
+
+/* ── EMPTY STATE ──────────────────────────────────────────── */
+.aw-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 60px 20px;
+  gap: 10px;
+  text-align: center;
+  color: var(--text-mid);
+}
+
+.aw-empty p {
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--text-dark);
+}
+
+.aw-empty span {
+  font-size: 13px;
+  color: var(--text-mid);
+}
+
+.aw-shop-btn {
+  margin-top: 8px;
+  background: var(--brand-red);
+  color: #fff;
+  border: none;
+  border-radius: 5px;
+  padding: 9px 28px;
+  font-size: 13px;
+  font-weight: 600;
+  font-family: inherit;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.aw-shop-btn:hover {
+  background: var(--brand-red-dark);
+}
+
+/* ── PRODUCT GRID ─────────────────────────────────────────── */
+.aw-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(190px, 1fr));
+  gap: 20px;
+  padding: 20px;
+}
+
+/* ── PRODUCT CARD ─────────────────────────────────────────── */
+.aw-item-card {
+  background: #fff;
+  border: 1px solid var(--border-gray);
+  border-radius: 8px;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  position: relative;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.aw-item-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.08);
+}
+
+/* Remove (X) button */
+.aw-remove-btn {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  z-index: 2;
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.92);
+  border: 1px solid var(--border-gray);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  color: var(--brand-red);
+  padding: 0;
+  transition: background 0.2s, color 0.2s, border-color 0.2s;
+}
+
+.aw-remove-btn:hover {
+  background: var(--brand-red);
+  color: #fff;
+  border-color: var(--brand-red);
+}
+
+/* Product image */
+.aw-img-wrap {
+  aspect-ratio: 1;
+  overflow: hidden;
+  background: #fafafa;
+  border-bottom: 1px solid var(--border-gray);
+  cursor: pointer;
+}
+
+.aw-img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  padding: 6px;
+  box-sizing: border-box;
+  display: block;
+}
+
+.aw-img-wrap:hover .aw-img {
+  transform: none;
+}
+
+.aw-img-placeholder {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 28px;
+}
+
+/* Product info */
+.aw-item-info {
+  padding: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  flex: 1;
+}
+
+.aw-item-name {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-dark);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  cursor: pointer;
+}
+
+.aw-item-name:hover {
+  color: var(--brand-red);
+}
+
+.aw-pricing {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.aw-price {
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--text-dark);
+}
+
+.aw-original-price {
+  font-size: 12px;
+  text-decoration: line-through;
+  color: var(--text-light);
+}
+
+/* Item actions */
+.aw-item-actions {
+  display: flex;
+  gap: 6px;
+  margin-top: auto;
+  padding-top: 8px;
+}
+
+.aw-cart-btn {
+  flex: 1;
+  background: var(--brand-red);
+  color: #fff;
+  border: none;
+  border-radius: 4px;
+  padding: 7px 10px;
+  font-size: 11.5px;
+  font-weight: 600;
+  font-family: inherit;
+  cursor: pointer;
+  transition: background 0.2s;
+  white-space: nowrap;
+}
+
+.aw-cart-btn:hover {
+  background: var(--brand-red-dark);
+}
+
+.aw-view-btn {
+  background: transparent;
+  color: var(--brand-red);
+  border: 1px solid var(--brand-red);
+  border-radius: 4px;
+  padding: 7px 10px;
+  font-size: 11.5px;
+  font-weight: 600;
+  font-family: inherit;
+  cursor: pointer;
+  transition: background 0.2s, color 0.2s;
+  white-space: nowrap;
+}
+
+.aw-view-btn:hover {
+  background: var(--brand-red);
+  color: #fff;
+}
+
+/* ── RESPONSIVE ───────────────────────────────────────────── */
+@media (max-width: 768px) {
+  .aw-profile-title {
+    text-align: center;
+    width: 100%;
+    margin-bottom: 16px;
+  }
+
+  .aw-user-section {
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    gap: 12px;
+  }
+
+  .aw-user-text {
+    align-items: center;
+    text-align: center;
+  }
+
+  .aw-vip-badge {
+    margin: 4px auto 0;
+  }
+
+  .aw-tabs {
+    justify-content: center;
+  }
+}
+
+@media (max-width: 600px) {
+  .aw-grid {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 10px;
+    padding: 10px;
+  }
+  .aw-item-info {
+    padding: 8px;
+    gap: 4px;
+  }
+  .aw-item-name {
+    font-size: 12px;
+  }
+  .aw-price {
+    font-size: 13px;
+  }
+  .aw-original-price {
+    font-size: 11px;
+  }
+  .aw-item-actions {
+    flex-direction: column;
+    gap: 4px;
+  }
+  .aw-cart-btn,
+  .aw-view-btn {
+    width: 100%;
+    text-align: center;
+    padding: 6px 4px;
+    font-size: 11px;
+  }
+}
+
+@media (max-width: 400px) {
+  .aw-grid {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 8px;
+    padding: 8px;
+  }
+}

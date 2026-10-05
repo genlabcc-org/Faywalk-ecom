@@ -1,0 +1,277 @@
+.textParent {
+  width: auto;
+  position: relative;
+  background-color: #fffcfa;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  margin: 10px;
+  padding: 40px 10px;
+  box-sizing: border-box;
+  gap: 50px;
+  text-align: center;
+  overflow: hidden;
+  border-radius: 10px;
+}
+
+.text {
+  align-self: stretch;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  padding: 0 20px;
+  box-sizing: border-box;
+  text-align: center;
+}
+
+.realExperiences {
+  font-family: 'Agraham', serif;
+  font-size: 3.5rem;
+  line-height: 1.2;
+  color: #000;
+  text-align: center;
+
+  width: 100%;
+  max-width: 1400px;
+
+  margin: 0 auto;
+  padding: 0;
+
+  box-sizing: border-box;
+  overflow: visible;
+}
+
+.hearFromOur {
+  font-size: 20px;
+  line-height: 160%;
+  font-family: 'Inter', sans-serif;
+  color: #606060;
+  text-align: center;
+  margin: 0;
+  padding-top: 10px;
+}
+
+.experience-scroll-container {
+  width: 100%;
+  overflow-x: auto;
+  overflow-y: hidden;
+  position: relative;
+  cursor: grab;
+  padding-bottom: 20px;
+  /* Space for custom scrollbar */
+}
+
+/* Custom Scrollbar */
+.experience-scroll-container::-webkit-scrollbar {
+  height: 4px;
+  display: block;
+  /* Show as custom scroll */
+}
+
+.experience-scroll-container::-webkit-scrollbar-track {
+  background: rgba(229, 43, 80, 0.05);
+  border-radius: 10px;
+}
+
+.experience-scroll-container::-webkit-scrollbar-thumb {
+  background: rgba(229, 43, 80, 0.2);
+  border-radius: 10px;
+}
+
+.experience-scroll-container::-webkit-scrollbar-thumb:hover {
+  background: rgba(229, 43, 80, 0.5);
+}
+
+.experience-scroll-container:active {
+  cursor: grabbing;
+}
+
+.experience-track {
+  display: flex;
+  gap: 30px;
+  width: max-content;
+  padding: 0 40px;
+  animation: auto-scroll-horizontal 40s linear infinite;
+  will-change: transform;
+}
+
+.experience-scroll-container:hover .experience-track {
+  animation-play-state: paused;
+}
+
+.experience-item {
+  text-decoration: none;
+  flex-shrink: 0;
+  border-radius: 10px;
+  overflow: hidden;
+  display: block;
+  transform: translateZ(0);
+  backface-visibility: hidden;
+}
+
+.frameChild {
+  height: 600px;
+  width: 400px;
+  border-radius: 10px;
+  object-fit: cover;
+  cursor: pointer;
+  transition: transform 0.4s ease, box-shadow 0.3s ease;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.05);
+  transform: translateZ(0);
+  backface-visibility: hidden;
+}
+
+.experience-item:hover .frameChild {
+  transform: scale(1.05) translateZ(0);
+}
+
+.experience-item:hover {
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+}
+
+
+@keyframes auto-scroll-horizontal {
+  0% {
+    transform: translateX(0);
+  }
+
+  100% {
+    transform: translateX(calc(-33.33% - 10px));
+  }
+
+  /* -33.33% because we have 3 copies */
+}
+
+@media (max-width: 1024px) {
+  .realExperiences {
+    font-size: 2.5rem;
+  }
+
+  .frameChild {
+    height: 450px;
+    width: 300px;
+  }
+}
+
+@media (max-width: 768px) {
+  .textParent {
+    width: auto;
+    margin: 10px;
+    padding: 30px 10px;
+    gap: 24px;
+    border-radius: 10px;
+  }
+
+  .text {
+    padding: 0 12px;
+    gap: 8px;
+    width: 100%;
+    align-items: center;
+    text-align: center;
+  }
+
+  .realExperiences {
+    font-size: clamp(1.75rem, 6vw, 2.2rem);
+    line-height: 1.25;
+    margin: 0;
+    padding: 0;
+    text-align: center;
+    width: 100%;
+  }
+
+  .hearFromOur {
+    font-size: 14px;
+    line-height: 1.4;
+    text-align: center;
+  }
+
+  .frameChild {
+    height: 320px;
+    width: 220px;
+    border-radius: 10px;
+  }
+
+  .experience-track {
+    animation-duration: 20s;
+    gap: 16px;
+    padding: 0 10px;
+  }
+}
+
+@media (max-width: 480px) {
+  .realExperiences {
+    font-size: clamp(1.5rem, 5.5vw, 1.85rem);
+  }
+
+  .hearFromOur {
+    font-size: 13px;
+  }
+}
+
+/* button instead of anchor */
+.experience-item {
+  border: 0;
+  padding: 0;
+  background: none;
+  cursor: pointer;
+  position: relative;
+}
+
+/* few videos: no marquee, just centered */
+.experience-track--static {
+  animation: none;
+  margin: 0 auto;
+}
+
+.experience-play {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  color: #fff;
+  font-size: 34px;
+  text-shadow: 0 2px 10px rgba(0, 0, 0, .55);
+  pointer-events: none;
+}
+
+/* player popup */
+.exp-modal {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, .78);
+  display: grid;
+  place-items: center;
+  z-index: 1000;
+}
+
+.exp-modal-box {
+  position: relative;
+  width: min(92vw, 380px);
+  height: min(88vh, 680px);
+  background: #000;
+  border-radius: 12px;
+  overflow: hidden;
+}
+
+.exp-modal-box iframe {
+  width: 100%;
+  height: 100%;
+  border: 0;
+}
+
+.exp-close {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  z-index: 2;
+  width: 32px;
+  height: 32px;
+  border: 0;
+  border-radius: 50%;
+  background: rgba(0, 0, 0, .55);
+  color: #fff;
+  cursor: pointer;
+}

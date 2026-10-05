@@ -1,0 +1,540 @@
+:root {
+  --brand-red: #8b0030;
+  --brand-red-dark: #6e0026;
+  --brand-gold: #c8a96e;
+  --white: #ffffff;
+  --light-gray: #f5f5f5;
+  --border-gray: #e0e0e0;
+  --text-dark: #222222;
+  --text-mid: #555555;
+  --text-light: #888888;
+  --vip-bg: #fff3cd;
+  --vip-text: #7a5a00;
+}
+
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  font-family: 'Lato', sans-serif;
+  background: #fff;
+  color: var(--text-dark);
+}
+
+.anika-root {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+
+/* ── MAIN ────────────────────────────────────────────────── */
+.anika-main {
+  flex: 1;
+  max-width: 960px;
+  margin: 0 auto;
+  width: 100%;
+  padding: 36px 24px 60px;
+}
+
+/* Profile title */
+.anika-profile-title {
+  font-family: "Agraham", serif;
+  font-size: 34px;
+  font-weight: 400;
+  color: var(--text-dark);
+  margin-bottom: 28px;
+}
+
+/* User info block */
+.anika-user-info {
+  display: flex;
+  align-items: flex-start;
+  gap: 16px;
+  margin-bottom: 24px;
+  padding-bottom: 20px;
+  border-bottom: 1px solid var(--border-gray);
+}
+
+.anika-avatar {
+  width: 52px;
+  height: 52px;
+  border-radius: 50%;
+  background: #8b0030;
+  color: #ffffff;
+  font-size: 18px;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+  box-shadow: 0 2px 8px rgba(123, 29, 29, 0.2);
+}
+
+.anika-user-text {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.anika-user-name {
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--text-dark);
+}
+
+.anika-user-meta {
+  font-size: 12.5px;
+  color: var(--text-mid);
+}
+
+.anika-vip-badge {
+  display: inline-block;
+  background-color: var(--vip-bg);
+  color: var(--vip-text);
+  font-size: 11px;
+  padding: 2px 8px;
+  border-radius: 10px;
+  font-weight: 500;
+  margin-top: 2px;
+  width: fit-content;
+}
+
+/* Tabs */
+.anika-tabs {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 24px;
+  flex-wrap: wrap;
+}
+
+.anika-tab {
+  background: none;
+  border: 1px solid var(--border-gray);
+  border-radius: 4px;
+  padding: 6px 18px;
+  font-size: 13px;
+  cursor: pointer;
+  color: var(--text-mid);
+  font-family: 'Lato', sans-serif;
+  transition: background 0.15s, color 0.15s, border-color 0.15s;
+}
+
+.anika-tab:hover {
+  border-color: #bbb;
+  color: var(--text-dark);
+}
+
+.anika-tab--active {
+  background-color: var(--brand-red);
+  color: var(--white);
+  border-color: var(--brand-red);
+}
+
+/* Customer Details Card */
+.anika-card {
+  background: #fff;
+  border: 1px solid var(--border-gray);
+  border-radius: 6px;
+  overflow: hidden;
+}
+
+.anika-card-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 14px 20px;
+}
+
+.anika-card-title {
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--text-dark);
+}
+
+.anika-edit-btn {
+  background-color: var(--brand-red);
+  color: var(--white);
+  border: none;
+  border-radius: 4px;
+  padding: 5px 18px;
+  font-size: 12.5px;
+  cursor: pointer;
+  font-family: 'Lato', sans-serif;
+  font-weight: 600;
+  transition: background 0.2s;
+}
+
+.anika-edit-btn:hover {
+  background-color: var(--brand-red-dark);
+}
+
+/* Editable input field */
+.anika-detail-input {
+  border: 1px solid var(--border-gray);
+  border-radius: 4px;
+  padding: 5px 10px;
+  font-size: 13.5px;
+  font-family: 'Lato', sans-serif;
+  color: var(--text-dark);
+  width: 260px;
+  outline: none;
+  transition: border-color 0.2s, box-shadow 0.2s;
+  background: #fafafa;
+}
+
+.anika-detail-input:focus {
+  border-color: var(--brand-red);
+  box-shadow: 0 0 0 2px rgba(139, 0, 48, 0.12);
+  background: #fff;
+}
+
+/* Card header actions (Edit / Save + Cancel) */
+.anika-card-header-actions {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.anika-save-btn {
+  background-color: var(--brand-red);
+  color: var(--white);
+  border: none;
+  border-radius: 4px;
+  padding: 5px 18px;
+  font-size: 12.5px;
+  cursor: pointer;
+  font-family: 'Lato', sans-serif;
+  font-weight: 600;
+  transition: background 0.2s;
+}
+
+.anika-save-btn:hover {
+  background-color: var(--brand-red-dark);
+}
+
+.anika-cancel-btn {
+  background-color: transparent;
+  color: var(--brand-red);
+  border: 1px solid var(--brand-red);
+  border-radius: 4px;
+  padding: 5px 14px;
+  font-size: 12.5px;
+  cursor: pointer;
+  font-family: 'Lato', sans-serif;
+  font-weight: 600;
+  transition: background 0.2s, color 0.2s;
+}
+
+.anika-cancel-btn:hover {
+  background-color: var(--brand-red);
+  color: var(--white);
+}
+
+.anika-card-body {
+  border-top: 1px solid var(--border-gray);
+}
+
+.anika-detail-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 12px 20px;
+  border-bottom: 1px solid var(--border-gray);
+}
+
+.anika-detail-row:last-child {
+  border-bottom: none;
+}
+
+.anika-detail-label {
+  font-size: 13.5px;
+  color: var(--text-dark);
+  font-weight: 400;
+}
+
+.anika-detail-value {
+  font-size: 13.5px;
+  color: var(--text-dark);
+  font-weight: 400;
+}
+
+
+/* ── RESPONSIVE ─────────────────────────────────────────── */
+@media (max-width: 768px) {
+  .anika-profile-title {
+    text-align: center;
+    width: 100%;
+    margin-bottom: 20px;
+  }
+
+  .anika-user-info {
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    gap: 12px;
+  }
+
+  .anika-user-text {
+    align-items: center;
+    text-align: center;
+  }
+
+  .anika-vip-badge {
+    margin: 4px auto 0;
+  }
+
+  .anika-tabs {
+    justify-content: center;
+  }
+
+  .anika-nav-links {
+    display: none;
+  }
+
+  .anika-footer-inner {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .anika-footer-bottom {
+    flex-direction: column;
+    gap: 8px;
+    text-align: center;
+  }
+}
+
+@media (max-width: 480px) {
+  .anika-footer-inner {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* ── WISHLIST TAB ────────────────────────────────────────── */
+.anika-wishlist-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: 20px;
+  padding: 20px;
+}
+
+@media (max-width: 600px) {
+  .anika-wishlist-grid {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 10px;
+    padding: 10px;
+  }
+}
+
+.anika-wishlist-item {
+  background: #fff;
+  border: 1px solid var(--border-gray);
+  border-radius: 8px;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  position: relative;
+  transition: transform 0.2s, box-shadow 0.2s;
+}
+
+.anika-wishlist-item:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+}
+
+.anika-wishlist-img-wrapper {
+  aspect-ratio: 1;
+  background: #fafafa;
+  overflow: hidden;
+  border-bottom: 1px solid var(--border-gray);
+  position: relative;
+}
+
+.anika-wishlist-img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  padding: 6px;
+  box-sizing: border-box;
+  display: block;
+}
+
+.anika-wishlist-remove-btn {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.9);
+  border: 1px solid var(--border-gray);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  color: var(--brand-red);
+  transition: background 0.2s, color 0.2s;
+  padding: 0;
+}
+
+.anika-wishlist-remove-btn:hover {
+  background: var(--brand-red);
+  color: #fff;
+}
+
+.anika-wishlist-info {
+  padding: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  flex: 1;
+}
+
+.anika-wishlist-name {
+  font-size: 13.5px;
+  font-weight: 600;
+  color: var(--text-dark);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.anika-wishlist-pricing {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.anika-wishlist-price {
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--text-dark);
+}
+
+.anika-wishlist-original {
+  font-size: 12px;
+  text-decoration: line-through;
+  color: var(--text-light);
+}
+
+.anika-wishlist-actions {
+  display: flex;
+  gap: 8px;
+  margin-top: auto;
+  padding-top: 10px;
+}
+
+.anika-wishlist-view-btn {
+  flex: 1;
+  background: var(--brand-red);
+  color: #fff;
+  border: none;
+  border-radius: 4px;
+  padding: 6px 12px;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  text-align: center;
+  transition: background 0.2s;
+}
+
+.anika-wishlist-view-btn:hover {
+  background: var(--brand-red-dark);
+}
+
+.anika-wishlist-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 60px 20px;
+  text-align: center;
+  color: var(--text-mid);
+}
+
+.anika-wishlist-empty svg {
+  margin-bottom: 16px;
+  opacity: 0.6;
+}
+
+.anika-wishlist-empty p {
+  font-size: 15px;
+  font-weight: 500;
+}
+
+/* ── ACCOUNT TAB ─────────────────────────────────────────── */
+.anika-account-section {
+  padding: 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+.anika-account-card {
+  border: 1px solid var(--border-gray);
+  border-radius: 8px;
+  padding: 20px;
+  background: #fff;
+}
+
+.anika-account-card--danger {
+  border-color: #f87171;
+  background: #fffbfa;
+}
+
+.anika-account-title {
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--text-dark);
+  margin-bottom: 8px;
+}
+
+.anika-account-card--danger .anika-account-title {
+  color: #b91c1c;
+}
+
+.anika-account-desc {
+  font-size: 13px;
+  color: var(--text-mid);
+  line-height: 1.5;
+  margin-bottom: 16px;
+}
+
+.anika-delete-btn {
+  background-color: #dc2626;
+  color: #fff;
+  border: none;
+  border-radius: 4px;
+  padding: 8px 18px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  font-family: inherit;
+  transition: background-color 0.2s;
+}
+
+.anika-delete-btn:hover {
+  background-color: #b91c1c;
+}
+
+.anika-logout-btn {
+  background-color: transparent;
+  color: var(--text-dark);
+  border: 1px solid var(--border-gray);
+  border-radius: 4px;
+  padding: 8px 18px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  font-family: inherit;
+  transition: background-color 0.2s, border-color 0.2s;
+}
+
+.anika-logout-btn:hover {
+  background-color: #f5f5f5;
+  border-color: #bbb;
+}

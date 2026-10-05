@@ -1,0 +1,493 @@
+/* ==========================================================================
+   THERMAL INVOICE (100x150mm / 4x6") — Exact Match Modern Label Format
+   ========================================================================== */
+
+/* ── Screen Modal Preview Container (Exact 100x150mm) ── */
+.thermal-invoice.thermal-invoice--preview,
+.thermal-invoice-modal .thermal-invoice {
+  display: flex !important;
+  flex-direction: column;
+  justify-content: space-between;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  color: #000000;
+  background: #ffffff;
+  padding: 4mm 4mm;
+  box-sizing: border-box;
+  width: 100mm;
+  height: 150mm;
+  min-height: 150mm;
+  max-height: 150mm;
+  max-width: 100mm;
+  margin: 0 auto;
+  border-radius: 8px;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.15);
+  border: 1px solid #cbd5e1;
+  gap: 6px;
+}
+
+/* ── Standard 5-Box Card Blocks ── */
+.ti-box {
+  border: 1.8px solid #000000;
+  border-radius: 8px;
+  background: #ffffff;
+  box-sizing: border-box;
+  width: 100%;
+}
+
+/* ── Box 1: Store Brand Header ── */
+.ti-box--header {
+  padding: 10px 8px;
+  text-align: center;
+}
+
+.ti-store-title {
+  margin: 0;
+  font-size: 23px;
+  font-weight: 900;
+  letter-spacing: 0.5px;
+  color: #000000;
+  text-transform: uppercase;
+  line-height: 1.15;
+}
+
+/* ── Box 2: Invoice Metadata (2 Columns) ── */
+.ti-box--meta {
+  display: flex;
+  align-items: stretch;
+  padding: 0;
+}
+
+.ti-meta-left {
+  flex: 1.15;
+  padding: 8px 10px;
+  display: flex;
+  flex-direction: column;
+  box-sizing: border-box;
+}
+
+.ti-divider-v {
+  width: 1.8px;
+  background-color: #000000;
+  align-self: stretch;
+  flex-shrink: 0;
+}
+
+.ti-meta-right {
+  flex: 0.85;
+  padding: 8px 10px;
+  display: flex;
+  flex-direction: column;
+  box-sizing: border-box;
+}
+
+.ti-label {
+  font-size: 11px;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+  color: #000000;
+  margin-bottom: 2px;
+  line-height: 1.2;
+}
+
+.ti-label--date {
+  margin-top: 5px;
+}
+
+.ti-val {
+  color: #000000;
+}
+
+.ti-val--invoiceno {
+  font-size: 18px;
+  font-weight: 900;
+  letter-spacing: 0.3px;
+  line-height: 1.2;
+}
+
+.ti-val--date {
+  font-size: 13px;
+  font-weight: 600;
+  line-height: 1.25;
+}
+
+.ti-val--payment {
+  font-size: 15px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+  line-height: 1.2;
+}
+
+/* ── Box 3: Ship To Details ── */
+.ti-box--shipto {
+  padding: 8px 10px 9px;
+}
+
+.ti-shipto-heading {
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+  color: #000000;
+  line-height: 1.2;
+}
+
+.ti-shipto-divider {
+  height: 1.5px;
+  background-color: #000000;
+  margin: 5px 0 6px 0;
+  width: 100%;
+}
+
+.ti-shipto-body {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5px;
+}
+
+.ti-recipient-name {
+  font-size: 15.5px;
+  font-weight: 600;
+  color: #000000;
+  line-height: 1.3;
+}
+
+.ti-addr-line {
+  font-size: 14.5px;
+  font-weight: 400;
+  color: #000000;
+  line-height: 1.3;
+}
+
+.ti-addr-phone {
+  font-size: 14.5px;
+  font-weight: 500;
+  color: #000000;
+  line-height: 1.3;
+}
+
+/* ── Box 4: Total Items & Total Amount (2 Columns) ── */
+.ti-box--totals {
+  display: flex;
+  align-items: stretch;
+  padding: 0;
+  background: #f1f2f4;
+  background: linear-gradient(180deg, #f7f8fa 0%, #eceef2 100%);
+}
+
+.ti-total-left {
+  flex: 1;
+  padding: 8px 10px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  box-sizing: border-box;
+}
+
+.ti-total-right {
+  flex: 1;
+  padding: 8px 10px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  box-sizing: border-box;
+}
+
+.ti-val--items {
+  font-size: 23px;
+  font-weight: 900;
+  color: #000000;
+  line-height: 1.15;
+  margin-top: 2px;
+}
+
+.ti-val--amount {
+  font-size: 25px;
+  font-weight: 900;
+  color: #000000;
+  line-height: 1.15;
+  margin-top: 2px;
+}
+
+/* ── Box 5: Footer (Dashed Box) ── */
+.ti-box--footer {
+  border: 1.8px dashed #000000;
+  border-radius: 8px;
+  padding: 9px 10px;
+  text-align: center;
+  box-sizing: border-box;
+}
+
+.ti-footer-text {
+  font-size: 13px;
+  font-weight: 500;
+  color: #000000;
+  line-height: 1.3;
+  margin-bottom: 2px;
+}
+
+.ti-footer-brand {
+  font-size: 16px;
+  font-weight: 900;
+  color: #000000;
+  letter-spacing: 0.3px;
+  line-height: 1.3;
+}
+
+/* ==========================================================================
+   SCREEN HIDING FOR PRINT AREA
+   ========================================================================== */
+@media screen {
+  .thermal-print-area {
+    display: none !important;
+  }
+}
+
+/* ==========================================================================
+   PRINT STYLES (EXACT 100x150MM / 4x6 INCH THERMAL LABELS - SINGLE & BATCH)
+   ========================================================================== */
+@media print {
+  @page {
+    size: 100mm 150mm;
+    margin: 0mm !important;
+  }
+
+  /* Hide entire React app root so only portal-mounted .thermal-print-area is printed */
+  #root,
+  .db,
+  .db__navbar,
+  .db__sidebar,
+  .db__sidebar-overlay,
+  .db__main,
+  .inv,
+  .orders,
+  .order-details,
+  nav,
+  aside,
+  header,
+  footer,
+  .sidebar,
+  .admin-sidebar {
+    display: none !important;
+    visibility: hidden !important;
+  }
+
+  html,
+  body {
+    width: 100mm !important;
+    height: auto !important;
+    min-height: 0 !important;
+    max-height: none !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    background: #ffffff !important;
+    overflow: visible !important;
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+  }
+
+  /* Thermal print container: Mounted directly to document.body via Portal */
+  .thermal-print-area {
+    display: block !important;
+    visibility: visible !important;
+    position: static !important;
+    width: 100mm !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    box-sizing: border-box !important;
+    background: #ffffff !important;
+    overflow: visible !important;
+  }
+
+  /* Each invoice represents exactly ONE 100x150mm thermal label page */
+  .thermal-print-area .thermal-invoice {
+    display: flex !important;
+    flex-direction: column !important;
+    justify-content: space-between !important;
+    visibility: visible !important;
+    width: 100mm !important;
+    height: 148mm !important;
+    min-height: 148mm !important;
+    max-height: 148mm !important;
+    box-sizing: border-box !important;
+    margin: 0 auto !important;
+    padding: 3.5mm 3.5mm !important;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif !important;
+    color: #000000 !important;
+    background: #ffffff !important;
+    page-break-before: auto !important;
+    break-before: auto !important;
+    page-break-after: always !important;
+    break-after: page !important;
+    page-break-inside: avoid !important;
+    break-inside: avoid !important;
+    border: none !important;
+    box-shadow: none !important;
+    gap: 6px !important;
+    overflow: hidden !important;
+  }
+
+  /* Last invoice in the batch doesn't force a trailing empty page */
+  .thermal-print-area .thermal-invoice:last-child {
+    page-break-after: auto !important;
+    break-after: auto !important;
+  }
+
+  /* Boxes in Print */
+  .thermal-print-area .ti-box {
+    display: block !important;
+    border: 1.8px solid #000000 !important;
+    border-radius: 8px !important;
+    background: #ffffff !important;
+    box-sizing: border-box !important;
+    width: 100% !important;
+    page-break-inside: avoid !important;
+    break-inside: avoid !important;
+  }
+
+  .thermal-print-area .ti-box--header {
+    padding: 8px 8px !important;
+    text-align: center !important;
+  }
+
+  .thermal-print-area .ti-store-title {
+    font-size: 22px !important;
+    font-weight: 900 !important;
+    letter-spacing: 0.5px !important;
+    color: #000000 !important;
+    line-height: 1.15 !important;
+  }
+
+  .thermal-print-area .ti-box--meta {
+    display: flex !important;
+    align-items: stretch !important;
+    padding: 0 !important;
+  }
+
+  .thermal-print-area .ti-meta-left {
+    flex: 1.15 !important;
+    padding: 7px 9px !important;
+  }
+
+  .thermal-print-area .ti-meta-right {
+    flex: 0.85 !important;
+    padding: 7px 9px !important;
+  }
+
+  .thermal-print-area .ti-divider-v {
+    width: 1.8px !important;
+    background-color: #000000 !important;
+    align-self: stretch !important;
+  }
+
+  .thermal-print-area .ti-label {
+    font-size: 10.5px !important;
+    font-weight: 800 !important;
+    color: #000000 !important;
+  }
+
+  .thermal-print-area .ti-label--date {
+    margin-top: 4px !important;
+  }
+
+  .thermal-print-area .ti-val--invoiceno {
+    font-size: 17px !important;
+    font-weight: 900 !important;
+    color: #000000 !important;
+  }
+
+  .thermal-print-area .ti-val--date {
+    font-size: 12.5px !important;
+    font-weight: 600 !important;
+    color: #000000 !important;
+  }
+
+  .thermal-print-area .ti-val--payment {
+    font-size: 14.5px !important;
+    font-weight: 600 !important;
+    color: #000000 !important;
+  }
+
+  .thermal-print-area .ti-box--shipto {
+    padding: 7px 9px 8px !important;
+  }
+
+  .thermal-print-area .ti-shipto-heading {
+    font-size: 12.5px !important;
+    font-weight: 700 !important;
+    color: #000000 !important;
+  }
+
+  .thermal-print-area .ti-shipto-divider {
+    height: 1.5px !important;
+    background-color: #000000 !important;
+    margin: 4px 0 5px 0 !important;
+  }
+
+  .thermal-print-area .ti-recipient-name {
+    font-size: 15px !important;
+    font-weight: 600 !important;
+    color: #000000 !important;
+  }
+
+  .thermal-print-area .ti-addr-line {
+    font-size: 14px !important;
+    font-weight: 400 !important;
+    color: #000000 !important;
+    line-height: 1.3 !important;
+  }
+
+  .thermal-print-area .ti-addr-phone {
+    font-size: 14px !important;
+    font-weight: 500 !important;
+    color: #000000 !important;
+    line-height: 1.3 !important;
+  }
+
+  .thermal-print-area .ti-box--totals {
+    display: flex !important;
+    align-items: stretch !important;
+    padding: 0 !important;
+    background: #f2f3f5 !important;
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+  }
+
+  .thermal-print-area .ti-total-left,
+  .thermal-print-area .ti-total-right {
+    flex: 1 !important;
+    padding: 7px 9px !important;
+  }
+
+  .thermal-print-area .ti-val--items {
+    font-size: 22px !important;
+    font-weight: 900 !important;
+    color: #000000 !important;
+  }
+
+  .thermal-print-area .ti-val--amount {
+    font-size: 24px !important;
+    font-weight: 900 !important;
+    color: #000000 !important;
+  }
+
+  .thermal-print-area .ti-box--footer {
+    border: 1.8px dashed #000000 !important;
+    border-radius: 8px !important;
+    padding: 8px 8px !important;
+    text-align: center !important;
+  }
+
+  .thermal-print-area .ti-footer-text {
+    font-size: 12.5px !important;
+    font-weight: 500 !important;
+    color: #000000 !important;
+  }
+
+  .thermal-print-area .ti-footer-brand {
+    font-size: 15.5px !important;
+    font-weight: 900 !important;
+    color: #000000 !important;
+  }
+}

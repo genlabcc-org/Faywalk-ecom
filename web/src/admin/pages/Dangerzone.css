@@ -1,0 +1,232 @@
+/* ── DangerZone.css ─────────────────────────────────────── */
+
+.dz {
+  padding: 28px 32px;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+/* Header */
+.dz__header {
+  margin-bottom: 24px;
+}
+
+.dz__title {
+  font-size: 22px;
+  font-weight: 700;
+  color: #1a1a1a;
+  margin: 0 0 2px 0;
+}
+
+.dz__subtitle {
+  font-size: 13px;
+  color: #888;
+  margin: 0;
+}
+
+/* Export / Backup rows */
+.dz__section {
+  background: #fff;
+  border: 1px solid #ebebeb;
+  border-radius: 10px;
+  overflow: hidden;
+  margin-bottom: 20px;
+}
+
+.dz__row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 14px 20px;
+  border-bottom: 1px solid #f0f0f0;
+}
+
+.dz__row--last {
+  border-bottom: none;
+}
+
+.dz__row-label {
+  font-size: 13.5px;
+  color: #333;
+  font-weight: 500;
+}
+
+.dz__csv-btn {
+  font-size: 12.5px;
+  font-weight: 500;
+  color: #333;
+  background: #fff;
+  border: 1px solid #d0d0d0;
+  border-radius: 7px;
+  padding: 6px 14px;
+  cursor: pointer;
+  transition: background 0.15s, border-color 0.15s;
+}
+
+.dz__csv-btn:hover:not(:disabled) {
+  background: #f5f5f5;
+  border-color: #bbb;
+}
+
+.dz__csv-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.dz__backup-date {
+  font-size: 13px;
+  color: #888;
+}
+
+/* Danger Section */
+.dz__danger-section {
+  background: #fff5f5;
+  border: 1px solid #fdd;
+  border-radius: 10px;
+  padding: 18px 20px 20px;
+}
+
+.dz__danger-heading {
+  font-size: 13px;
+  font-weight: 600;
+  color: #c0392b;
+  margin: 0 0 16px 0;
+}
+
+.dz__danger-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 14px;
+}
+
+.dz__danger-card {
+  background: #fff;
+  border: 1px solid #fcc;
+  border-radius: 8px;
+  padding: 14px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.dz__danger-card--full {
+  grid-column: 1 / -1;
+}
+
+.dz__danger-card-title {
+  font-size: 13px;
+  font-weight: 600;
+  color: #1a1a1a;
+  margin: 0;
+}
+
+.dz__danger-card-desc {
+  font-size: 12px;
+  color: #666;
+  line-height: 1.5;
+  margin: 0;
+  flex: 1;
+}
+
+.dz__danger-btn {
+  margin-top: 8px;
+  align-self: flex-start;
+  background: #1a1a1a;
+  color: #fff;
+  border: none;
+  border-radius: 7px;
+  padding: 7px 14px;
+  font-size: 12px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+
+.dz__danger-btn:hover {
+  background: #333;
+}
+
+/* Confirmation Modal */
+.dz__modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.35);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+}
+
+.dz__modal {
+  background: #fff;
+  border-radius: 12px;
+  padding: 28px 28px 24px;
+  max-width: 380px;
+  width: 90%;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.14);
+}
+
+.dz__modal-title {
+  font-size: 16px;
+  font-weight: 700;
+  color: #1a1a1a;
+  margin: 0 0 8px 0;
+}
+
+.dz__modal-desc {
+  font-size: 13px;
+  color: #666;
+  margin: 0 0 20px 0;
+  line-height: 1.5;
+}
+
+.dz__modal-actions {
+  display: flex;
+  gap: 10px;
+  justify-content: flex-end;
+}
+
+.dz__modal-cancel {
+  background: #f0f0f0;
+  border: none;
+  border-radius: 7px;
+  padding: 8px 18px;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  color: #444;
+}
+
+.dz__modal-cancel:hover {
+  background: #e0e0e0;
+}
+
+.dz__modal-confirm {
+  background: #c0392b;
+  color: #fff;
+  border: none;
+  border-radius: 7px;
+  padding: 8px 18px;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+}
+
+.dz__modal-confirm:hover {
+  background: #FFE1E1;
+}
+
+/* Responsive */
+@media (max-width: 600px) {
+  .dz {
+    padding: 20px 16px;
+  }
+
+  .dz__danger-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .dz__danger-card--full {
+    grid-column: auto;
+  }
+}

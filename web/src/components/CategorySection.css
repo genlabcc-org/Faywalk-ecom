@@ -1,0 +1,144 @@
+@font-face {
+  font-family: 'Agraham';
+  src: url('../assets/fonts/Agraham.otf') format('opentype');
+}
+
+.category-section {
+  max-width: 1600px;
+  margin: 15px auto 35px;
+  padding: 10px 20px 25px;
+  background: #fff;
+  width: 100%;
+}
+
+.category-header {
+  text-align: center;
+  margin-bottom: 24px;
+}
+
+.category-title {
+  font-family: 'Agraham', Georgia, serif;
+  font-size: 32px;
+  font-weight: 500;
+  color: #4A1521;
+  margin: 0;
+  text-align: center;
+  letter-spacing: 0.5px;
+}
+
+.category-subtitle {
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+  font-size: 14px;
+  color: #7d7571;
+  margin: 6px 0 0;
+  text-align: center;
+}
+
+.category-wrapper {
+  display: flex;
+  justify-content: center;
+  gap: 30px;
+  flex-wrap: wrap;
+}
+
+.category-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  cursor: pointer;
+  transition: transform 0.3s ease;
+}
+
+.category-item:hover {
+  transform: translateY(-5px);
+}
+
+.category-item img {
+  width: 140px;
+  height: 140px;
+  object-fit: cover;
+  border-radius: 10px;
+  border: 2px solid transparent;
+  transition: all 0.3s ease;
+  padding: 5px;
+  background: #f9f9f9;
+  transform: translateZ(0);
+  backface-visibility: hidden;
+}
+
+.category-item:hover img {
+  border-color: #a83228;
+  transform: translateY(-5px) translateZ(0);
+}
+
+.category-item p {
+  font-family: 'Inter', sans-serif;
+  font-size: 16px;
+  font-weight: 500;
+  color: #333;
+}
+
+/* 📱 Mobile: CaratLane Horizontal Circle Scroll */
+@media (max-width: 768px) {
+  .category-section {
+    margin: 10px;
+    padding: 16px 10px 12px;
+    background: #fff5eb !important;
+    border-radius: 14px;
+  }
+
+  .category-header {
+    margin-bottom: 14px;
+  }
+
+  .category-title {
+    font-size: 24px;
+  }
+
+  .category-subtitle {
+    font-size: 13px;
+  }
+
+  .category-wrapper {
+    overflow-x: auto;
+    padding: 9px 10px;
+    flex-wrap: nowrap;
+    justify-content: flex-start;
+    align-items: flex-start;
+    scrollbar-width: none;
+    -webkit-overflow-scrolling: touch;
+    gap: 16px;
+  }
+
+  .category-wrapper::-webkit-scrollbar {
+    display: none;
+  }
+
+  .category-item {
+    flex: none;
+    width: 86px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    gap: 6px;
+  }
+
+  .category-item img {
+    width: 80px;
+    height: 80px;
+    padding: 3px;
+  }
+
+  .category-item p {
+    font-size: 12px;
+    line-height: 1.25;
+    text-align: center;
+    white-space: normal;
+    word-break: normal;
+    overflow-wrap: break-word;
+    max-width: 100%;
+    margin: 0;
+  }
+}

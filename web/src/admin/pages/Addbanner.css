@@ -1,0 +1,691 @@
+/* ── AddBanner.css ─────────────────────────────────────────────────── */
+
+.ab {
+  display: flex;
+  flex-direction: column;
+  height: auto;
+  background: #f5f5f5;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+}
+
+
+
+/* ── Header ──────────────────────────────────────────────────────────── */
+.ab__header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 20px 24px 16px;
+  background: #f5f5f5;
+}
+
+.ab__back-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  border: 1.5px solid #e2e8f0;
+  background: #fff;
+  cursor: pointer;
+  color: #374151;
+  flex-shrink: 0;
+  transition: background 0.15s, border-color 0.15s;
+}
+
+.ab__back-btn:hover {
+  background: #f1f5f9;
+  border-color: #cbd5e1;
+}
+
+.ab__title {
+  font-size: 22px;
+  font-weight: 700;
+  color: #111827;
+  margin: 0;
+  letter-spacing: -0.3px;
+}
+
+/* ── Body ────────────────────────────────────────────────────────────── */
+.ab__body {
+  padding: 0 24px 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+}
+
+/* ── Section ─────────────────────────────────────────────────────────── */
+.ab__section {
+  background: #fff;
+  border-radius: 12px;
+  border: 1px solid #e5e7eb;
+  padding: 16px;
+  margin-bottom: 12px;
+}
+
+/* ── Label ───────────────────────────────────────────────────────────── */
+.ab__label {
+  display: block;
+  font-size: 12.5px;
+  font-weight: 500;
+  color: #374151;
+  margin-bottom: 8px;
+}
+
+.ab__hint {
+  display: block;
+  font-size: 11.5px;
+  color: #9ca3af;
+  margin-top: 5px;
+}
+
+/* ── Input ───────────────────────────────────────────────────────────── */
+.ab__input {
+  width: 100%;
+  padding: 9px 12px;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  font-size: 13.5px;
+  color: #374151;
+  background: #fff;
+  outline: none;
+  box-sizing: border-box;
+  transition: border-color 0.15s;
+  font-family: inherit;
+}
+
+.ab__input::placeholder {
+  color: #c0c8d4;
+}
+
+.ab__input:focus {
+  border-color: #a0aec0;
+}
+
+.ab__input--date {
+  padding-right: 36px;
+}
+
+/* ── Row / Col ───────────────────────────────────────────────────────── */
+.ab__row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+
+.ab__col {
+  background: #fff;
+  border-radius: 12px;
+  border: 1px solid #e5e7eb;
+  padding: 16px;
+}
+
+/* ── Select ──────────────────────────────────────────────────────────── */
+.ab__select-wrapper {
+  position: relative;
+}
+
+.ab__select {
+  width: 100%;
+  padding: 9px 32px 9px 12px;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  font-size: 13.5px;
+  color: #374151;
+  background: #fff;
+  appearance: none;
+  outline: none;
+  cursor: pointer;
+  font-family: inherit;
+  transition: border-color 0.15s;
+}
+
+.ab__select:focus {
+  border-color: #a0aec0;
+}
+
+.ab__select-arrow {
+  position: absolute;
+  right: 10px;
+  top: 50%;
+  transform: translateY(-50%);
+  pointer-events: none;
+  color: #9ca3af;
+}
+
+/* ── Upload Zone ─────────────────────────────────────────────────────── */
+.ab__upload-zone {
+  border: 1.5px dashed #d1d5db;
+  border-radius: 10px;
+  background: #fafafa;
+  min-height: 120px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: border-color 0.15s, background 0.15s;
+  overflow: hidden;
+}
+
+.ab__upload-zone:hover {
+  border-color: #9ca3af;
+  background: #f3f4f6;
+}
+
+.ab__upload-zone--dragging {
+  border-color: #6366f1;
+  background: #eef2ff;
+}
+
+.ab__upload-zone--has-image {
+  border-style: solid;
+  border-color: #e5e7eb;
+  min-height: 160px;
+}
+
+.ab__upload-placeholder {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  padding: 24px;
+}
+
+.ab__upload-icon-wrap {
+  width: 36px;
+  height: 36px;
+  background: #fff;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #6b7280;
+  margin-bottom: 2px;
+}
+
+.ab__upload-text {
+  font-size: 13px;
+  font-weight: 500;
+  color: #374151;
+}
+
+.ab__upload-hint {
+  font-size: 11.5px;
+  color: #9ca3af;
+  text-align: center;
+}
+
+.ab__upload-preview {
+  width: 100%;
+  height: 160px;
+  object-fit: cover;
+  border-radius: 9px;
+  display: block;
+}
+
+/* ── Image Overlay & Edit Controls ──────────────────────────────────── */
+.ab__image-container {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  border-radius: 9px;
+  overflow: hidden;
+}
+
+.ab__image-overlay {
+  position: absolute;
+  inset: 0;
+  background: rgba(17, 24, 39, 0.45);
+  backdrop-filter: blur(2px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  opacity: 0;
+  transition: opacity 0.2s ease;
+}
+
+.ab__image-container:hover .ab__image-overlay,
+.ab__upload-zone:hover .ab__image-overlay {
+  opacity: 1;
+}
+
+.ab__image-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 16px;
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 500;
+  border: none;
+  cursor: pointer;
+  font-family: inherit;
+  transition: background 0.15s, transform 0.1s;
+}
+
+.ab__image-btn:active {
+  transform: scale(0.97);
+}
+
+.ab__image-btn--change {
+  background: #ffffff;
+  color: #111827;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+}
+
+.ab__image-btn--change:hover {
+  background: #f8fafc;
+}
+
+.ab__image-btn--remove {
+  background: #ef4444;
+  color: #ffffff;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+}
+
+.ab__image-btn--remove:hover {
+  background: #dc2626;
+}
+
+/* ── Card (validity / visibility) ────────────────────────────────────── */
+.ab__card {
+  background: #fff;
+  border-radius: 12px;
+  border: 1px solid #e5e7eb;
+  padding: 16px;
+  margin-bottom: 12px;
+}
+
+.ab__card-title {
+  font-size: 14px;
+  font-weight: 600;
+  color: #111827;
+  margin: 0 0 14px;
+}
+
+/* ── Date wrapper ────────────────────────────────────────────────────── */
+.ab__date-wrapper {
+  position: relative;
+}
+
+.ab__date-icon {
+  position: absolute;
+  right: 10px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: #9ca3af;
+  pointer-events: none;
+  display: flex;
+  align-items: center;
+}
+
+/* ── Visibility ──────────────────────────────────────────────────────── */
+.ab__visibility-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.ab__visibility-info {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.ab__visibility-label {
+  font-size: 13px;
+  font-weight: 500;
+  color: #374151;
+}
+
+.ab__visibility-sub {
+  font-size: 11.5px;
+  color: #9ca3af;
+}
+
+/* ── Toggle ──────────────────────────────────────────────────────────── */
+.ab__toggle {
+  width: 44px;
+  height: 24px;
+  border-radius: 999px;
+  background: #d1d5db;
+  border: none;
+  cursor: pointer;
+  position: relative;
+  flex-shrink: 0;
+  transition: background 0.2s;
+  padding: 0;
+}
+
+.ab__toggle--on {
+  background: #111827;
+}
+
+.ab__toggle-thumb {
+  position: absolute;
+  top: 3px;
+  left: 3px;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: #fff;
+  transition: transform 0.2s;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
+}
+
+.ab__toggle--on .ab__toggle-thumb {
+  transform: translateX(20px);
+}
+
+/* ── Preview Box ─────────────────────────────────────────────────────── */
+.ab__preview-box {
+  border-radius: 10px;
+  overflow: hidden;
+  background: #1a1a2e;
+  min-height: 140px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.ab__preview-img {
+  width: 100%;
+  height: 160px;
+  object-fit: cover;
+  display: block;
+}
+
+.ab__preview-placeholder {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  color: #64748b;
+  font-size: 12.5px;
+  padding: 32px;
+}
+
+/* ── Footer ──────────────────────────────────────────────────────────── */
+.ab__footer {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 10px;
+  padding: 14px 24px;
+  background: #f5f5f5;
+  margin-top: 8px;
+}
+
+/* ── Buttons ─────────────────────────────────────────────────────────── */
+.ab__btn {
+  padding: 9px 20px;
+  border-radius: 8px;
+  font-size: 13.5px;
+  font-weight: 500;
+  cursor: pointer;
+  border: none;
+  font-family: inherit;
+  transition: background 0.15s, opacity 0.15s;
+}
+
+.ab__btn--discard {
+  background: #fff;
+  border: 1.5px solid #e5e7eb;
+  color: #374151;
+}
+
+.ab__btn--discard:hover {
+  background: #f9fafb;
+  border-color: #d1d5db;
+}
+
+.ab__btn--publish {
+  background: #111827;
+  color: #fff;
+}
+
+.ab__btn--publish:hover {
+  background: #1f2937;
+}
+
+
+/* ═══════════════════════════════════════════════════════════════════════
+   RESPONSIVE BREAKPOINTS
+   xs  : < 480px   (small phones — iPhone SE, Galaxy A)
+   sm  : 480–639px (large phones — iPhone Pro Max, Pixel)
+   md  : 640–1023px (tablets — iPad, Surface)
+   lg  : ≥ 1024px  (laptops / desktops)
+   ═══════════════════════════════════════════════════════════════════════ */
+
+
+/* ── xs — small phones (< 480px) ──────────────────────────────────── */
+@media (max-width: 479px) {
+  .ab__header {
+    padding: 14px 16px 12px;
+  }
+
+  .ab__title {
+    font-size: 18px;
+  }
+
+  .ab__body {
+    padding: 0 12px 24px;
+  }
+
+  .ab__section,
+  .ab__card,
+  .ab__col {
+    padding: 12px;
+    border-radius: 10px;
+  }
+
+  /* Stack display-order + target vertically */
+  .ab__row {
+    grid-template-columns: 1fr;
+    gap: 10px;
+  }
+
+  /* Upload zone a bit taller for tap comfort */
+  .ab__upload-zone {
+    min-height: 110px;
+  }
+
+  .ab__upload-hint {
+    font-size: 11px;
+  }
+
+  /* Preview fills width nicely */
+  .ab__preview-img,
+  .ab__upload-preview {
+    height: 140px;
+  }
+
+  .ab__preview-box {
+    min-height: 120px;
+  }
+
+  /* Footer */
+  .ab__footer {
+    padding: 12px 16px;
+    gap: 8px;
+  }
+
+  .ab__btn {
+    flex: 1;
+    text-align: center;
+    font-size: 13px;
+    padding: 10px 12px;
+  }
+}
+
+
+/* ── sm — large phones (480px – 639px) ────────────────────────────── */
+@media (min-width: 480px) and (max-width: 639px) {
+  .ab__header {
+    padding: 16px 20px 14px;
+  }
+
+  .ab__title {
+    font-size: 20px;
+  }
+
+  .ab__body {
+    padding: 0 20px 24px;
+  }
+
+  /* Still stack the two-col row so inputs aren't cramped */
+  .ab__row {
+    grid-template-columns: 1fr;
+    gap: 10px;
+  }
+
+  .ab__footer {
+    padding: 12px 20px;
+  }
+
+  .ab__btn {
+    flex: 1;
+    text-align: center;
+  }
+}
+
+
+/* ── md — tablets (640px – 1023px) ────────────────────────────────── */
+@media (min-width: 640px) and (max-width: 1023px) {
+  .ab__header {
+    padding: 24px 32px 18px;
+  }
+
+  .ab__title {
+    font-size: 24px;
+  }
+
+  .ab__body {
+    padding: 0 32px 32px;
+  }
+
+  /* Restore two-col layout */
+  .ab__row {
+    grid-template-columns: 1fr 1fr;
+    gap: 14px;
+  }
+
+  /* Taller image zones on tablet */
+  .ab__upload-zone--has-image {
+    min-height: 200px;
+  }
+
+  .ab__upload-preview,
+  .ab__preview-img {
+    height: 200px;
+  }
+
+  .ab__preview-box {
+    min-height: 180px;
+  }
+
+  .ab__footer {
+    padding: 16px 32px;
+  }
+
+  .ab__btn {
+    min-width: 140px;
+  }
+}
+
+
+/* ── lg — desktops / laptops (≥ 1024px) ───────────────────────────── */
+@media (min-width: 1024px) {
+  .ab {
+    max-width: 100%;
+    width: 100%;
+    margin: 0;
+  }
+
+  .ab__header {
+    padding: 28px 40px 20px;
+  }
+
+  .ab__title {
+    font-size: 26px;
+  }
+
+  .ab__body {
+    padding: 0 40px 40px;
+  }
+
+  .ab__section,
+  .ab__card {
+    padding: 20px;
+    margin-bottom: 14px;
+  }
+
+  .ab__col {
+    padding: 18px;
+  }
+
+  .ab__row {
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+  }
+
+  .ab__input,
+  .ab__select {
+    font-size: 14px;
+    padding: 10px 14px;
+  }
+
+  .ab__label {
+    font-size: 13px;
+    margin-bottom: 10px;
+  }
+
+  /* Taller image zones on large screens */
+  .ab__upload-zone {
+    min-height: 150px;
+  }
+
+  .ab__upload-zone--has-image {
+    min-height: 220px;
+  }
+
+  .ab__upload-preview,
+  .ab__preview-img {
+    height: 220px;
+  }
+
+  .ab__preview-box {
+    min-height: 200px;
+  }
+
+  .ab__footer {
+    padding: 18px 40px;
+  }
+
+  .ab__btn {
+    min-width: 160px;
+    font-size: 14px;
+    padding: 10px 24px;
+  }
+}
+
+
+/* ── xl — wide desktops (≥ 1280px) ────────────────────────────────── */
+@media (min-width: 1280px) {
+  .ab__header {
+    padding: 32px 48px 22px;
+  }
+
+  .ab__body {
+    padding: 0 48px 48px;
+  }
+
+  .ab__footer {
+    padding: 20px 48px;
+  }
+}

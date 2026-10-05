@@ -1,0 +1,266 @@
+/* ── StoreInfo.css ──────────────────────────────────────────────── */
+
+.si {
+  padding: 28px 32px;
+  width: 100%;
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+/* Page header */
+.si__header {
+  margin-bottom: 4px;
+}
+.si__title {
+  font-size: 22px;
+  font-weight: 700;
+  color: #1a1a1a;
+  margin: 0 0 2px;
+}
+.si__sub {
+  font-size: 13px;
+  color: #888;
+  margin: 0;
+}
+
+/* ── Cards (shared) ── */
+.si__card {
+  background: #fff;
+  border: 1px solid #e8e8e8;
+  border-radius: 10px;
+  padding: 24px 28px;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+/* Extra top padding for form card */
+.si__card--form {
+  padding: 28px 28px 20px;
+}
+
+/* ── Logo row ── */
+.si__logo-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 20px;
+}
+
+.si__logo-preview {
+  width: 90px;
+  height: 90px;
+  border-radius: 8px;
+  border: 1px solid #e0e0e0;
+  background: #f5f5f5;
+  overflow: hidden;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.si__logo-placeholder {
+  width: 100%;
+  height: 100%;
+  background: repeating-linear-gradient(
+    45deg,
+    #ebebeb 0px,
+    #ebebeb 2px,
+    #f5f5f5 2px,
+    #f5f5f5 10px
+  );
+}
+
+.si__logo-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.si__logo-meta {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.si__logo-label {
+  font-size: 14px;
+  font-weight: 600;
+  color: #1a1a1a;
+  margin: 0;
+}
+
+.si__logo-hint {
+  font-size: 12px;
+  color: #999;
+  margin: 0 0 10px;
+}
+
+.si__logo-actions {
+  display: flex;
+  gap: 8px;
+}
+
+.si__btn {
+  font-size: 12.5px;
+  font-weight: 500;
+  padding: 6px 16px;
+  border-radius: 6px;
+  cursor: pointer;
+  border: 1px solid transparent;
+  transition: opacity 0.15s, background 0.15s;
+}
+.si__btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.si__btn--upload {
+  background: #1a1a1a;
+  color: #fff;
+  border-color: #1a1a1a;
+}
+.si__btn--upload:hover:not(:disabled) {
+  background: #333;
+}
+
+.si__btn--remove {
+  background: #fff;
+  color: #e53e3e;
+  border-color: #e53e3e;
+}
+.si__btn--remove:hover:not(:disabled) {
+  background: #fff5f5;
+}
+
+.si__file-input {
+  display: none;
+}
+
+/* ── Form ── */
+.si__form {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.si__row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+}
+
+.si__field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.si__field--full {
+  width: 100%;
+}
+
+.si__label {
+  font-size: 13px;
+  font-weight: 500;
+  color: #333;
+}
+
+.si__input,
+.si__select {
+  height: 42px;
+  padding: 0 12px;
+  border: 1px solid #e0e0e0;
+  border-radius: 8px;
+  font-size: 13.5px;
+  color: #1a1a1a;
+  background: #fff;
+  outline: none;
+  transition: border-color 0.15s, box-shadow 0.15s;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.si__input::placeholder {
+  color: #bbb;
+}
+
+.si__select option[value=""] {
+  color: #bbb;
+}
+
+.si__input:focus,
+.si__select:focus {
+  border-color: #a0a0a0;
+  box-shadow: 0 0 0 3px rgba(0, 0, 0, 0.05);
+}
+
+.si__input--error {
+  border-color: #e53e3e;
+}
+.si__input--error:focus {
+  box-shadow: 0 0 0 3px rgba(229, 62, 62, 0.1);
+}
+
+.si__select {
+  appearance: none;
+  -webkit-appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%23888' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 12px center;
+  padding-right: 32px;
+  cursor: pointer;
+}
+
+.si__error {
+  font-size: 11.5px;
+  color: #e53e3e;
+  margin-top: -2px;
+}
+
+/* ── Footer ── */
+.si__footer {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 28px;
+  padding-top: 16px;
+  border-top: 1px solid #f0f0f0;
+}
+
+.si__save-btn {
+  padding: 10px 24px;
+  font-size: 13.5px;
+  font-weight: 600;
+  border-radius: 8px;
+  border: none;
+  cursor: pointer;
+  background: #1a1a1a;
+  color: #fff;
+  transition: background 0.15s, transform 0.1s;
+}
+.si__save-btn:hover {
+  background: #333;
+}
+.si__save-btn:active {
+  transform: scale(0.98);
+}
+.si__save-btn--saved {
+  background: #16a34a;
+}
+.si__save-btn--saved:hover {
+  background: #15803d;
+}
+
+/* ── Responsive ── */
+@media (max-width: 600px) {
+  .si {
+    padding: 20px 16px;
+  }
+  .si__row {
+    grid-template-columns: 1fr;
+  }
+  .si__card {
+    padding: 18px 16px;
+  }
+}

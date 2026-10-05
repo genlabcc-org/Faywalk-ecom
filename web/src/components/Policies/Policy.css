@@ -1,0 +1,193 @@
+/* ═══════════════════════════════════════════════════════════════
+   Policy.css – shared styles for Terms, Privacy & other policy pages
+═══════════════════════════════════════════════════════════════ */
+
+:root {
+  --maroon: #7b1d1d;
+  --maroon-dk: #5c1515;
+  --gold: #c8972a;
+  --text: #111;
+  --text-mid: #444;
+  --text-muted: #777;
+  --border: #e2ddd7;
+  --bg: #f0ede8;
+  --white: #ffffff;
+  --radius: 10px;
+  --serif: 'Georgia', 'Times New Roman', serif;
+  --sans: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+}
+
+.policy-root {
+  font-family: var(--sans);
+  color: var(--text);
+  background: var(--bg);
+  width: 100%;
+  min-height: 100vh;
+}
+
+.policy-section {
+  width: 100%;
+  padding: 40px 48px 64px;
+  display: flex;
+  justify-content: center;
+}
+
+.policy-card {
+  width: 100%;
+  max-width: 860px;
+  background: var(--white);
+  border-radius: var(--radius);
+  border: 1px solid var(--border);
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.05);
+  padding: 48px 56px;
+}
+
+.policy-h1 {
+  font-family: var(--serif);
+  font-size: 32px;
+  font-weight: 700;
+  color: var(--text);
+  margin-bottom: 8px;
+  line-height: 1.25;
+}
+
+.policy-updated {
+  font-size: 13px;
+  color: var(--text-muted);
+  margin-bottom: 32px;
+  padding-bottom: 24px;
+  border-bottom: 1px solid var(--border);
+}
+
+.policy-intro {
+  font-size: 14.5px;
+  line-height: 1.8;
+  color: var(--text-mid);
+  margin-bottom: 28px;
+}
+
+.policy-h2 {
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--maroon);
+  margin-top: 32px;
+  margin-bottom: 12px;
+}
+
+.policy-p {
+  font-size: 14px;
+  line-height: 1.8;
+  color: var(--text-mid);
+  margin-bottom: 14px;
+}
+
+.policy-list {
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin: 14px 0 20px;
+}
+
+.policy-list li {
+  position: relative;
+  padding-left: 18px;
+  font-size: 14px;
+  line-height: 1.75;
+  color: var(--text-mid);
+}
+
+.policy-list li::before {
+  content: '•';
+  position: absolute;
+  left: 0;
+  color: var(--maroon);
+  font-weight: 700;
+}
+
+.policy-sub-list {
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin: 8px 0 8px 18px;
+}
+
+.policy-sub-list li {
+  position: relative;
+  padding-left: 16px;
+  font-size: 13.5px;
+  line-height: 1.7;
+  color: var(--text-mid);
+}
+
+.policy-sub-list li::before {
+  content: '–';
+  position: absolute;
+  left: 0;
+  color: var(--gold);
+}
+
+.policy-link {
+  color: var(--maroon);
+  text-decoration: underline;
+  font-weight: 500;
+}
+
+.policy-link:hover {
+  color: var(--maroon-dk);
+}
+
+.policy-contact-block {
+  margin-top: 32px;
+  padding: 20px 24px;
+  background: #f8f7f4;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+}
+
+.policy-contact-block .policy-h2 {
+  margin-top: 0;
+}
+
+/* ══════════════════════════════════════════════════════════════
+   RESPONSIVE
+══════════════════════════════════════════════════════════════ */
+@media (max-width: 768px) {
+  .policy-section {
+    padding: 24px 16px 40px;
+  }
+
+  .policy-card {
+    padding: 28px 22px;
+  }
+
+  .policy-h1 {
+    font-size: 24px;
+  }
+
+  .policy-h2 {
+    font-size: 16px;
+  }
+}
+
+@media (max-width: 480px) {
+  .policy-section {
+    padding: 16px 12px 32px;
+  }
+
+  .policy-card {
+    padding: 20px 16px;
+  }
+
+  .policy-h1 {
+    font-size: 21px;
+  }
+
+  .policy-intro,
+  .policy-p,
+  .policy-list li,
+  .policy-sub-list li {
+    font-size: 13px;
+  }
+}

@@ -1,0 +1,548 @@
+/* ── BannerEdit.css ──────────────────────────────────────────────────── */
+
+.be {
+  display: flex;
+  flex-direction: column;
+  background: #f5f5f5;
+  min-height: 100%;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+}
+
+/* ── Header ──────────────────────────────────────────────────────────── */
+.be__header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 20px 24px 0;
+}
+
+.be__back-btn {
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  border: 1.5px solid #e5e7eb;
+  background: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  color: #374151;
+  flex-shrink: 0;
+  transition: background 0.15s;
+}
+
+.be__back-btn:hover {
+  background: #f9fafb;
+}
+
+.be__title {
+  font-size: 20px;
+  font-weight: 700;
+  color: #111827;
+  margin: 0;
+  letter-spacing: -0.3px;
+}
+
+/* ── Meta Bar ────────────────────────────────────────────────────────── */
+.be__meta-bar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 10px 24px 16px;
+  background: #eff6ff;
+  border-radius: 8px;
+  padding: 7px 12px;
+}
+
+.be__meta-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #3b82f6;
+  flex-shrink: 0;
+}
+
+.be__meta-text {
+  font-size: 11.5px;
+  color: #3b82f6;
+  font-weight: 500;
+}
+
+/* ── Body ────────────────────────────────────────────────────────────── */
+.be__body {
+  flex: 1;
+  padding: 0 24px 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+}
+
+/* ── Fields ──────────────────────────────────────────────────────────── */
+.be__field {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  margin-bottom: 14px;
+}
+
+.be__field--half {
+  flex: 1;
+  min-width: 0;
+}
+
+.be__label {
+  font-size: 12.5px;
+  font-weight: 500;
+  color: #374151;
+}
+
+.be__input {
+  width: 100%;
+  padding: 9px 12px;
+  border: 1.5px solid #e5e7eb;
+  border-radius: 8px;
+  font-size: 13px;
+  color: #111827;
+  background: #fff;
+  font-family: inherit;
+  outline: none;
+  transition: border-color 0.15s;
+  box-sizing: border-box;
+}
+
+.be__input::placeholder {
+  color: #d1d5db;
+}
+
+.be__input:focus {
+  border-color: #6b7280;
+}
+
+.be__hint {
+  font-size: 11px;
+  color: #9ca3af;
+  margin-top: 2px;
+}
+
+/* ── Row ─────────────────────────────────────────────────────────────── */
+.be__row {
+  display: flex;
+  gap: 12px;
+}
+
+/* ── Select ──────────────────────────────────────────────────────────── */
+.be__select-wrap {
+  position: relative;
+}
+
+.be__select {
+  width: 100%;
+  padding: 9px 32px 9px 12px;
+  border: 1.5px solid #e5e7eb;
+  border-radius: 8px;
+  font-size: 13px;
+  color: #111827;
+  background: #fff;
+  font-family: inherit;
+  outline: none;
+  appearance: none;
+  cursor: pointer;
+  transition: border-color 0.15s;
+  box-sizing: border-box;
+}
+
+.be__select:focus {
+  border-color: #6b7280;
+}
+
+.be__select-chevron {
+  position: absolute;
+  right: 10px;
+  top: 50%;
+  transform: translateY(-50%);
+  pointer-events: none;
+  color: #9ca3af;
+}
+
+/* ── Preview Card ────────────────────────────────────────────────────── */
+.be__preview-card {
+  display: flex;
+  gap: 0;
+  background: #fff;
+  border-radius: 12px;
+  border: 1.5px solid #e5e7eb;
+  overflow: hidden;
+  margin-bottom: 20px;
+}
+
+.be__preview-image {
+  width: 110px;
+  min-width: 110px;
+  align-self: stretch;
+  flex-shrink: 0;
+  overflow: hidden;
+}
+
+.be__preview-image img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.be__preview-image-placeholder {
+  width: 100%;
+  height: 100%;
+  min-height: 110px;
+  background: #f1f5f9;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.be__preview-info {
+  flex: 1;
+  padding: 12px 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  min-width: 0;
+}
+
+.be__preview-title-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 2px;
+}
+
+.be__preview-name {
+  font-size: 14px;
+  font-weight: 600;
+  color: #111827;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.be__preview-meta {
+  font-size: 11.5px;
+  color: #6b7280;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.be__preview-actions {
+  display: flex;
+  gap: 8px;
+  margin-top: 8px;
+}
+
+.be__img-btn {
+  padding: 4px 14px;
+  border-radius: 6px;
+  font-size: 12px;
+  font-weight: 500;
+  cursor: pointer;
+  font-family: inherit;
+  transition: background 0.15s;
+}
+
+.be__img-btn--upload {
+  background: #fff;
+  border: 1.5px solid #e5e7eb;
+  color: #374151;
+}
+
+.be__img-btn--upload:hover {
+  background: #f9fafb;
+}
+
+.be__img-btn--delete {
+  background: #fff;
+  border: 1.5px solid #fecaca;
+  color: #ef4444;
+}
+
+.be__img-btn--delete:hover {
+  background: #fff5f5;
+}
+
+/* ── Status Badge ────────────────────────────────────────────────────── */
+.be__badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 10px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 500;
+  flex-shrink: 0;
+}
+
+.be__badge--active {
+  background: #dcfce7;
+  color: #15803d;
+}
+
+.be__badge--scheduled {
+  background: #fef9c3;
+  color: #a16207;
+}
+
+.be__badge--inactive {
+  background: #f3f4f6;
+  color: #6b7280;
+}
+
+/* ── Section Title ───────────────────────────────────────────────────── */
+.be__section-title {
+  font-size: 14px;
+  font-weight: 600;
+  color: #111827;
+  margin-bottom: 12px;
+  margin-top: 4px;
+}
+
+/* ── Date Wrap ───────────────────────────────────────────────────────── */
+.be__date-wrap {
+  position: relative;
+}
+
+.be__date-icon {
+  position: absolute;
+  right: 10px;
+  top: 50%;
+  transform: translateY(-50%);
+  pointer-events: none;
+}
+
+/* ── Visibility Card ─────────────────────────────────────────────────── */
+.be__visibility-card {
+  background: #fff;
+  border-radius: 12px;
+  border: 1.5px solid #e5e7eb;
+  padding: 14px 16px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 20px;
+}
+
+.be__visibility-label {
+  font-size: 13px;
+  font-weight: 500;
+  color: #111827;
+  margin-bottom: 2px;
+}
+
+.be__visibility-sub {
+  font-size: 11.5px;
+  color: #9ca3af;
+}
+
+/* ── Toggle ──────────────────────────────────────────────────────────── */
+.be__toggle {
+  width: 44px;
+  height: 25px;
+  border-radius: 999px;
+  background: #e5e7eb;
+  border: none;
+  cursor: pointer;
+  position: relative;
+  flex-shrink: 0;
+  transition: background 0.2s;
+  padding: 0;
+}
+
+.be__toggle--on {
+  background: #ef4444;
+}
+
+.be__toggle-knob {
+  position: absolute;
+  top: 3px;
+  left: 3px;
+  width: 19px;
+  height: 19px;
+  border-radius: 50%;
+  background: #fff;
+  transition: transform 0.2s;
+  display: block;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.18);
+}
+
+.be__toggle--on .be__toggle-knob {
+  transform: translateX(19px);
+}
+
+/* ── Performance Grid ────────────────────────────────────────────────── */
+.be__perf-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 10px;
+  margin-bottom: 20px;
+}
+
+.be__perf-card {
+  background: #fff;
+  border-radius: 10px;
+  border: 1.5px solid #e5e7eb;
+  padding: 14px 12px;
+}
+
+.be__perf-label {
+  font-size: 11.5px;
+  color: #6b7280;
+  font-weight: 500;
+  margin-bottom: 6px;
+}
+
+.be__perf-value {
+  font-size: 22px;
+  font-weight: 700;
+  color: #111827;
+  line-height: 1.1;
+}
+
+.be__perf-value--ctr {
+  color: #16a34a;
+}
+
+/* ── Footer ──────────────────────────────────────────────────────────── */
+.be__footer {
+  background: #fff;
+  border-top: 1px solid #e5e7eb;
+  padding: 12px 24px;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 10px;
+}
+
+.be__footer-btn {
+  padding: 9px 20px;
+  border-radius: 8px;
+  font-size: 13.5px;
+  font-weight: 500;
+  cursor: pointer;
+  font-family: inherit;
+  border: none;
+  transition: background 0.15s;
+}
+
+.be__footer-btn--delete {
+  background: #ef4444;
+  color: #fff;
+}
+
+.be__footer-btn--delete:hover {
+  background: #dc2626;
+}
+
+.be__footer-btn--save {
+  background: #111827;
+  color: #fff;
+}
+
+.be__footer-btn--save:hover {
+  background: #1f2937;
+}
+
+/* ── Delete Modal ────────────────────────────────────────────────────── */
+.be__modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.35);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 999;
+}
+
+.be__modal {
+  background: #fff;
+  border-radius: 14px;
+  padding: 24px;
+  width: 300px;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.15);
+}
+
+.be__modal-icon {
+  width: 40px;
+  height: 40px;
+  border-radius: 10px;
+  background: #fff5f5;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 12px;
+}
+
+.be__modal-title {
+  font-size: 16px;
+  font-weight: 700;
+  color: #111827;
+  margin: 0 0 8px;
+}
+
+.be__modal-text {
+  font-size: 13.5px;
+  color: #6b7280;
+  margin: 0 0 20px;
+}
+
+.be__modal-actions {
+  display: flex;
+  gap: 10px;
+  justify-content: flex-end;
+}
+
+.be__modal-btn {
+  padding: 8px 18px;
+  border-radius: 8px;
+  font-size: 13.5px;
+  font-weight: 500;
+  cursor: pointer;
+  font-family: inherit;
+  border: none;
+  transition: background 0.15s;
+}
+
+.be__modal-btn--cancel {
+  background: #f3f4f6;
+  color: #374151;
+}
+
+.be__modal-btn--cancel:hover {
+  background: #e5e7eb;
+}
+
+.be__modal-btn--delete {
+  background: #ef4444;
+  color: #fff;
+}
+
+.be__modal-btn--delete:hover {
+  background: #dc2626;
+}
+
+/* ── Responsive ──────────────────────────────────────────────────────── */
+@media (max-width: 600px) {
+  .be__body,
+  .be__header,
+  .be__meta-bar {
+    padding-left: 16px;
+    padding-right: 16px;
+  }
+
+  .be__meta-bar {
+    margin-left: 16px;
+    margin-right: 16px;
+  }
+
+  .be__perf-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}

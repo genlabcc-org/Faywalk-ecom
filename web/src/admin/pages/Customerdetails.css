@@ -1,0 +1,582 @@
+/* ================================================================
+   CustomerDetails.css  –  Fully Responsive (mobile / tablet / desktop)
+   Breakpoints:
+     xs  : < 480px    (small phones)
+     sm  : 480–767px  (large phones)
+     md  : 768–1023px (tablets)
+     lg  : 1024px+    (desktop)
+   ================================================================ */
+
+/* ── CSS Variables ──────────────────────────────────────────────── */
+:root {
+  --cd-bg:          #f5f5f5;
+  --cd-card-bg:     #ffffff;
+  --cd-border:      #eeeeee;
+  --cd-border-soft: #f5f5f5;
+  --cd-text-primary:#111111;
+  --cd-text-body:   #444444;
+  --cd-text-muted:  #888888;
+  --cd-text-faint:  #aaaaaa;
+  --cd-radius:      12px;
+  --cd-radius-sm:   8px;
+  --cd-shadow:      0 1px 3px rgba(0,0,0,.06);
+}
+
+/* ── Base ───────────────────────────────────────────────────────── */
+*, *::before, *::after { box-sizing: border-box; }
+
+.cd {
+  padding: 24px 32px 48px;
+  background: var(--cd-bg);
+  min-height: 100%;
+  font-family: "Inter", "Segoe UI", sans-serif;
+  width: 100%;
+}
+
+/* ── Header ─────────────────────────────────────────────────────── */
+.cd__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 20px;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.cd__back-btn {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-size: 17px;
+  font-weight: 700;
+  color: var(--cd-text-primary);
+  padding: 0;
+  flex-shrink: 0;
+}
+.cd__back-btn:hover { opacity: .7; }
+
+.cd__header-meta {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.cd__header-date {
+  font-size: 12px;
+  color: #999;
+  white-space: nowrap;
+}
+
+/* ── Status Badge ───────────────────────────────────────────────── */
+.cd__status-badge {
+  display: inline-block;
+  padding: 3px 11px;
+  border-radius: 20px;
+  font-size: 12px;
+  font-weight: 500;
+  white-space: nowrap;
+}
+
+/* ── Sections ───────────────────────────────────────────────────── */
+.cd__section {
+  margin-bottom: 20px;
+}
+
+.cd__section-title {
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--cd-text-primary);
+  margin-bottom: 10px;
+}
+
+.cd__section-title-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 10px;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.cd__wishlist-count {
+  font-size: 13px;
+  color: #555;
+  font-weight: 500;
+}
+
+/* ── Cards ──────────────────────────────────────────────────────── */
+.cd__card {
+  background: var(--cd-card-bg);
+  border-radius: var(--cd-radius);
+  border: 1px solid var(--cd-border);
+  padding: 18px 20px;
+  box-shadow: var(--cd-shadow);
+}
+
+.cd__card--no-pad {
+  padding: 0;
+  overflow: hidden;
+}
+
+.cd__card-title {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--cd-text-primary);
+  margin-bottom: 14px;
+}
+
+/* ── Profile Grid ───────────────────────────────────────────────── */
+.cd__profile-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+}
+
+/* ── Info Rows ──────────────────────────────────────────────────── */
+.cd__info-rows {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.cd__info-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  font-size: 13px;
+  gap: 8px;
+}
+
+.cd__info-label {
+  color: var(--cd-text-muted);
+  font-weight: 400;
+  flex-shrink: 0;
+}
+
+.cd__info-value {
+  color: var(--cd-text-primary);
+  font-weight: 500;
+  text-align: right;
+  word-break: break-word;
+}
+
+.cd__info-value--email {
+  word-break: break-all;
+}
+
+/* ── Address Grid ───────────────────────────────────────────────── */
+.cd__address-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+}
+
+.cd__address-label {
+  font-size: 11.5px;
+  font-weight: 600;
+  color: #888;
+  margin-bottom: 6px;
+  text-transform: uppercase;
+  letter-spacing: .03em;
+}
+
+.cd__address-name {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--cd-text-primary);
+  margin-bottom: 6px;
+}
+
+.cd__address-lines {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  font-size: 13px;
+  color: #555;
+  line-height: 1.5;
+}
+
+/* ── Order History ──────────────────────────────────────────────── */
+.cd__order-row {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 14px 18px;
+  border-bottom: 1px solid var(--cd-border-soft);
+}
+.cd__order-row:last-child { border-bottom: none; }
+
+.cd__product-img {
+  flex-shrink: 0;
+  width: 44px;
+  height: 44px;
+  border-radius: var(--cd-radius-sm);
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #fff3e0;
+  border: 1px solid #fde68a;
+}
+
+.cd__order-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.cd__order-name {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--cd-text-primary);
+  margin-bottom: 3px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.cd__order-meta {
+  font-size: 12px;
+  color: #888;
+  margin-bottom: 2px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  align-items: center;
+}
+
+.cd__order-meta-sep {
+  color: #ccc;
+}
+
+.cd__order-date {
+  font-size: 12px;
+  color: #aaa;
+}
+
+.cd__order-right {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 6px;
+  flex-shrink: 0;
+}
+
+.cd__order-amount {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--cd-text-primary);
+  white-space: nowrap;
+}
+
+/* ── Wishlist ───────────────────────────────────────────────────── */
+.cd__wishlist-grid {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 12px;
+}
+
+.cd__wishlist-card {
+  background: var(--cd-card-bg);
+  border-radius: 10px;
+  border: 1px solid var(--cd-border);
+  padding: 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  box-shadow: var(--cd-shadow);
+}
+
+.cd__wishlist-name {
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--cd-text-primary);
+  line-height: 1.4;
+}
+
+.cd__wishlist-price {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--cd-text-primary);
+}
+
+/* ── Recent Activity ────────────────────────────────────────────── */
+.cd__activity-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 8px 0;
+  border-bottom: 1px solid var(--cd-border-soft);
+}
+.cd__activity-row:last-child { border-bottom: none; }
+
+.cd__activity-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  flex-shrink: 0;
+  margin-top: 4px;
+}
+
+.cd__activity-text {
+  font-size: 13px;
+  color: #444;
+  line-height: 1.4;
+}
+
+/* ── Account Controls ───────────────────────────────────────────── */
+.cd__controls-card {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 20px;
+  flex-wrap: wrap;
+}
+
+.cd__controls-warning {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  flex: 1;
+  min-width: 200px;
+}
+
+.cd__warning-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #ef4444;
+  flex-shrink: 0;
+  margin-top: 4px;
+}
+
+.cd__warning-title {
+  font-size: 13px;
+  font-weight: 500;
+  color: #333;
+  margin-bottom: 4px;
+  line-height: 1.4;
+}
+
+.cd__warning-sub {
+  font-size: 12.5px;
+  color: #888;
+  line-height: 1.4;
+}
+
+.cd__controls-btns {
+  display: flex;
+  gap: 10px;
+  flex-shrink: 0;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+/* ── Buttons ────────────────────────────────────────────────────── */
+.cd__btn {
+  padding: 8px 16px;
+  border-radius: var(--cd-radius-sm);
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  border: none;
+  transition: opacity .15s;
+  white-space: nowrap;
+}
+.cd__btn:hover { opacity: .85; }
+
+.cd__btn--disable {
+  background: #fef9c3;
+  color: #854d0e;
+  border: 1px solid #fde047;
+}
+
+.cd__btn--delete {
+  background: #ef4444;
+  color: #fff;
+}
+
+.cd__btn--cancel {
+  background: #f5f5f5;
+  color: #444;
+  border: 1px solid #e0e0e0;
+}
+
+/* ── Modal ──────────────────────────────────────────────────────── */
+.cd__modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,.35);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  padding: 16px;
+}
+
+.cd__modal {
+  background: #fff;
+  border-radius: 14px;
+  padding: 28px;
+  width: 100%;
+  max-width: 400px;
+  box-shadow: 0 20px 60px rgba(0,0,0,.15);
+}
+
+.cd__modal-title {
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--cd-text-primary);
+  margin-bottom: 10px;
+}
+
+.cd__modal-body {
+  font-size: 13.5px;
+  color: #666;
+  margin-bottom: 22px;
+  line-height: 1.5;
+}
+
+.cd__modal-btns {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+/* ================================================================
+   RESPONSIVE BREAKPOINTS
+   ================================================================ */
+
+/* ── Tablet: 768–1023px ─────────────────────────────────────────── */
+@media (max-width: 1023px) {
+  /* Wishlist: 3 per row on tablet */
+  .cd__wishlist-grid {
+    grid-template-columns: repeat(3, 1fr);
+  }
+}
+
+/* ── Small tablet / large phone: < 768px ───────────────────────── */
+@media (max-width: 767px) {
+  .cd {
+    padding: 16px 16px 40px;
+  }
+
+  /* Header: stack if needed */
+  .cd__header {
+    align-items: flex-start;
+    margin-bottom: 16px;
+  }
+  .cd__back-btn { font-size: 15px; }
+  .cd__header-date { display: none; } /* saves space; not critical on mobile */
+
+  /* Profile — stack to single column */
+  .cd__profile-grid {
+    grid-template-columns: 1fr;
+    gap: 12px;
+  }
+
+  /* Addresses — stack to single column */
+  .cd__address-grid {
+    grid-template-columns: 1fr;
+    gap: 12px;
+  }
+
+  /* Wishlist — 2 per row */
+  .cd__wishlist-grid {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 10px;
+  }
+
+  /* Order rows — tighter padding */
+  .cd__order-row {
+    padding: 12px 14px;
+    gap: 10px;
+  }
+  .cd__order-name { font-size: 12.5px; }
+
+  /* Controls — stack vertically */
+  .cd__controls-card {
+    flex-direction: column;
+    gap: 14px;
+  }
+  .cd__controls-btns {
+    width: 100%;
+    justify-content: flex-start;
+  }
+
+  /* Sections */
+  .cd__section { margin-bottom: 16px; }
+  .cd__card { padding: 14px 16px; }
+}
+
+/* ── Small phones: < 480px ──────────────────────────────────────── */
+@media (max-width: 479px) {
+  .cd {
+    padding: 12px 12px 36px;
+  }
+
+  .cd__back-btn { font-size: 14px; }
+
+  /* Info rows: label above value on very small screens */
+  .cd__info-row {
+    flex-direction: column;
+    gap: 2px;
+  }
+  .cd__info-value {
+    text-align: left;
+  }
+
+  /* Wishlist: 2 columns on small phones */
+  .cd__wishlist-grid {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 8px;
+  }
+  .cd__wishlist-card { padding: 10px; gap: 6px; }
+  .cd__wishlist-name { font-size: 11.5px; }
+  .cd__wishlist-price { font-size: 12px; }
+
+  /* Order rows: stack amount/status below product info */
+  .cd__order-row {
+    flex-wrap: wrap;
+    padding: 10px 12px;
+  }
+  .cd__order-right {
+    flex-direction: row;
+    align-items: center;
+    width: 100%;
+    justify-content: space-between;
+    margin-top: 6px;
+    padding-top: 6px;
+    border-top: 1px solid var(--cd-border-soft);
+  }
+
+  /* Buttons: full-width stacked */
+  .cd__controls-btns {
+    flex-direction: column;
+    gap: 8px;
+  }
+  .cd__btn {
+    width: 100%;
+    text-align: center;
+    padding: 10px 16px;
+  }
+
+  /* Modal */
+  .cd__modal {
+    padding: 20px 18px;
+  }
+  .cd__modal-title { font-size: 15px; }
+  .cd__modal-body  { font-size: 13px; }
+  .cd__modal-btns  { justify-content: stretch; }
+  .cd__modal-btns .cd__btn {
+    flex: 1;
+    text-align: center;
+  }
+
+  .cd__card { padding: 12px 13px; }
+  .cd__section { margin-bottom: 14px; }
+}
