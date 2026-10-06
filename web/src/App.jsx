@@ -3,25 +3,24 @@ import { useParams } from "react-router-dom";
 import { useStore } from './hooks/useStore';
 import { BrowserRouter, Routes, Route, useLocation } from "react-router-dom";
 
-import Signup from "./account/JewelrySignup";
-import Login from "./account/JewelryLogin";
-import OtpVerify from "./account/OtpVerify";
-import AnikaProfile from "./profile/AnikaProfile";
-import AnikaOrders from "./profile/AnikaOrders";
+import SignupPage from "./pages/SignupPage";
+import LoginPage from "./pages/LoginPage";
+import OtpVerifyPage from "./pages/OtpVerifyPage";
+import Profile from "./profile/Profile";
+import Orders from "./profile/Orders";
 import OrderTracking from "./profile/OrderTracking";
-import AnikaAddresses from "./profile/AnikaAddresses";
-import AnikaWishlist from "./profile/AnikaWishlist";
-import AnikaAccount from "./profile/AnikaAccount";
+import Addresses from "./profile/Addresses";
+import Wishlists from "./profile/Wishlists";
+import AccountPage from "./profile/AccountPage";
 import ShippingAddress from "./components/shippingAddress";
-import Payment from "./components/CartPage";
-import HomePage from './components/HomePage';
-import ProductDetails from './components/ProductDetails';
-import CategoryPage from "./product/categorypage";
-import WishlistPage from './components/wishlistPage'; // ← added
-import Cartpage from './components/CartPage';
+import HomePage from "./pages/HomePage";
+import WishlistPage from "./pages/WishlistPage";
+import CartPage from "./pages/CartPage";
+import ProductPage from "./pages/ProductPage";
+import CategoryPage from "./pages/CategoryPage";
 
-import Terms from './components/Policies/Term';
-import Privacy from './components/Policies/Privacy';
+import TermsPage from './pages/TermsPage';
+import PrivacyPage from './pages/PrivacyPage';
 
 import AdminRoute from "./components/AdminRoute";
 import Dashboard from "./admin/pages/Dashboard";
@@ -106,11 +105,7 @@ function App() {
         />
         <Route
           path="/product"
-          element={
-            <ProductDetails
-              onBack={() => window.history.back()}
-            />
-          }
+          element={<ProductPage />}
         />
         <Route path="/rings" element={<CategoryPage category="Rings" />} />
         <Route path="/toe-rings" element={<CategoryPage category="Toe Rings" />} />
@@ -124,24 +119,27 @@ function App() {
         <Route path="/category/:slug" element={<CategoryBySlug />} />
         <Route path="/:slug" element={<CategoryBySlug />} />
 
-        <Route path="/account/login" element={<Login />} />
-        <Route path="/account/signup" element={<Signup />} />
-        <Route path="/account/otp-verify" element={<OtpVerify />} />
+        <Route path="/account/login" element={<LoginPage />} />
+        <Route path="/account/signup" element={<SignupPage />} />
+        <Route path="/account/otp-verify" element={<OtpVerifyPage />} />
+        <Route path="/login" element={<LoginPage />} />
+        <Route path="/signup" element={<SignupPage />} />
+        <Route path="/otp-verify" element={<OtpVerifyPage />} />
         <Route path="/shipping" element={<ShippingAddress />} />
-        <Route path="/payment" element={<Payment />} />
-        <Route path="/profile" element={<AnikaProfile />} />
-        <Route path="/profile/orders" element={<AnikaOrders />} />
+        <Route path="/payment" element={<CartPage />} />
+        <Route path="/profile" element={<Profile />} />
+        <Route path="/profile/orders" element={<Orders />} />
         <Route path="/profile/orders/track/:orderId" element={<OrderTracking />} />
         <Route path="/track-order/:orderId" element={<OrderTracking />} />
-        <Route path="/profile/addresses" element={<AnikaAddresses />} />
-        <Route path="/profile/wishlists" element={<AnikaWishlist />} />
-        <Route path="/profile/account" element={<AnikaAccount />} />
+        <Route path="/profile/addresses" element={<Addresses />} />
+        <Route path="/profile/wishlists" element={<Wishlists />} />
+        <Route path="/profile/account" element={<AccountPage />} />
 
-        <Route path="/terms" element={<Terms />} />
-        <Route path="/privacy" element={<Privacy />} />
+        <Route path="/terms" element={<TermsPage />} />
+        <Route path="/privacy" element={<PrivacyPage />} />
 
-        <Route path="/cart" element={<Cartpage />} />
-        <Route path="/wishlist" element={<WishlistPage />} /> {/* ← added */}
+        <Route path="/cart" element={<CartPage />} />
+        <Route path="/wishlist" element={<WishlistPage />} />
 
 
 

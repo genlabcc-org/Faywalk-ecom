@@ -173,7 +173,7 @@ export class RazorpayService {
     const mainProduct = products.find(p => String(p.product_id) === String(mainItem.productId));
     const productName = items.length > 1
       ? `${mainProduct?.name || 'Product'} + ${items.length - 1} other(s)`
-      : mainProduct?.name || "Anika Order";
+      : mainProduct?.name || "Faywalk Order";
 
     return {
       orderId: rzOrder.id,
@@ -280,7 +280,7 @@ export class RazorpayService {
     const mainItem = resolvedItemDetails[0];
     const itemName = resolvedItemDetails.length > 1
       ? `${mainItem?.name} + ${resolvedItemDetails.length - 1} other(s)`
-      : mainItem?.name || "Anika Order";
+      : mainItem?.name || "Faywalk Order";
 
     // 3. Verify address ownership if addressId was provided (falls back to null without throwing)
     let safeAddressId: number | null = null;

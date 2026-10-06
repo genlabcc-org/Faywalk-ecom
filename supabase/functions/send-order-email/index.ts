@@ -28,7 +28,7 @@ export default {
       } = body;
 
       const payload = {
-        _subject: `[Anika Fashion] Order Notification #${orderId}`,
+        _subject: `[Faywalk] Order Notification #${orderId}`,
         _template: "table",
         _captcha: "false",
         "Order Number": `#${orderId}`,

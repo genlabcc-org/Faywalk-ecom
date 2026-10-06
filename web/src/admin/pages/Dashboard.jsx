@@ -8,7 +8,6 @@ import { getUserInitials } from "../../utils/avatarUtils";
 import "./Dashboard.css";
 
 
-import logo from "../../assets/admin/AnikaLogo.png";
 import dashboardIcon from "../../assets/admin/Home.png";
 import productIcon from "../../assets/admin/product.png";
 import categoryIcon from "../../assets/admin/category.png";
@@ -1056,7 +1055,7 @@ const Dashboard = () => {
           <HamburgerIcon open={sidebarOpen} />
         </button>
         <div className="db__navbar-logo">
-          <img src={logo} alt="Anika" className="db__logo-img" />
+          <img src="/logo.png" alt="Faywalk" className="db__logo-img" style={{ borderRadius: 0, height: 38, objectFit: "contain" }} />
         </div>
 
         <div className="db__navbar-actions">

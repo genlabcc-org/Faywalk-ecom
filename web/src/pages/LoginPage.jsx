@@ -2,12 +2,11 @@ import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Link } from "react-router-dom";
 import { authService } from "../services/authService";
-import "./JewelryLogin.css"
+import "./LoginPage.css";
 import Toast from "../components/Toast";
 import loginImg from "../assets/sign/welcome.png";
-import anikalogo from "../assets/offers/logo.svg";
 
-export default function JewelryLogin() {
+export default function LoginPage() {
   const [email, setEmail] = useState("");
   const [loading, setLoading] = useState(false);
   const [toast, setToast] = useState({ message: "", type: "" });
@@ -41,7 +40,7 @@ export default function JewelryLogin() {
       showToast("Email not found! Please sign up first.", "error");
       setTimeout(() => navigate("/account/signup"),  1500);
       setLoading(false);
-      return; // ← stops here
+      return;
     }
   };
 
@@ -58,7 +57,7 @@ export default function JewelryLogin() {
       <div className="jewelry-right">
         <Link to="/">
           <div className="jewelry-logo">
-            <img src= {anikalogo} alt = "Anika Logo"/>
+            <img src="/logo.png" alt="Faywalk Logo" style={{ borderRadius: 0, height: 42, objectFit: "contain" }} />
           </div>
         </Link>
         <div className="jewelry-form-wrapper">
@@ -127,7 +126,7 @@ export default function JewelryLogin() {
       </div>
       <Toast
         message={toast.message}
-        type = {toast.type}
+        type={toast.type}
         onClose={() => setToast({ message: "", type: ""})}
       />
     </div>

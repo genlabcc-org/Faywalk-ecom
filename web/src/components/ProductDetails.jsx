@@ -618,7 +618,7 @@ export default function ProductPage({ onBack }) {
   const handleShare = useCallback(async () => {
     const shareData = {
       title: displayName,
-      text: `Check out this beautiful ${displayName} from Anika`,
+      text: `Check out this ${displayName} from Faywalk`,
       url: window.location.href,
     };
 
@@ -935,7 +935,7 @@ export default function ProductPage({ onBack }) {
                 </button>
                 {deliveryOpen && (
                   <div className='pp-acc-body'>
-                    <p>At Anika, we ensure that your order reaches you safely and as quickly as possible. Please read our shipping policy carefully before placing your order.</p>
+                    <p>At Faywalk, we ensure that your order reaches you safely and as quickly as possible. Please read our shipping policy carefully before placing your order.</p>
 
                     <div className='pp-policy-block'>
                       <h4 className="pp-policy-block-title">Order Processing Time</h4>

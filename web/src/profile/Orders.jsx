@@ -4,7 +4,7 @@ import { orderService } from "../services/orderService";
 import { productService } from "../services/productService";
 import { useStore } from "../hooks/useStore";
 import { getUserInitials } from "../utils/avatarUtils";
-import "./AnikaOrders.css";
+import "./Orders.css";
 import Navbar from "../components/SiteHeader";
 import Footer from "../components/SiteFooter";
 import ThermalInvoice from "../admin/components/ThermalInvoice";
@@ -12,7 +12,7 @@ import ThermalInvoice from "../admin/components/ThermalInvoice";
 const TABS = ["Profile", "Orders", "Addresses", "Wishlists", "Account"];
 const PAGE_SIZE = 5;
 
-export default function AnikaOrders() {
+export default function Orders() {
   const [activeTab, setActiveTab] = useState("Orders");
   const [visibleCount, setVisibleCount] = useState(PAGE_SIZE);
   const [productsMap, setProductsMap] = useState({});
@@ -28,7 +28,6 @@ export default function AnikaOrders() {
   const rawOrders = useStore((s) => s.orders);
   const fetchOrders = useStore((s) => s.fetchOrders);
   const setSelectedProduct = useStore((s) => s.setSelectedProduct);
-
 
   useEffect(() => {
     if (!rawOrders || rawOrders.length === 0) return;
@@ -100,11 +99,10 @@ export default function AnikaOrders() {
     if (sessionLoading) return;
     if (!user) {
       navigate("/account/login");
-      return
+      return;
     }
     fetchOrders(user.id);
   }, [user, sessionLoading]);
-
 
   const orders = useMemo(() => {
     return rawOrders.map((item) => ({
@@ -156,8 +154,6 @@ export default function AnikaOrders() {
     }
   };
 
-
-  // ← handle tab navigation
   const handleTabClick = (tab) => {
     if (tab === "Profile") {
       navigate("/profile");

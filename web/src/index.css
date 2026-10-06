@@ -1,11 +1,106 @@
+/* ── Global Typography Tokens ── */
+@font-face {
+  font-family: 'Agraham';
+  src: url('./assets/fonts/Agraham.otf') format('opentype');
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Ackor';
+  src: url('./assets/fonts/Ackor.otf') format('opentype');
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Niquitta Mirzani Sans';
+  src: local('Niquitta Mirzani Sans'), local('Niquitta Mirzani'), local('NiquittaMirzaniSans');
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+
+:root {
+  --font-title: 'Niquitta Mirzani Sans', 'Outfit', sans-serif;
+  --font-desc: 'Outfit', sans-serif;
+  --font-body: 'Outfit', sans-serif;
+
+  /* Specific tokens from design system */
+  --title-font-family: 'Niquitta Mirzani Sans', 'Outfit', sans-serif;
+  --title-font-weight: 400;
+  --title-font-size: 60px;
+  --title-line-height: 100%;
+  --title-letter-spacing: 0%;
+  --title-text-transform: capitalize;
+
+  --desc-font-family: 'Outfit', sans-serif;
+  --desc-font-weight: 400;
+  --desc-font-size: 24px;
+  --desc-line-height: 100%;
+  --desc-letter-spacing: 0%;
+}
+
+html {
+  scrollbar-gutter: stable;
+}
+
 body {
   margin: 0;
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
-    'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue',
-    sans-serif;
+  font-family: var(--font-body);
+  font-weight: 400;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   -webkit-tap-highlight-color: transparent;
+}
+
+/* ── Global Title Styling (Entire Site) ── */
+.title-font,
+.global-title,
+.collections-title,
+.showcase-title,
+.realExperiences,
+.category-title,
+.section-main-title {
+  font-family: var(--title-font-family) !important;
+  font-weight: var(--title-font-weight) !important;
+  font-style: normal !important;
+  font-size: clamp(32px, 5vw, 60px) !important;
+  line-height: 100% !important;
+  letter-spacing: 0% !important;
+  vertical-align: middle;
+  text-transform: capitalize !important;
+}
+
+/* Headings inherit title font */
+h1:not(.fw-newsletter-title):not(.hero-title),
+h2:not(.fw-col-title) {
+  font-family: var(--font-title);
+  font-weight: 400;
+  line-height: 100%;
+  letter-spacing: 0%;
+  text-transform: capitalize;
+}
+
+/* ── Global Description Styling (Entire Site) ── */
+.desc-font,
+.description-font,
+.global-desc,
+.showcase-subtitle,
+.feature-desc,
+.hearFromOur,
+.section-subtitle,
+.page-desc,
+.product-desc {
+  font-family: var(--desc-font-family) !important;
+  font-weight: var(--desc-font-weight) !important;
+  font-style: normal !important;
+  font-size: clamp(16px, 2.2vw, 24px) !important;
+  line-height: 100% !important;
+  letter-spacing: 0% !important;
+  vertical-align: middle;
 }
 
 code {
@@ -14,6 +109,12 @@ code {
 }
 
 /* Global Image Styles */
-img:not(.logo-img):not(.search-icon) {
+img:not(.logo-img):not(.header-logo-img):not(.search-icon) {
   border-radius: 10px;
+}
+
+.header-logo-img,
+.logo-img,
+.fw-logo-img {
+  border-radius: 0 !important;
 }

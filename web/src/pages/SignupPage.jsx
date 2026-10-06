@@ -2,22 +2,21 @@ import { useState, useEffect } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { Link } from "react-router-dom";
 import { authService } from "../services/authService";
-import "./JewelrySignup.css";
+import "./SignupPage.css";
 import Toast from "../components/Toast";
 import signupImg from "../assets/sign/welcome.png";
-import anikalogo from "../assets/offers/logo.svg";
 
-export default function JewelrySignup() {
+export default function SignupPage() {
   const [email, setEmail] = useState("");
   const [loading, setLoading] = useState(false);
-  const [toast, setToast] = useState({ message: "", type: "" })
+  const [toast, setToast] = useState({ message: "", type: "" });
   const navigate = useNavigate();
   const location = useLocation();
 
   const showToast = (message, type = "info") => {
     setToast({ message: "", type: "" });
     setTimeout(() => setToast({ message, type }), 10);
-  }
+  };
 
   useEffect(() => {
     if (location.state?.message) {
@@ -63,7 +62,7 @@ export default function JewelrySignup() {
       <div className="jewelry-right">
         <Link to="/">
           <div className="jewelry-logo">
-            <img src={anikalogo} alt="Anika Logo" />
+            <img src="/logo.png" alt="Faywalk Logo" style={{ borderRadius: 0, height: 42, objectFit: "contain" }} />
           </div>
         </Link>
         <div className="jewelry-form-wrapper">
@@ -132,4 +131,4 @@ export default function JewelrySignup() {
       />
     </div>
   );
-} 
+}

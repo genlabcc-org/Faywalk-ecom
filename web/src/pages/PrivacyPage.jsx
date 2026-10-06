@@ -1,9 +1,9 @@
 import React, { lazy, Suspense } from 'react';
 import { useNavigate } from 'react-router-dom';
 import './Policy.css';
-import SiteHeader from '../SiteHeader';
+import SiteHeader from '../components/SiteHeader';
 
-const SiteFooter = lazy(() => import('../SiteFooter'));
+const SiteFooter = lazy(() => import('../components/SiteFooter'));
 
 const LoadingSkeleton = ({ height = '200px' }) => (
   <div style={{ height, background: '#f5f5f5', borderRadius: '8px', margin: '16px 0' }} />
@@ -30,11 +30,11 @@ export default function Privacy() {
           <p className="policy-updated">Last Updated: July 30, 2026</p>
 
           <p className="policy-intro">
-            This Privacy Policy explains how Anika Fashion ("Website", "we", "us", or "our") collects, uses,
+            This Privacy Policy explains how Faywalk ("Website", "we", "us", or "our") collects, uses,
             stores, and protects your personal information when you visit, use our services, or make a
             purchase through{' '}
-            <a href="http://www.anikafashion.in" className="policy-link" target="_blank" rel="noopener noreferrer">
-              www.anikafashion.in
+            <a href="https://www.faywalk.in" className="policy-link" target="_blank" rel="noopener noreferrer">
+              www.faywalk.in
             </a>{' '}
             ("Website").
           </p>
@@ -213,7 +213,7 @@ export default function Privacy() {
             Payments made through our Website are processed securely through third-party payment gateways.
           </p>
           <p className="policy-p">
-            Anika Fashion does not directly store your complete payment card or banking details.
+            Faywalk does not directly store your complete payment card or banking details.
           </p>
           <p className="policy-p">
             Payment service providers process your payment information according to their own privacy
@@ -230,7 +230,7 @@ export default function Privacy() {
             rights of others.
           </p>
           <p className="policy-p">
-            Anika Fashion reserves the right to remove inappropriate, misleading, or harmful content.
+            Faywalk reserves the right to remove inappropriate, misleading, or harmful content.
           </p>
 
           <h2 className="policy-h2">Third-Party Websites and Links</h2>
@@ -238,7 +238,7 @@ export default function Privacy() {
             Our Website may contain links to third-party websites, services, or platforms.
           </p>
           <p className="policy-p">
-            Anika Fashion is not responsible for the privacy practices, security, or content of external websites.
+            Faywalk is not responsible for the privacy practices, security, or content of external websites.
           </p>
           <p className="policy-p">
             We recommend reviewing the privacy policies of third-party websites before sharing personal information.
@@ -313,21 +313,21 @@ export default function Privacy() {
               please contact us:
             </p>
             <p className="policy-p" style={{ marginBottom: 0 }}>
-              <strong>Anika Fashion</strong>
+              <strong>Faywalk</strong>
               <br />
               Website:{' '}
-              <a href="http://www.anikafashion.in" className="policy-link" target="_blank" rel="noopener noreferrer">
-                www.anikafashion.in
+              <a href="https://www.faywalk.in" className="policy-link" target="_blank" rel="noopener noreferrer">
+                www.faywalk.in
               </a>
               <br />
-              Email: anikafashionstorengl@gmail.com
+              Email: support@faywalk.in
               <br />
               Address: 121A, Kottar, Parvathipuram Road, Nagercoil, Tamil Nadu - 629004
             </p>
           </div>
 
           <p className="policy-p" style={{ marginTop: 24, fontStyle: 'italic' }}>
-            For applicable data protection laws, Anika Fashion acts as the controller of your personal information.
+            For applicable data protection laws, Faywalk acts as the controller of your personal information.
           </p>
         </div>
       </section>

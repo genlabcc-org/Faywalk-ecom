@@ -1,9 +1,9 @@
 import React, { lazy, Suspense } from 'react';
 import { useNavigate } from 'react-router-dom';
 import './Policy.css';
-import SiteHeader from '../SiteHeader';
+import SiteHeader from '../components/SiteHeader';
 
-const SiteFooter = lazy(() => import('../SiteFooter'));
+const SiteFooter = lazy(() => import('../components/SiteFooter'));
 
 const LoadingSkeleton = ({ height = '200px' }) => (
   <div style={{ height, background: '#f5f5f5', borderRadius: '8px', margin: '16px 0' }} />
@@ -36,8 +36,8 @@ export default function Terms() {
 
           <p className="policy-p">
             By accessing or using the website{' '}
-            <a href="http://www.anikafashion.in" className="policy-link" target="_blank" rel="noopener noreferrer">
-              www.anikafashion.in
+            <a href="https://www.faywalk.in" className="policy-link" target="_blank" rel="noopener noreferrer">
+              www.faywalk.in
             </a>{' '}
             ("Website"), you agree to carefully read, understand, and comply with these Terms of Use ("Terms").
             These Terms apply whenever you access, browse, register, or make a purchase through the Website
@@ -55,14 +55,14 @@ export default function Terms() {
           </p>
 
           <p className="policy-p">
-            As long as you comply with these Terms, Anika Fashion grants you a personal, limited, revocable,
+            As long as you comply with these Terms, Faywalk grants you a personal, limited, revocable,
             non-exclusive, and non-transferable right to access and use the Website for personal shopping purposes.
           </p>
 
           <h2 className="policy-h2">Acceptance of Terms</h2>
           <ul className="policy-list">
             <li>
-              These Terms constitute a legally binding agreement between you and Anika Fashion. By accessing
+              These Terms constitute a legally binding agreement between you and Faywalk. By accessing
               or using the Website, you agree to these Terms, our Privacy Policy, and any additional policies
               related to products, payments, offers, returns, refunds, cancellations, and other services
               provided through the Website.
@@ -98,12 +98,12 @@ export default function Terms() {
               login credentials, and for all activities performed through your account.
             </li>
             <li>
-              By creating an account, you authorize Anika Fashion to collect and use your information as
+              By creating an account, you authorize Faywalk to collect and use your information as
               described in our Privacy Policy.
             </li>
             <li>You agree to provide accurate information and update your details whenever required.</li>
             <li>
-              By registering on the Website, you consent to receive communications from Anika Fashion,
+              By registering on the Website, you consent to receive communications from Faywalk,
               including order updates, promotional offers, newsletters, and other service-related information.
             </li>
             <li>You may unsubscribe from promotional communications at any time.</li>
@@ -111,12 +111,12 @@ export default function Terms() {
 
           <h2 className="policy-h2">Limitation of Liability</h2>
           <p className="policy-p">
-            To the maximum extent permitted by applicable law, Anika Fashion shall not be liable for any
+            To the maximum extent permitted by applicable law, Faywalk shall not be liable for any
             indirect, incidental, special, consequential, or punitive damages arising from the use of or
             inability to use the Website.
           </p>
           <p className="policy-p">
-            Anika Fashion shall not be responsible for losses caused due to technical issues, website
+            Faywalk shall not be responsible for losses caused due to technical issues, website
             interruptions, payment gateway failures, unauthorized access, data loss, or other circumstances
             beyond our reasonable control.
           </p>
@@ -125,18 +125,18 @@ export default function Terms() {
           <p className="policy-p">
             All content available on this Website, including but not limited to trademarks, brand names,
             logos, product images, designs, text, graphics, website layout, icons, source code, and other
-            materials, are the exclusive property of Anika Fashion unless otherwise stated.
+            materials, are the exclusive property of Faywalk unless otherwise stated.
           </p>
           <p className="policy-p">
             Users are prohibited from copying, reproducing, modifying, distributing, selling, or commercially
-            exploiting any content from the Website without prior written permission from Anika Fashion.
+            exploiting any content from the Website without prior written permission from Faywalk.
           </p>
           <p className="policy-p">Any unauthorized use of Website content may result in legal action.</p>
 
           <h2 className="policy-h2">Payments</h2>
-          <p className="policy-p">Anika Fashion uses trusted third-party payment gateways to process online payments.</p>
+          <p className="policy-p">Faywalk uses trusted third-party payment gateways to process online payments.</p>
           <p className="policy-p">
-            While we take reasonable measures to ensure secure transactions, Anika Fashion is not responsible
+            While we take reasonable measures to ensure secure transactions, Faywalk is not responsible
             for delays, failures, or errors caused by third-party payment service providers, banking networks,
             or technical issues beyond our control.
           </p>
@@ -145,7 +145,7 @@ export default function Terms() {
           </p>
 
           <h2 className="policy-h2">Order Cancellation Policy</h2>
-          <p className="policy-p">Anika Fashion reserves the right to cancel an order under certain circumstances, including:</p>
+          <p className="policy-p">Faywalk reserves the right to cancel an order under certain circumstances, including:</p>
           <ul className="policy-list">
             <li>Incorrect product information or pricing errors</li>
             <li>Product unavailability or stock issues</li>
@@ -164,13 +164,13 @@ export default function Terms() {
           </p>
           <p className="policy-p">Once an order has been dispatched, cancellation requests may not be accepted.</p>
           <p className="policy-p">
-            Anika Fashion reserves the right to review cancellation requests based on order status and
+            Faywalk reserves the right to review cancellation requests based on order status and
             applicable policies.
           </p>
 
           <h2 className="policy-h2">Fraudulent or Declined Transactions</h2>
           <p className="policy-p">
-            Anika Fashion reserves the right to take appropriate action against users involved in fraudulent
+            Faywalk reserves the right to take appropriate action against users involved in fraudulent
             activities, including unauthorized payment methods, misuse of offers, or suspicious transactions.
           </p>
           <p className="policy-p">
@@ -180,14 +180,14 @@ export default function Terms() {
 
           <h2 className="policy-h2">Product Colours and Images</h2>
           <p className="policy-p">
-            Anika Fashion makes every effort to display product images and colours as accurately as possible.
+            Faywalk makes every effort to display product images and colours as accurately as possible.
           </p>
           <p className="policy-p">
             However, actual product colours may vary slightly depending on device screens, display settings,
             lighting conditions, and photography effects.
           </p>
           <p className="policy-p">
-            Anika Fashion does not guarantee that the colour displayed on your device will exactly match the
+            Faywalk does not guarantee that the colour displayed on your device will exactly match the
             actual product.
           </p>
 
@@ -196,7 +196,7 @@ export default function Terms() {
             Customers are encouraged to share genuine feedback and reviews about their shopping experience.
           </p>
           <p className="policy-p">
-            Reviews help Anika Fashion improve its products and services and help other customers make
+            Reviews help Faywalk improve its products and services and help other customers make
             informed decisions.
           </p>
           <p className="policy-p">
@@ -204,19 +204,19 @@ export default function Terms() {
             information, offensive content, or false claims.
           </p>
           <p className="policy-p">
-            Anika Fashion reserves the right to remove inappropriate reviews or restrict accounts involved in
+            Faywalk reserves the right to remove inappropriate reviews or restrict accounts involved in
             misuse of the review system.
           </p>
 
           <div className="policy-contact-block">
             <h2 className="policy-h2">Contact Us</h2>
             <p className="policy-p" style={{ marginBottom: 0 }}>
-              For any questions, concerns, or support regarding these Terms, please contact Anika Fashion
+              For any questions, concerns, or support regarding these Terms, please contact Faywalk
               through the contact details provided on the Website.
               <br />
               Website:{' '}
-              <a href="http://www.anikafashion.in" className="policy-link" target="_blank" rel="noopener noreferrer">
-                www.anikafashion.in
+              <a href="https://www.faywalk.in" className="policy-link" target="_blank" rel="noopener noreferrer">
+                www.faywalk.in
               </a>
             </p>
           </div>

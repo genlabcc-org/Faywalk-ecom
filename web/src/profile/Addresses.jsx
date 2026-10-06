@@ -3,14 +3,14 @@ import { useNavigate } from "react-router-dom";
 import { orderService } from "../services/orderService";
 import { useStore } from "../hooks/useStore";
 import { getUserInitials } from "../utils/avatarUtils";
-import "./AnikaAddresses.css";
+import "./Addresses.css";
 import Navbar from "../components/SiteHeader";
 import Footer from "../components/SiteFooter";
 
 const TABS = ["Profile", "Orders", "Addresses", "Wishlists", "Account"];
 const STATES = ["Gujarat", "Tamil Nadu", "Maharashtra", "Delhi", "Karnataka", "Telangana", "West Bengal"];
 
-export default function AnikaAddresses() {
+export default function Addresses() {
   const [activeTab, setActiveTab] = useState("Addresses");
   const navigate = useNavigate();
 
@@ -38,7 +38,7 @@ export default function AnikaAddresses() {
       navigate("/account/login");
       return;
     }
-    fetchAddresses(user.id)
+    fetchAddresses(user.id);
   }, [user, sessionLoading]);
 
   const handleTabClick = (tab) => {
@@ -160,7 +160,7 @@ export default function AnikaAddresses() {
           <div className="addr-saved-grid">
             {addresses.map((addr) => (
               <div
-                key={addr.address_id} // ← use address_id from Supabase
+                key={addr.address_id}
                 className={`addr-saved-card${addr.is_default ? " addr-saved-card--selected" : ""}`}
               >
                 <div className="addr-saved-card-top">
@@ -168,7 +168,7 @@ export default function AnikaAddresses() {
                     type="checkbox"
                     className="addr-check"
                     checked={addr.is_default}
-                    onChange={() => handleSetDefault(addr.address_id)} // ← Supabase update
+                    onChange={() => handleSetDefault(addr.address_id)}
                   />
                   <div className="addr-saved-info">
                     <span className="addr-saved-name">{addr.full_name}</span>
@@ -187,7 +187,7 @@ export default function AnikaAddresses() {
                   </button>
                   <button
                     className="addr-delete-btn"
-                    onClick={() => handleDelete(addr.address_id)} // ← use address_id
+                    onClick={() => handleDelete(addr.address_id)}
                   >
                     <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                       <polyline points="3 6 5 6 21 6" />

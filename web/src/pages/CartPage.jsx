@@ -1,9 +1,9 @@
 import { useState, useEffect } from "react";
 import "./CartPage.css";
-import Navbar from "./SiteHeader"
-import Footer from "./SiteFooter"
+import Navbar from "../components/SiteHeader";
+import Footer from "../components/SiteFooter";
 import { useNavigate } from "react-router-dom";
-import WishlistPage from "./wishlistPage";
+import WishlistPage from "./WishlistPage";
 import { useStore } from "../hooks/useStore";
 import { getOriginalImageUrl } from '../utils/imageUtils';
 import { getNavPath } from "../services/categoryRoute";
@@ -96,8 +96,6 @@ export default function CartPage() {
   const gstIncluded = subtotal > 0 ? Math.round(subtotal - (subtotal / 1.03)) : 0;
   const platformFee = 0;
   const grandTotal = subtotal + platformFee;
-
-
 
   if (showWishlist) {
     return (

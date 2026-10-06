@@ -2,14 +2,14 @@ import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useStore } from "../hooks/useStore";
 import { getUserInitials } from "../utils/avatarUtils";
-import "./AnikaWishlist.css";
+import "./Wishlists.css";
 import Navbar from "../components/SiteHeader";
 import Footer from "../components/SiteFooter";
 import { getOriginalImageUrl } from '../utils/imageUtils';
 
 const TABS = ["Profile", "Orders", "Addresses", "Wishlists", "Account"];
 
-export default function AnikaWishlist() {
+export default function Wishlists() {
   const [activeTab] = useState("Wishlists");
   const navigate = useNavigate();
 

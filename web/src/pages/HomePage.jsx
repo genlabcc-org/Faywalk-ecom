@@ -1,21 +1,23 @@
 import React, { Suspense, lazy } from 'react';
 import { useNavigate } from 'react-router-dom';
-import AnikaHome from './AnikaHome';
+import TopBar from '../components/TopBar';
+import SiteHeader from '../components/SiteHeader';
+import Hero from '../components/Hero';
 import './HomePage.css';
 import { useStore } from '../hooks/useStore';
 import { getNavPath } from "../services/categoryRoute";
 
-const ProductSection = lazy(() => import('./ProductSection'));
-const NecklaceSection = lazy(() => import('./NecklaceSection'));
-const BannerSection = lazy(() => import('./BannerSection'));
-const CategorySection = lazy(() => import('./CategorySection'));
-const NewArrivals = lazy(() => import('./NewArrivals'));
-const BestSellers = lazy(() => import('./BestSellers'));
-const CollectionsSection = lazy(() => import('./CollectionsSection'));
-const RealExperience = lazy(() => import('./RealExperience'));
-const Offers = lazy(() => import('./Offers'));
-const CustomerExperiences = lazy(() => import('./CustomerExperiences'));
-const SiteFooter = lazy(() => import('./SiteFooter'));
+const ProductSection = lazy(() => import('../components/ProductSection'));
+const NecklaceSection = lazy(() => import('../components/NecklaceSection'));
+const BannerSection = lazy(() => import('../components/BannerSection'));
+const CategorySection = lazy(() => import('../components/CategorySection'));
+const NewArrivals = lazy(() => import('../components/NewArrivals'));
+const BestSellers = lazy(() => import('../components/BestSellers'));
+const CollectionsSection = lazy(() => import('../components/CollectionsSection'));
+const RealExperience = lazy(() => import('../components/RealExperience'));
+const Offers = lazy(() => import('../components/Offers'));
+const CustomerExperiences = lazy(() => import('../components/CustomerExperiences'));
+const SiteFooter = lazy(() => import('../components/SiteFooter'));
 
 const SectionLoader = () => (
   <div style={{ height: '20px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
@@ -27,19 +29,28 @@ export default function HomePage() {
   const categories = useStore(state => state.categories);
   const setSelectedProduct = useStore(state => state.setSelectedProduct);
 
-  // Wrap setSelectedProduct to also navigate
   const handleProductClick = (product) => {
-    setSelectedProduct(product);      // saves product to Zustand state
-    navigate('/product');         // then go to product page
+    setSelectedProduct(product);
+    navigate('/product');
   };
 
   const handleCategoryClick = (name) => {
     navigate(getNavPath(name, categories));
   };
 
+  const handleNavClick = (link) => {
+    if (link === 'Home') {
+      window.scrollTo({ top: 0, behavior: "smooth" });
+    } else {
+      navigate(getNavPath(link, categories));
+    }
+  };
+
   return (
     <div className="homepage">
-      <AnikaHome />
+      <TopBar />
+      <SiteHeader activeLink="Home" onLinkClick={handleNavClick} />
+      <Hero />
 
       <Suspense fallback={<SectionLoader />}>
         <div id="categories">

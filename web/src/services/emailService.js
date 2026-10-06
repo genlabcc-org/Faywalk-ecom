@@ -60,7 +60,7 @@ export const emailService = {
         return `[${idx + 1}] ${name}${specs ? ` (${specs})` : ''}\n    • Quantity: ${qty}\n    • Unit Price: ₹${price.toLocaleString('en-IN')}`;
       }).join('\n\n');
 
-      const subject = `[Anika Fashion] Order Notification #${orderId}`;
+      const subject = `[Faywalk] Order Notification #${orderId}`;
 
       // 1. Try sending via Supabase Edge Function if available
       try {

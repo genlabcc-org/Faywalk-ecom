@@ -8,7 +8,7 @@ export default function CollectionsSection() {
   return (
     <section className="collections-section">
 
-      <h2 className="collections-title">Anika Collections</h2>
+      <h2 className="collections-title">Faywalk Collections</h2>
 
       <div className="collections-wrapper">
 

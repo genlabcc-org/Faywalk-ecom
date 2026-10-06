@@ -1,294 +1,314 @@
-.footer-parent {
-  background: radial-gradient(circle at center, #C42049 0%, #54061D 100%);
-  color: #e52b50;
+/* ── FAYWALK FOOTER ── */
+.faywalk-footer {
   width: 100%;
-  font-family: 'Inter', sans-serif;
+  background-color: #f7f7f9;
+  color: #111111;
+  position: relative;
+  overflow: hidden;
+  padding-top: 50px;
+  padding-bottom: 0;
+  box-sizing: border-box;
+  font-family: var(--font-body, 'Outfit', sans-serif);
+  border-top: 1px solid #eaeaea;
 }
 
-.footer-container {
-  max-width: 1400px;
+.fw-footer-container {
+  max-width: 1360px;
   margin: 0 auto;
-  padding: 20px 40px;
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  flex-direction: column;
-  text-align: start;
+  padding: 0 32px 40px 32px;
+  position: relative;
+  z-index: 2;
 }
 
-.footer-grid {
+.fw-footer-grid {
   display: grid;
-  grid-template-columns: 1.5fr 1fr 1fr 1.5fr;
-  gap: 60px;
-  margin-bottom: 80px;
+  grid-template-columns: 1.2fr 1fr 1fr 1fr 2fr;
+  gap: 36px;
+  align-items: start;
 }
 
-.footer-logo {
-  margin-bottom: 30px;
+/* ── Brand Column (Col 1) ── */
+.fw-brand-col {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
 }
 
-.footer-logo .logo-img {
-  height: 60px;
+.fw-logo-wrap {
+  display: inline-block;
+  margin-bottom: 8px;
+}
+
+.fw-logo-img {
+  height: 38px;
   width: auto;
+  object-fit: contain;
+  border-radius: 0 !important;
+  display: block;
 }
 
-.footer-label {
+.fw-mono-text {
+  font-family: var(--desc-font-family, 'Outfit', sans-serif);
+  font-weight: 400;
+  font-size: 14px;
+  color: #6b7280;
+  letter-spacing: 0%;
+  margin: 0;
+  line-height: 1.4;
+}
+
+.fw-made-by {
+  margin-top: 6px;
+  font-size: 14px;
+  color: #6b7280;
+}
+
+.fw-brand-bottom {
+  margin-top: 40px;
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+.fw-copy {
+  color: #6b7280;
+  font-size: 14px;
+}
+
+.fw-privacy-link {
+  color: #6b7280;
+  font-size: 14px;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  transition: color 0.15s ease;
+  display: inline-block;
+}
+
+.fw-privacy-link:hover {
+  color: #111111;
+}
+
+/* ── Navigation Columns (Col 2, 3, 4) ── */
+.fw-col-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 20px;
+  padding-bottom: 6px;
+  border-bottom: 1px solid #e2e2e7;
+  max-width: 140px;
+}
+
+.fw-col-title {
+  font-family: var(--desc-font-family, 'Outfit', sans-serif);
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: 1.5px;
+  color: #8e8e93;
+  text-transform: uppercase;
+}
+
+.fw-link-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.fw-link-list li a {
+  font-family: var(--desc-font-family, 'Outfit', sans-serif);
+  font-size: 15px;
+  letter-spacing: 0.5px;
+  font-weight: 600;
+  color: #111111;
+  text-decoration: none;
+  text-transform: uppercase;
+  transition: opacity 0.15s ease, transform 0.15s ease;
+  display: inline-block;
+}
+
+.fw-link-list li a:hover {
+  opacity: 0.7;
+}
+
+/* ── Newsletter Column (Col 5) ── */
+.fw-newsletter-col {
+  padding-left: 16px;
+}
+
+/* Title Font applied to Newsletter Title */
+.fw-newsletter-title {
+  font-family: var(--title-font-family, 'Niquitta Mirzani Sans', 'Outfit', sans-serif) !important;
+  font-weight: 700 !important;
+  font-style: normal !important;
+  font-size: clamp(28px, 3.2vw, 36px) !important;
+  line-height: 105% !important;
+  letter-spacing: 0.5px !important;
+  vertical-align: middle;
+  text-transform: uppercase !important;
+  color: #111111;
+  margin: 0 0 10px 0;
+}
+
+/* Description Font applied to Newsletter Subtext */
+.fw-newsletter-desc {
+  font-family: var(--desc-font-family, 'Outfit', sans-serif) !important;
+  font-weight: 400 !important;
+  font-style: normal !important;
+  font-size: 15px !important;
+  line-height: 1.5 !important;
+  letter-spacing: 0% !important;
+  vertical-align: middle;
+  color: #6b7280;
+  margin: 0 0 20px 0;
+  max-width: 460px;
+}
+
+.fw-subscribe-form {
+  display: flex;
+  align-items: stretch;
+  max-width: 460px;
+  gap: 10px;
+}
+
+.fw-subscribe-input {
+  flex: 1;
+  min-width: 0;
+  height: 45px;
+  background-color: #ffffff;
+  border: 1px solid #dcdce0;
+  border-radius: 2px;
+  padding: 0 16px;
+  font-family: var(--desc-font-family, 'Outfit', sans-serif);
+  font-size: 14px;
+  color: #111111;
+  outline: none;
+  box-sizing: border-box;
+  transition: border-color 0.2s ease;
+}
+
+.fw-subscribe-input::placeholder {
+  color: #9ca3af;
+  font-size: 14px;
+}
+
+.fw-subscribe-input:focus {
+  border-color: #02164f;
+}
+
+/* Split Submit Button */
+.fw-subscribe-btn {
+  display: inline-flex;
+  align-items: stretch;
+  padding: 0;
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  height: 45px;
+  border-radius: 2px;
+  overflow: hidden;
+  flex-shrink: 0;
+  transition: opacity 0.2s ease, transform 0.15s ease;
+}
+
+.fw-subscribe-btn:hover {
+  opacity: 0.95;
+}
+
+.fw-btn-main {
+  background-color: #031548;
+  color: #ffffff;
+  font-family: var(--desc-font-family, 'Outfit', sans-serif);
   font-size: 14px;
   font-weight: 600;
-  margin-bottom: 12px;
-  color: rgba(255, 255, 255, 0.9);
-}
-
-.newsletter-section {
-  margin-bottom: 30px;
-  max-width: 320px;
-}
-
-.pill-input-group {
-  position: relative;
+  letter-spacing: 0.2px;
+  padding: 0 20px;
   display: flex;
   align-items: center;
-  background: rgba(255, 255, 255, 0.1);
-  border: 1px solid rgba(255, 255, 255, 0.3);
-  border-radius: 10px;
-  padding: 4px;
+  justify-content: center;
+}
+
+.fw-btn-icon {
+  background-color: #e5281b;
+  color: #ffffff;
+  font-size: 16px;
+  font-weight: 700;
+  width: 42px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* ── Giant Bottom Watermark ── */
+.fw-giant-watermark {
+  width: 100%;
+  text-align: center;
+  font-family: var(--title-font-family, 'Niquitta Mirzani Sans', 'Outfit', sans-serif);
+  font-weight: 600;
+  font-size: clamp(44px, 8.5vw, 115px);
+  letter-spacing: 1px;
+  color: #eaeaf0;
+  line-height: 0.85;
+  text-transform: uppercase;
+  user-select: none;
+  pointer-events: none;
+  margin-top: 12px;
+  margin-bottom: -4px;
+  padding: 0 16px;
+  box-sizing: border-box;
+  white-space: nowrap;
   overflow: hidden;
 }
 
-.pill-email-input {
-  background: transparent;
-  border: none;
-  color: #fff;
-  padding: 10px 12px 10px 16px;
-  flex: 1;
-  font-size: 14px;
-  outline: none;
-}
-
-.pill-email-input::placeholder {
-  color: rgba(255, 255, 255, 0.5);
-}
-
-.pill-submit-btn {
-  background: #e52b50;
-  color: #fff;
-  border: none;
-  border-radius: 7px;
-  padding: 10px 20px;
-  font-size: 13px;
-  font-weight: 600;
-  cursor: pointer;
-  transition: opacity 0.2s;
-  flex-shrink: 0;
-  margin: 0;
-}
-
-.pill-submit-btn:hover {
-  opacity: 0.9;
-}
-
-.socials-section {
-  margin-top: 20px;
-}
-
-.social-box-links {
-  display: flex;
-  gap: 6px;
-}
-
-.social-box-icon {
-  width: 48px;
-  height: 48px;
-  background: transparent;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  transition: transform 0.2s;
-  padding: 7px;
-}
-
-.social-box-icon:hover {
-  transform: translateY(-1.5px);
-}
-
-.social-box-icon img {
-  width: 100%;
-  height: 100%;
-  object-fit: contain;
-  display: block;
-  border-radius: 0 !important;
-}
-
-.section-title {
-  font-size: 16px;
-  font-weight: 600;
-  margin-bottom: 24px;
-  color: #fff;
-}
-
-.footer-list {
-  list-style: none;
-  padding: 0;
-}
-
-.footer-list li {
-  margin-bottom: 12px;
-}
-
-.footer-link {
-  color: rgba(255, 255, 255, 0.8);
-  text-decoration: none;
-  font-size: 14px;
-  transition: color 0.2s;
-}
-
-.footer-link:hover {
-  color: #fff;
-}
-
-.address-text {
-  font-size: 13px;
-  line-height: 1.6;
-  color: rgba(255, 255, 255, 0.8);
-  margin-bottom: 15px;
-}
-
-.phone-text {
-  font-size: 14px;
-  font-weight: 500;
-  color: rgba(255, 255, 255, 0.8);
-}
-
-.phone-time{
-  font-size: 12px;
-  font-weight: 500px;
-  color: rgba(255, 255, 255, 0.8);
-  padding-top: 5px;
-}
-
-.footer-bottom {
-  border-top: 1px solid rgba(255, 255, 255, 0.1);
-  padding-top: 30px;
-  width: 100%;
-}
-
-.bottom-content {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  font-size: 13px;
-  color: rgba(255, 255, 255, 0.7);
-  flex-wrap: wrap;
-  gap: 12px;
-}
-
-.legal-links {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-
-.legal-links a {
-  color: rgba(255, 255, 255, 0.8);
-  text-decoration: none;
-}
-
-.legal-links a:hover {
-  color: #fff;
-}
-
-.dot-sep {
-  color: rgba(255, 255, 255, 0.4);
-}
-
-/* 📱 Mobile Responsiveness */
-@media (max-width: 768px) {
-  .footer-parent {
-    margin: 0;
-    padding: 0;
-    border-radius: 0;
-  }
-
-  .footer-container {
-    padding: 10px;
-  }
-
-  .footer-grid {
-    grid-template-columns: 1fr;
+/* ── Responsive Styling ── */
+@media (max-width: 1100px) {
+  .fw-footer-grid {
+    grid-template-columns: 1fr 1fr 1fr;
     gap: 30px;
-    margin-bottom: 30px;
   }
-
-  .brand-column {
-    display: flex;
-    flex-direction: column;
-    align-items: flex-start;
-    text-align: left;
+  .fw-newsletter-col {
+    grid-column: 1 / -1;
+    padding-left: 0;
+    margin-top: 10px;
   }
+}
 
-  .brand-header-mobile {
-    display: flex;
-    flex-direction: column;
-    width: 100%;
-    align-items: center;
-    margin-bottom: 20px;
-    gap: 12px;
+@media (max-width: 768px) {
+  .faywalk-footer {
+    padding-top: 36px;
   }
-
-  .footer-logo {
-    margin-bottom: 0;
+  .fw-footer-container {
+    padding: 0 20px 28px 20px;
   }
-
-  .socials-section {
-    margin-top: 0;
-  }
-
-  .social-box-links {
-    justify-content: flex-start;
-    gap: 6px;
-  }
-
-  .social-box-icon {
-    width: 50px;
-    height: 50px;
-    border-radius: 50% !important;
-  }
-
-  .social-box-icon img {
-    border-radius: 0 !important;
-  }
-
-  .newsletter-section {
-    width: 100%;
-    max-width: 400px;
-    text-align: left;
-    margin-bottom: 10px;
-  }
-
-  .pill-input-group {
-    width: 100%;
-  }
-
-  .footer-columns-mobile-row {
-    display: grid;
+  .fw-footer-grid {
     grid-template-columns: 1fr 1fr;
-    gap: 20px;
-    width: 100%;
-    text-align: left;
+    gap: 26px 18px;
   }
-
-  .section-title {
-    margin-bottom: 15px;
-    font-size: 15px;
+  .fw-brand-col {
+    grid-column: 1 / -1;
   }
-
-  .footer-list li {
-    margin-bottom: 8px;
+  .fw-brand-bottom {
+    margin-top: 22px;
   }
-
-  .bottom-content {
+  .fw-newsletter-col {
+    grid-column: 1 / -1;
+    padding-left: 0;
+  }
+  .fw-subscribe-form {
     flex-direction: column;
-    gap: 15px;
-    text-align: center;
+    max-width: 100%;
+  }
+  .fw-subscribe-btn {
+    width: 100%;
+  }
+  .fw-btn-main {
+    flex: 1;
+  }
+  .fw-giant-watermark {
+    font-size: clamp(30px, 9vw, 56px);
+    margin-top: 14px;
+    margin-bottom: 0;
   }
 }

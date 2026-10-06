@@ -2,7 +2,7 @@
 # https://supabase.com/docs/guides/local-development/cli/config
 # A string used to distinguish different Supabase projects on the same host. Defaults to the
 # working directory name when running `supabase init`.
-project_id = "anika"
+project_id = "faywalk"
 
 [api]
 enabled = true
@@ -249,7 +249,7 @@ otp_expiry = 3600
 # content_path = "./supabase/templates/invite.html"
 
 [auth.email.template.magic_link]
-subject = "Confirm Your Login - Anika Fashion"
+subject = "Confirm Your Login - Faywalk"
 content_path = "./supabase/templates/magic_link.html"
 
 

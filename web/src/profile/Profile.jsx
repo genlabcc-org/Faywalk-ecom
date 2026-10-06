@@ -4,26 +4,22 @@ import { authService } from "../services/authService";
 import { useStore } from "../hooks/useStore";
 import { supabase } from "../lib/supabase";
 import { getUserInitials } from "../utils/avatarUtils";
-import "./AnikaProfile.css";
+import "./Profile.css";
 import Navbar from "../components/SiteHeader";
 import Footer from "../components/SiteFooter";
 
-export default function AnikaProfile() {
+export default function Profile() {
   const [activeTab, setActiveTab] = useState("Profile");
   const [isEditing, setIsEditing] = useState(false);
   const navigate = useNavigate();
 
-    const handleNavClick = (link) => {
+  const handleNavClick = (link) => {
     if (link === "Home") {
       navigate("/");
     } else {
       navigate(`/${link.toLowerCase()}`);
     }
   };
-
-  const wishlistItems = useStore((state) => state.wishlistItems);
-  const removeFromWishlist = useStore((state) => state.removeFromWishlist);
-  const setSelectedProduct = useStore((state) => state.setSelectedProduct);
 
   const user = useStore((s) => s.user);
   const sessionLoading = useStore((s) => s.sessionLoading);
@@ -155,30 +151,30 @@ export default function AnikaProfile() {
   return (
     <>
       <Navbar onLinkClick={handleNavClick} />
-      <div className="anika-root">
-        <main className="anika-main">
-          <h1 className="anika-profile-title">Profile</h1>
+      <div className="profile-root">
+        <main className="profile-main">
+          <h1 className="profile-title">Profile</h1>
 
           {/* User Info */}
-          <div className="anika-user-info">
-            <div className="anika-avatar">
+          <div className="profile-user-info">
+            <div className="profile-avatar">
               {getUserInitials(customerDetails.name || user?.user_metadata?.name || user?.email)}
             </div>
-            <div className="anika-user-text">
-              <span className="anika-user-name">{customerDetails.name}</span>
-              <span className="anika-user-meta">
+            <div className="profile-user-text">
+              <span className="profile-user-name">{customerDetails.name}</span>
+              <span className="profile-user-meta">
                 {customerDetails.email} &nbsp;·&nbsp; Member since {customerDetails.customerSince}
               </span>
-              <span className="anika-vip-badge">{customerDetails.totalOrders}</span>
+              <span className="profile-vip-badge">{customerDetails.totalOrders}</span>
             </div>
           </div>
 
           {/* Tabs */}
-          <div className="anika-tabs">
+          <div className="profile-tabs">
             {tabs.map((tab) => (
               <button
                 key={tab}
-                className={`anika-tab${activeTab === tab ? " anika-tab--active" : ""}`}
+                className={`profile-tab${activeTab === tab ? " profile-tab--active" : ""}`}
                 onClick={() => handleTabClick(tab)}
               >
                 {tab}
@@ -187,59 +183,59 @@ export default function AnikaProfile() {
           </div>
 
           {/* Customer Details Card */}
-          <div className="anika-card">
-            <div className="anika-card-header">
-              <span className="anika-card-title">Customer details</span>
-              <div className="anika-card-header-actions">
+          <div className="profile-card">
+            <div className="profile-card-header">
+              <span className="profile-card-title">Customer details</span>
+              <div className="profile-card-header-actions">
                 {isEditing ? (
                   <>
-                    <button className="anika-save-btn" onClick={handleSave}>Save</button>
-                    <button className="anika-cancel-btn" onClick={handleCancel}>Cancel</button>
+                    <button className="profile-save-btn" onClick={handleSave}>Save</button>
+                    <button className="profile-cancel-btn" onClick={handleCancel}>Cancel</button>
                   </>
                 ) : (
-                  <button className="anika-edit-btn" onClick={handleEdit}>Edit</button>
+                  <button className="profile-edit-btn" onClick={handleEdit}>Edit</button>
                 )}
               </div>
             </div>
-            <div className="anika-card-body">
-              <div className="anika-detail-row">
-                <span className="anika-detail-label">Name</span>
+            <div className="profile-card-body">
+              <div className="profile-detail-row">
+                <span className="profile-detail-label">Name</span>
                 {isEditing ? (
                   <input
-                    className="anika-detail-input"
+                    className="profile-detail-input"
                     value={tempDetails.name}
                     placeholder="Enter your name"
                     onChange={(e) => handleChange("name", e.target.value)}
                   />
                 ) : (
-                  <span className="anika-detail-value">{customerDetails.name}</span>
+                  <span className="profile-detail-value">{customerDetails.name}</span>
                 )}
               </div>
-              <div className="anika-detail-row">
-                <span className="anika-detail-label">Phone</span>
+              <div className="profile-detail-row">
+                <span className="profile-detail-label">Phone</span>
                 {isEditing ? (
                   <input
-                    className="anika-detail-input"
+                    className="profile-detail-input"
                     value={tempDetails.phone}
                     placeholder="Enter your phone"
                     onChange={(e) => handleChange("phone", e.target.value)}
                   />
                 ) : (
-                  <span className="anika-detail-value">{customerDetails.phone}</span>
+                  <span className="profile-detail-value">{customerDetails.phone}</span>
                 )}
               </div>
-              <div className="anika-detail-row">
-                <span className="anika-detail-label">Email</span>
+              <div className="profile-detail-row">
+                <span className="profile-detail-label">Email</span>
                 {/* email is read-only — comes from Supabase Auth */}
-                <span className="anika-detail-value">{customerDetails.email}</span>
+                <span className="profile-detail-value">{customerDetails.email}</span>
               </div>
-              <div className="anika-detail-row">
-                <span className="anika-detail-label">Customer Since</span>
-                <span className="anika-detail-value">{customerDetails.customerSince}</span>
+              <div className="profile-detail-row">
+                <span className="profile-detail-label">Customer Since</span>
+                <span className="profile-detail-value">{customerDetails.customerSince}</span>
               </div>
-              <div className="anika-detail-row">
-                <span className="anika-detail-label">Total Orders</span>
-                <span className="anika-detail-value">{customerDetails.totalOrders}</span>
+              <div className="profile-detail-row">
+                <span className="profile-detail-label">Total Orders</span>
+                <span className="profile-detail-value">{customerDetails.totalOrders}</span>
               </div>
             </div>
           </div>

@@ -49,7 +49,7 @@ const Payment = () => {
           </div>
           <div className="pay__config-row">
             <span className="pay__config-label">Account name</span>
-            <span className="pay__config-value">Anika Creations Pvt. Ltd.</span>
+            <span className="pay__config-value">Faywalk Apparels Pvt. Ltd.</span>
           </div>
           <div className="pay__config-row">
             <span className="pay__config-label">Settlement cycle</span>
@@ -146,7 +146,7 @@ const Payment = () => {
           <label className="pay__label">Invoice footer note</label>
           <textarea
             className="pay__textarea"
-            placeholder="Thank you for shopping with Anika Jewels. All sales are final unless damaged on delivery."
+            placeholder="Thank you for shopping with Faywalk. All sales are final unless damaged on delivery."
             value={footerNote}
             onChange={(e) => setFooterNote(e.target.value)}
             rows={3}

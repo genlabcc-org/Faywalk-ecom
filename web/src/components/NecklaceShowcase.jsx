@@ -87,7 +87,7 @@ export default function NecklaceShowcase() {
         <header className="showcase-header">
           <h2 className="showcase-title">Wear Your Story Around Your Neck</h2>
           <p className="showcase-subtitle">
-            From delicate chains to bold statement sets, Every Anika necklace is crafted to turn heads, spark conversations, and become a piece of you.
+            From delicate chains to bold statement sets, Every Faywalk piece is crafted to turn heads, spark conversations, and become a piece of you.
           </p>
         </header>
 

@@ -4,7 +4,7 @@ html {
 }
  
 .homepage {
-  overflow-x: hidden;
+  overflow: visible !important;
 }
 
 /* Performance Optimization: Skip rendering for off-screen sections */

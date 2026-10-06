@@ -1,11 +1,11 @@
 import { useState, useRef } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { authService } from "../services/authService";    
-import "./OtpVerify.css";
+import "./OtpVerifyPage.css";
 import otpImg from "../assets/sign/welcome.png";
-import Toast from "../components/Toast"
+import Toast from "../components/Toast";
 
-export default function OtpVerify() {
+export default function OtpVerifyPage() {
   const [otp, setOtp] = useState(["", "", "", "", "", ""]);
   const [loading, setLoading] = useState(false);
   const [resending, setResending] = useState(false);
@@ -19,7 +19,7 @@ export default function OtpVerify() {
   const showToast = (message, type = "info") => {
     setToast({ message: "", type: ""});
     setTimeout(() => setToast({ message, type}), 10);
-  }
+  };
 
   const handleChange = (index, value) => {
     const digit = value.replace(/\D/g, "").slice(-1);
@@ -60,9 +60,8 @@ export default function OtpVerify() {
     setLoading(true);
 
     try {
-      const data = await authService.verifyOtp(email, code, "email");
+      await authService.verifyOtp(email, code, "email");
       showToast("Login successful!", "success");
-      console.log(data);
       setTimeout(() => navigate("/profile"), 1200);
     } catch (error) {
       showToast(error.message, "error");
@@ -98,7 +97,7 @@ export default function OtpVerify() {
 
           <h1 className="otp-title">Enter OTP</h1>
           <p className="otp-subtitle">
-            6-digit code sent to {email ?? "your email"}  {/* ← dynamic email */}
+            6-digit code sent to {email ?? "your email"}
           </p>
 
           <div className="otp-boxes">

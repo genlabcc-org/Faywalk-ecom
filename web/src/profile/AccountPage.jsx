@@ -4,14 +4,14 @@ import { useStore } from "../hooks/useStore";
 import { authService } from "../services/authService";
 import { orderService } from "../services/orderService";
 import { getUserInitials } from "../utils/avatarUtils";
-import "./AnikaAccount.css";
+import "./AccountPage.css";
 import Navbar from "../components/SiteHeader";
 import Footer from "../components/SiteFooter";
 
 const TABS = ["Profile", "Orders", "Addresses", "Wishlists", "Account"];
 const ACTIVE_STATUSES = ["Pending", "Confirmed", "Shipped"];
 
-export default function AnikaAccount() {
+export default function AccountPage() {
   const [activeTab] = useState("Account");
   const navigate = useNavigate();
 
@@ -19,15 +19,13 @@ export default function AnikaAccount() {
   const orders = useStore((s) => s.orders);
   const fetchOrders = useStore((s) => s.fetchOrders);
 
-  // const [user, setUser] = useState(null);
-  // const [orders, setOrders] = useState([]);
   const [isDeleting, setIsDeleting] = useState(false);
   const [deleteConfirm, setDeleteConfirm] = useState("");
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [deleteError, setDeleteError] = useState("");
   const sessionLoading = useStore((s) => s.sessionLoading);
 
-  useEffect(() =>{
+  useEffect(() => {
     if (sessionLoading) return;
     if (!user) {
       navigate("/account/login");
@@ -194,7 +192,7 @@ export default function AnikaAccount() {
             <div className="acct-card-body">
               <h3 className="acct-card-title">Sign Out</h3>
               <p className="acct-card-desc">
-                Sign out of your Anika account on this device. Your cart and wishlist will be saved.
+                Sign out of your Faywalk account on this device. Your cart and wishlist will be saved.
               </p>
               <button className="acct-logout-btn" onClick={handleLogout}>
                 Sign Out
@@ -215,7 +213,7 @@ export default function AnikaAccount() {
             <div className="acct-card-body">
               <h3 className="acct-card-title acct-card-title--danger">Delete Account</h3>
               <p className="acct-card-desc">
-                Permanently delete your Anika account and all associated data — orders, addresses, and wishlist. 
+                Permanently delete your Faywalk account and all associated data — orders, addresses, and wishlist. 
                 <strong> This action cannot be undone.</strong>
               </p>
               {hasActiveOrders && (

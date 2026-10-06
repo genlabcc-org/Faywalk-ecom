@@ -40,8 +40,8 @@ const RealExperience = () => {
   return (
     <div className="textParent">
       <div className="text">
-        <div className="realExperiences">Anika Expressions</div>
-        <div className="hearFromOur">#MyAnikaStory</div>
+        <div className="realExperiences">Faywalk Expressions</div>
+        <div className="hearFromOur">#MyFaywalkStory</div>
       </div>
 
       <div className="experience-scroll-container">
@@ -74,7 +74,7 @@ const RealExperience = () => {
             <button className="exp-close" onClick={() => setActive(null)} aria-label="Close">✕</button>
             <iframe
               src={`https://www.youtube-nocookie.com/embed/${active.code}?autoplay=1&playsinline=1&rel=0`}
-              title={active.title || 'Anika video'}
+              title={active.title || 'Faywalk video'}
               allow="autoplay; encrypted-media; picture-in-picture"
               allowFullScreen
             />

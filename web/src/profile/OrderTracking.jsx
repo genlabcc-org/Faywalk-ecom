@@ -771,7 +771,7 @@ export default function OrderTracking() {
                   </p>
                   <div className="track-help-actions">
                     <a
-                      href={`https://wa.me/919363631636?text=Hi%20Anika,%20I%20need%20help%20with%20my%20Order%20%23${order.id?.slice(-8) || order.id}`}
+                      href={`https://wa.me/919363631636?text=Hi%20Faywalk,%20I%20need%20help%20with%20my%20Order%20%23${order.id?.slice(-8) || order.id}`}
                       target="_blank"
                       rel="noopener noreferrer"
                       className="track-help-btn track-whatsapp-btn"

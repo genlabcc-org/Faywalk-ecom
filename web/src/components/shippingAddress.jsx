@@ -592,7 +592,7 @@ export default function ShippingAddress() {
           key: import.meta.env.VITE_RAZORPAY_KEY_ID,
           amount: orderData.amount,
           currency: orderData.currency,
-          name: "Anika Jewelry",
+          name: "Faywalk",
           description: `Order for ${orderData.productName}`,
           order_id: orderData.orderId,
           handler: async function (response) {

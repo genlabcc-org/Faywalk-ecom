@@ -358,7 +358,7 @@ const DangerZone = () => {
           <div className="dz__danger-card dz__danger-card--full">
             <p className="dz__danger-card-title">Delete store permanently</p>
             <p className="dz__danger-card-desc">
-              Closes your Anika Jewels store completely. All data including products, orders, customers, and admin accounts will be permanently erased. This action cannot be reversed.
+              Closes your Faywalk store completely. All data including products, orders, customers, and admin accounts will be permanently erased. This action cannot be reversed.
             </p>
             <button
               className="dz__danger-btn"

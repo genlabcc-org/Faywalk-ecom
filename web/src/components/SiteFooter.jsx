@@ -1,98 +1,112 @@
-import React from 'react';
+import React, { useState } from 'react';
+import { Link } from 'react-router-dom';
 import './SiteFooter.css';
-import LogoImg from "../assets/footer/logo.svg";
-
-// Social icons from the project assets
-import WhatsappIcon from '../assets/footer/whatsapp.svg';
-import InstagramIcon from '../assets/footer/instagram.svg';
-import FacebookIcon from '../assets/footer/facebook.svg';
 
 const SiteFooter = () => {
+  const [email, setEmail] = useState('');
+  const [subscribed, setSubscribed] = useState(false);
+
+  const handleSubscribe = (e) => {
+    e.preventDefault();
+    if (!email || !email.includes('@')) return;
+    setSubscribed(true);
+    setEmail('');
+    setTimeout(() => setSubscribed(false), 4000);
+  };
+
   return (
-    <footer className="footer-parent">
-      <div className="footer-container">
-        <div className="footer-grid">
+    <footer className="faywalk-footer">
+      <div className="fw-footer-container">
+        <div className="fw-footer-grid">
 
-          {/* Column 1: Logo, Newsletter, Socials */}
-          <div className="footer-column brand-column">
-            <div className="brand-header-mobile">
-              <div className="footer-logo">
-                <img src={LogoImg} alt="ANIKA" className="logo-img" />
-              </div>
+          {/* Column 1: Brand Info */}
+          <div className="fw-col fw-brand-col">
+            <Link to="/" className="fw-logo-wrap" aria-label="Faywalk Home">
+              <img src="/logo.png" alt="FAYWALK" className="fw-logo-img" />
+            </Link>
+            <p className="fw-mono-text fw-made-by">Made by FAYWALK</p>
 
-              <div className="socials-section">
-                <div className="social-box-links">
-                  <a href="https://www.instagram.com/anikafashionstore.jewellery/" className="social-box-icon" aria-label="Instagram">
-                    <img src={InstagramIcon} alt="Instagram" />
-                  </a>
-                  <a href="https://www.facebook.com/people/anikafashionstore/100090910872220/?ref=1" className="social-box-icon" aria-label="Facebook">
-                    <img src={FacebookIcon} alt="Facebook" />
-                  </a>
-                  <a href="https://wa.me/919363631636" className="social-box-icon" aria-label="WhatsApp">
-                    <img src={WhatsappIcon} alt="WhatsApp" />
-                  </a>
-                </div>
-              </div>
-            </div>
-
-            <div className="newsletter-section">
-              <p className="footer-label">Subscribe to Newsletter</p>
-              <div className="pill-input-group">
-                <input type="email" placeholder="Email Address" className="pill-email-input" />
-                <button className="pill-submit-btn">Submit</button>
-              </div>
+            <div className="fw-brand-bottom">
+              <p className="fw-mono-text fw-copy">&copy; 2026 FAYWALK</p>
+              <Link to="/Privacy" className="fw-mono-text fw-privacy-link">
+                Privacy Policy.
+              </Link>
             </div>
           </div>
 
-          {/* Column 2: Discover */}
-          <div className="footer-column">
-            <h3 className="section-title">Discover</h3>
-            <ul className="footer-list">
-              <li><a href="/rings" className="footer-link">Rings & Collections</a></li>
-              <li><a href="/" className="footer-link">Wedding Jewellery</a></li>
-              <li><a href="/necklaces" className="footer-link">Necklaces</a></li>
-              <li><a href="/" className="footer-link">Special Services</a></li>
+          {/* Column 2: SHOPS */}
+          <div className="fw-col">
+            <div className="fw-col-header">
+              <span className="fw-col-title">SHOPS</span>
+              <span className="fw-col-line" />
+            </div>
+            <ul className="fw-link-list">
+              <li><Link to="/category/new-arrivals">NEW ARRIVAL</Link></li>
+              <li><Link to="/category/male">MENS</Link></li>
+              <li><Link to="/category/female">WOMENS</Link></li>
+              <li><Link to="/category/trending-now">WINTER</Link></li>
             </ul>
           </div>
 
-          {/* Column 3: Contact Us */}
-          <div className="footer-column">
-            <h3 className="section-title">Contact Us</h3>
-            <div className="contact-content">
-              <p className="address-text">
-                121A, Kottar-Parvathipuram Rd, Chetti Kulam,<br />
-                Simon Nagar, Nagercoil, Tamil Nadu 629001
-              </p>
-              <p className="phone-text">+91 9363131636</p>
-
-              <p className='phone-time'>Mon - Sat: 9:30 AM - 6:30 PM IST <br/> Closed on Sunday and Public Holidays </p>
+          {/* Column 3: BRAND */}
+          <div className="fw-col">
+            <div className="fw-col-header">
+              <span className="fw-col-title">BRAND</span>
+              <span className="fw-col-line" />
             </div>
-          </div>
-
-          {/* Column 4: Help */}
-          <div className="footer-column">
-            <h3 className="section-title">Help</h3>
-            <ul className="footer-list">
-              <li><a href="/" className="footer-link">Payments</a></li>
-              <li><a href="/" className="footer-link">Shipping</a></li>
-              <li><a href="/" className="footer-link">Cancellations & Returns</a></li>
-              <li><a href="/" className="footer-link">FAQ</a></li>
+            <ul className="fw-link-list">
+              <li><a href="/#about">ABOUT</a></li>
+              <li><a href="/#contact">CONTACT</a></li>
+              <li><Link to="/category/best-sellers">BLOG</Link></li>
+              <li><Link to="/Privacy">404</Link></li>
             </ul>
           </div>
 
-        </div>
-
-        {/* Footer Bottom */}
-        <div className="footer-bottom">
-          <div className="bottom-content">
-            <p className="copyright-text">© 2026 Anika Jewellery · All rights reserved</p>
-            <div className="legal-links">
-              <a href="/Privacy">Privacy Policy</a>
-              <span className="dot-sep">·</span>
-              <a href="/Terms">Terms & Conditions</a>
+          {/* Column 4: FOLLOW US */}
+          <div className="fw-col">
+            <div className="fw-col-header">
+              <span className="fw-col-title">FOLLOW US</span>
+              <span className="fw-col-line" />
             </div>
+            <ul className="fw-link-list">
+              <li><a href="https://twitter.com" target="_blank" rel="noopener noreferrer">X/TWITTER</a></li>
+              <li><a href="https://facebook.com" target="_blank" rel="noopener noreferrer">FACEBOOK</a></li>
+              <li><a href="https://instagram.com" target="_blank" rel="noopener noreferrer">INSTAGRAM</a></li>
+              <li><a href="https://tiktok.com" target="_blank" rel="noopener noreferrer">TIKTOK</a></li>
+            </ul>
           </div>
+
+          {/* Column 5: DON'T MISS OUT! */}
+          <div className="fw-col fw-newsletter-col">
+            <h3 className="fw-newsletter-title">DON'T MISS OUT!</h3>
+            <p className="fw-mono-text fw-newsletter-desc">
+              Register for our newsletter and enjoy a 15% discount on your initial purchase!
+            </p>
+
+            <form className="fw-subscribe-form" onSubmit={handleSubscribe}>
+              <input
+                type="email"
+                className="fw-subscribe-input"
+                placeholder="Email address"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                required
+              />
+              <button type="submit" className="fw-subscribe-btn" aria-label="Subscribe">
+                <span className="fw-btn-main">
+                  {subscribed ? 'Subscribed!' : 'Subscribe'}
+                </span>
+                <span className="fw-btn-icon" aria-hidden="true">&#x2197;</span>
+              </button>
+            </form>
+          </div>
+
         </div>
+      </div>
+
+      {/* Giant Bottom Watermark */}
+      <div className="fw-giant-watermark" aria-hidden="true">
+        A LEGACY SINCE 1934
       </div>
     </footer>
   );
