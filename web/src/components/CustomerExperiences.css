@@ -1,7 +1,7 @@
 .testimonials-section {
   width: 100%;
   padding: 60px 0 50px 0;
-  background-color: #fafbfc;
+  background-color: transparent !important;
   overflow: hidden;
   position: relative;
   box-sizing: border-box;

@@ -1566,22 +1566,16 @@ button {
     /* Offset for scrollbar breathing room */
   }
 
-  /* Premium Custom Scrollbar for Info Column */
+  /* Scrollbar hidden for Info Column */
+  .pp-info {
+    scrollbar-width: none !important;
+    -ms-overflow-style: none !important;
+  }
+
   .pp-info::-webkit-scrollbar {
-    width: 5px;
-  }
-
-  .pp-info::-webkit-scrollbar-track {
-    background: transparent;
-  }
-
-  .pp-info::-webkit-scrollbar-thumb {
-    background: #e2ddd7;
-    border-radius: 10px;
-  }
-
-  .pp-info::-webkit-scrollbar-thumb:hover {
-    background: var(--gold);
+    display: none !important;
+    width: 0 !important;
+    height: 0 !important;
   }
 
   .pp-accordions {

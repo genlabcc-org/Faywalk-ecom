@@ -8,11 +8,9 @@ import './NewArrivals.css';
 export default function NewArrivals({ onProductClick }) {
   const [products, setProducts] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [activeTab, setActiveTab] = useState('Men');
 
-  const wishlistItems = useStore((state) => state.wishlistItems);
-  const toggleWishlist = useStore((state) => state.toggleWishlist);
-
-  const wishlistProductIds = wishlistItems.map((w) => w.id || w.productId);
+  const addToCart = useStore((state) => state.addToCart);
 
   useEffect(() => {
     let isMounted = true;
@@ -35,7 +33,7 @@ export default function NewArrivals({ onProductClick }) {
           `)
           .eq('is_active', true)
           .order('created_at', { ascending: false })
-          .limit(8);
+          .limit(12);
 
         if (error) {
           console.error('Error fetching new arrivals:', error);
@@ -67,10 +65,6 @@ export default function NewArrivals({ onProductClick }) {
             (Array.isArray(p.images) && p.images.length > 0 ? p.images[0] : (p.image_url || ''));
 
           const categoryName = p.categories?.name || '';
-          const discountPct =
-            mrp > sellingPrice && sellingPrice > 0
-              ? Math.round(((mrp - sellingPrice) / mrp) * 100)
-              : 0;
 
           return {
             id: p.product_id,
@@ -80,10 +74,8 @@ export default function NewArrivals({ onProductClick }) {
             category: categoryName,
             categorySlug: p.categories?.slug || '',
             price: sellingPrice ? `₹${sellingPrice.toLocaleString('en-IN')}` : '',
-            original: mrp && mrp > sellingPrice ? `₹${mrp.toLocaleString('en-IN')}` : '',
             rawPrice: sellingPrice,
             rawMrp: mrp,
-            discountPct,
             has_variants: hasVariants,
           };
         });
@@ -104,99 +96,109 @@ export default function NewArrivals({ onProductClick }) {
     };
   }, []);
 
-  const handleWishlistClick = (e, product) => {
+  const handleAddToCart = (e, product) => {
     e.stopPropagation();
-    toggleWishlist({
-      id: product.id,
-      productId: product.id,
-      name: product.name,
-      img: product.img,
-      price: product.rawPrice,
-      compare_price: product.rawMrp,
-    });
+    addToCart(product, 1);
   };
+
+  const filteredProducts = products.filter((p) => {
+    if (!activeTab) return true;
+    const target = activeTab.toLowerCase();
+    const cat = (p.category || '').toLowerCase();
+    const name = (p.name || '').toLowerCase();
+    const hasGenderProducts = products.some((prod) =>
+      (prod.category || '').toLowerCase().includes(target) ||
+      (prod.name || '').toLowerCase().includes(target)
+    );
+    if (!hasGenderProducts) return true;
+    return cat.includes(target) || name.includes(target);
+  });
 
   return (
     <section className="new-arrivals-section">
-      <div className="new-arrivals-header">
-        <span className="new-arrivals-eyebrow">Just Dropped</span>
-        <h2 className="new-arrivals-title">New Arrivals</h2>
-        <p className="new-arrivals-subtitle">
-          Explore our latest handcrafted pieces, thoughtfully created for timeless beauty.
-        </p>
+      <div className="new-arrivals-header-row">
+        <div className="new-arrivals-header-left">
+          <h2 className="new-arrivals-title">NEW ARRIVALS</h2>
+          <p className="new-arrivals-subtitle">Check what's new in our stock</p>
+        </div>
+        <div className="new-arrivals-tabs">
+          <button
+            type="button"
+            className={`new-arrivals-tab-btn ${activeTab === 'Men' ? 'active' : ''}`}
+            onClick={() => setActiveTab('Men')}
+          >
+            Men
+          </button>
+          <button
+            type="button"
+            className={`new-arrivals-tab-btn ${activeTab === 'Women' ? 'active' : ''}`}
+            onClick={() => setActiveTab('Women')}
+          >
+            Women
+          </button>
+        </div>
       </div>
 
       {loading ? (
         <div className="new-arrivals-grid">
-          {Array.from({ length: 8 }).map((_, i) => (
+          {Array.from({ length: 6 }).map((_, i) => (
             <SkeletonProductCard key={i} />
           ))}
         </div>
-      ) : products.length === 0 ? (
+      ) : filteredProducts.length === 0 ? (
         <div className="new-arrivals-empty">
           <p>No new products found. Check back soon!</p>
         </div>
       ) : (
         <div className="new-arrivals-grid">
-          {products.map((product) => {
-            const isWishlisted = wishlistProductIds.includes(product.id);
-            return (
-              <article
-                key={product.id}
-                className="new-arrival-card"
-                onClick={() => onProductClick && onProductClick(product)}
-              >
-                <div className="new-arrival-img-box">
-                  {product.discountPct > 0 && (
-                    <span className="new-arrival-offer-badge">
-                      {product.discountPct}% Off
-                    </span>
-                  )}
-
-                  <button
-                    type="button"
-                    aria-label="Toggle Wishlist"
-                    className={`new-arrival-wishlist-btn ${isWishlisted ? 'active' : ''}`}
-                    onClick={(e) => handleWishlistClick(e, product)}
+          {filteredProducts.map((product) => (
+            <article
+              key={product.id}
+              className="new-arrival-card"
+              onClick={() => onProductClick && onProductClick(product)}
+            >
+              <div className="new-arrival-img-box">
+                <img
+                  src={productService.getResizedImageUrl(product.img, 'card')}
+                  alt={product.name}
+                  className="new-arrival-img"
+                  loading="lazy"
+                  decoding="async"
+                  onError={(e) => {
+                    e.target.onerror = null;
+                    e.target.src = product.img || '/src/assets/cart/bangle1.webp';
+                  }}
+                />
+                <button
+                  type="button"
+                  className="new-arrival-add-cart-btn"
+                  onClick={(e) => handleAddToCart(e, product)}
+                  title="Add to cart"
+                >
+                  <svg
+                    width="14"
+                    height="14"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2.5"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
                   >
-                    <svg
-                      viewBox="0 0 24 24"
-                      fill={isWishlisted ? '#C42049' : 'none'}
-                      stroke={isWishlisted ? '#C42049' : '#444'}
-                      strokeWidth="2"
-                    >
-                      <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z" />
-                    </svg>
-                  </button>
+                    <circle cx="9" cy="21" r="1"></circle>
+                    <circle cx="20" cy="21" r="1"></circle>
+                    <path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"></path>
+                  </svg>
+                  <span>Add To Cart</span>
+                </button>
+              </div>
 
-                  <img
-                    src={productService.getResizedImageUrl(product.img, 'card')}
-                    alt={product.name}
-                    className="new-arrival-img"
-                    loading="lazy"
-                    decoding="async"
-                    onError={(e) => {
-                      e.target.onerror = null;
-                      e.target.src = product.img || '/src/assets/cart/bangle1.webp';
-                    }}
-                  />
-                </div>
-
-                <div className="new-arrival-info">
-                  {product.category && (
-                    <span className="new-arrival-category">{product.category}</span>
-                  )}
-                  <h3 className="new-arrival-name">{product.name}</h3>
-                  <div className="new-arrival-price-row">
-                    <span className="new-arrival-price">{product.price}</span>
-                    {product.original && (
-                      <span className="new-arrival-original">{product.original}</span>
-                    )}
-                  </div>
-                </div>
-              </article>
-            );
-          })}
+              <div className="new-arrival-info">
+                <h3 className="new-arrival-name">{product.name}</h3>
+                <span className="new-arrival-price">{product.price}</span>
+              </div>
+            </article>
+          ))}
         </div>
       )}
     </section>

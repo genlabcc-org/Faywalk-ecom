@@ -47,13 +47,13 @@ export function SkeletonBanner() {
   return <Skeleton className="skeleton-hero" />;
 }
 
-export function SkeletonCategories({ count = 6 }) {
+export function SkeletonCategories({ count = 4 }) {
   return (
-    <div className="skeleton-category-row">
+    <div className="skeleton-category-grid">
       {Array.from({ length: count }).map((_, i) => (
-        <div key={i} className="skeleton-category-item">
-          <Skeleton width="80px" height="80px" circle />
-          <Skeleton width="60px" height="14px" />
+        <div key={i} className="skeleton-category-card">
+          <Skeleton height="360px" width="100%" borderRadius="0px" />
+          <Skeleton height="20px" width="55%" borderRadius="4px" style={{ margin: '14px auto 0' }} />
         </div>
       ))}
     </div>

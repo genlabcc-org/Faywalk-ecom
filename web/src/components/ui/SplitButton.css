@@ -1,0 +1,80 @@
+/* ── Common Split Button Component ── */
+.split-btn {
+  display: inline-flex;
+  align-items: stretch;
+  padding: 0;
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  height: 46px;
+  border-radius: 3px;
+  overflow: hidden;
+  flex-shrink: 0;
+  user-select: none;
+  text-decoration: none;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+  transition: transform 0.15s ease, box-shadow 0.15s ease, opacity 0.15s ease;
+}
+
+.split-btn:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.14);
+}
+
+.split-btn:active {
+  transform: translateY(0);
+}
+
+.split-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  transform: none;
+  box-shadow: none;
+}
+
+/* Left Section: Navy background with monospace text */
+.split-btn-text {
+  background-color: #02144d;
+  color: #ffffff;
+  font-family: ui-monospace, 'SFMono-Regular', Menlo, Monaco, Consolas, 'Liberation Mono', 'Courier New', monospace;
+  font-size: 16px;
+  font-weight: 600;
+  letter-spacing: 0.5px;
+  padding: 0 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  transition: background-color 0.15s ease;
+}
+
+.split-btn:hover .split-btn-text {
+  background-color: #031b66;
+}
+
+/* Right Section: Vibrant Red icon block */
+.split-btn-icon {
+  background-color: #e5281b;
+  color: #ffffff;
+  width: 48px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  flex-shrink: 0;
+  transition: background-color 0.15s ease;
+}
+
+.split-btn:hover .split-btn-icon {
+  background-color: #f02f21;
+}
+
+.split-btn-arrow {
+  display: block;
+  stroke: #ffffff;
+  transition: transform 0.2s ease;
+}
+
+.split-btn:hover .split-btn-arrow {
+  transform: translate(2px, -2px);
+}

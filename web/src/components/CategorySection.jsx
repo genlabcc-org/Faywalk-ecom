@@ -3,7 +3,11 @@ import { productService } from "../services/productService";
 import { SkeletonCategories } from "./ui/Skeleton";
 import "./CategorySection.css";
 
-export default function CategorySection({ onCategoryClick, title = "Category", subtitle = "" }) {
+export default function CategorySection({
+  onCategoryClick,
+  title = "CHOOSE BY CATEGORY",
+  subtitle = "See what you like",
+}) {
   const [categories, setCategories] = useState([]);
   const [loading, setLoading] = useState(true);
 
@@ -29,8 +33,8 @@ export default function CategorySection({ onCategoryClick, title = "Category", s
           <h2 className="category-title">{title}</h2>
           {subtitle && <p className="category-subtitle">{subtitle}</p>}
         </div>
-        <div className="category-wrapper" style={{ justifyContent: 'center' }}>
-          <SkeletonCategories count={6} />
+        <div className="category-grid">
+          <SkeletonCategories count={4} />
         </div>
       </section>
     );
@@ -42,15 +46,17 @@ export default function CategorySection({ onCategoryClick, title = "Category", s
         <h2 className="category-title">{title}</h2>
         {subtitle && <p className="category-subtitle">{subtitle}</p>}
       </div>
-      <div className="category-wrapper">
+      <div className="category-grid">
         {categories.map((cat) => (
           <div
             key={cat.category_id}
-            className="category-item"
+            className="category-card"
             onClick={() => onCategoryClick && onCategoryClick(cat.name)}
           >
-            <img src={cat.image_url} alt={cat.name} loading="lazy" decoding="async" />
-            <p>{cat.name}</p>
+            <div className="category-img-container">
+              <img src={cat.image_url} alt={cat.name} loading="lazy" decoding="async" />
+            </div>
+            <h3 className="category-name">{cat.name}</h3>
           </div>
         ))}
       </div>

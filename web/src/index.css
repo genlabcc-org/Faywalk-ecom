@@ -43,8 +43,23 @@
   --desc-letter-spacing: 0%;
 }
 
-html {
-  scrollbar-gutter: stable;
+/* ── Hide Scrollbar Globally (Maintains Scroll Capability) ── */
+html,
+body,
+* {
+  -ms-overflow-style: none !important; /* IE and Edge */
+  scrollbar-width: none !important; /* Firefox */
+}
+
+*::-webkit-scrollbar,
+html::-webkit-scrollbar,
+body::-webkit-scrollbar,
+*::-webkit-scrollbar-track,
+*::-webkit-scrollbar-thumb {
+  display: none !important;
+  width: 0 !important;
+  height: 0 !important;
+  background: transparent !important;
 }
 
 body {
@@ -62,7 +77,6 @@ body {
 .collections-title,
 .showcase-title,
 .realExperiences,
-.category-title,
 .section-main-title {
   font-family: var(--title-font-family) !important;
   font-weight: var(--title-font-weight) !important;

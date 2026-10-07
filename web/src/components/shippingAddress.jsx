@@ -11,7 +11,6 @@ import "./shippingAddress.css";
 import Navbar from "./SiteHeader";
 import Footer from "./SiteFooter";
 import Toast from "./Toast";
-import LogoImg from "../assets/offers/logo.svg";
 import UpiIcon from "../assets/upi.svg";
 import VisaIcon from "../assets/visa.svg";
 import MastercardIcon from "../assets/mastercard.svg";
@@ -712,11 +711,6 @@ export default function ShippingAddress() {
           {/* LEFT COLUMN: Checkout Form */}
           <div className="checkout-left-col">
             <div className="checkout-left-content">
-              {/* Logo */}
-              <div className="checkout-logo-wrap">
-                <img src={LogoImg} alt="Made For Hers Logo" className="checkout-logo" onClick={() => navigate("/")} />
-              </div>
-
               {/* Form */}
               <form onSubmit={handleCheckoutSubmit} className="checkout-form">
 

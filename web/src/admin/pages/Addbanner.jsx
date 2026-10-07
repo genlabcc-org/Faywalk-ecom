@@ -40,8 +40,6 @@ const AddBanner = ({ onBack, onPublish, initialData }) => {
     if (!bannerData) return null;
     return bannerData.id ?? bannerData._id ?? bannerData.banner_id ?? bannerData.uuid ?? null;
   });
-  const [title, setTitle] = useState(() => bannerData?.title || "");
-  const [description, setDescription] = useState(() => bannerData?.description || bannerData?.tagline || "");
   const [previewImage, setPreviewImage] = useState(() => bannerData?.image_url || bannerData?.image || null);
   const [imageFile, setImageFile] = useState(null);
   const [isDragging, setIsDragging] = useState(false);
@@ -119,10 +117,6 @@ const AddBanner = ({ onBack, onPublish, initialData }) => {
 
   const handlePublish = async () => {
     if (isSubmitting) return;
-    if (!title.trim()) {
-      setErrorMsg("Please enter a banner title");
-      return;
-    }
     if (!previewImage && !imageFile) {
       setErrorMsg("Please select or drop a desktop banner image");
       return;
@@ -153,15 +147,11 @@ const AddBanner = ({ onBack, onPublish, initialData }) => {
       let bannerResult;
       if (isEditing) {
         bannerResult = await bannerService.updateBanner(editingId, {
-          title: title.trim(),
-          description: description.trim(),
           imageUrl: finalImageUrl,
           mobileUrl: finalMobileUrl,
         });
       } else {
         bannerResult = await bannerService.createBanner({
-          title: title.trim(),
-          description: description.trim(),
           imageUrl: finalImageUrl,
           mobileUrl: finalMobileUrl,
         });
@@ -212,31 +202,6 @@ const AddBanner = ({ onBack, onPublish, initialData }) => {
             {errorMsg}
           </div>
         )}
-
-        {/* Banner Title */}
-        <div className="ab__section">
-          <label className="ab__label">Banner Title</label>
-          <input
-            className="ab__input"
-            type="text"
-            placeholder="e.g. Draped in Elegance"
-            value={title}
-            onChange={(e) => setTitle(e.target.value)}
-          />
-        </div>
-
-        {/* Banner Description */}
-        <div className="ab__section">
-          <label className="ab__label">Banner Description</label>
-          <textarea
-            className="ab__input"
-            rows="3"
-            placeholder="e.g. Discover handcrafted fashion jewellery for every occasion"
-            value={description}
-            onChange={(e) => setDescription(e.target.value)}
-            style={{ resize: "vertical" }}
-          />
-        </div>
 
         {/* Banner Images Row (Desktop + Mobile) */}
         <div className="ab__row">
@@ -394,10 +359,6 @@ const AddBanner = ({ onBack, onPublish, initialData }) => {
                   className="ab__preview-img"
                   style={{ width: "100%", height: "100%", objectFit: "cover" }}
                 />
-                <div style={{ position: "absolute", inset: 0, background: "linear-gradient(to right, rgba(0,0,0,0.6) 0%, rgba(0,0,0,0.2) 60%, transparent 100%)", display: "flex", flexDirection: "column", justifyContent: "center", padding: "20px" }}>
-                  <h3 style={{ color: "#fff", margin: "0 0 6px 0", fontSize: previewMode === 'mobile' ? "15px" : "18px", fontWeight: "700" }}>{title || "Banner Title"}</h3>
-                  <p style={{ color: "rgba(255,255,255,0.85)", margin: 0, fontSize: previewMode === 'mobile' ? "12px" : "13px" }}>{description || "Banner description will appear here..."}</p>
-                </div>
               </div>
             ) : (
               <div className="ab__preview-placeholder">

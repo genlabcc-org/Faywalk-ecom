@@ -62,10 +62,8 @@ export const bannerService = {
    * @param {Object} bannerData 
    * @returns {Promise<any>}
    */
-  async createBanner({ title, description, imageUrl, mobileUrl }) {
+  async createBanner({ imageUrl, mobileUrl }) {
     const record = {
-      title: title || '',
-      description: description || '',
       image_url: imageUrl || '',
       mobile_url: mobileUrl || null,
       created_at: new Date().toISOString(),
@@ -93,10 +91,8 @@ export const bannerService = {
    * @param {Object} bannerData 
    * @returns {Promise<any>}
    */
-  async updateBanner(id, { title, description, imageUrl, mobileUrl }) {
+  async updateBanner(id, { imageUrl, mobileUrl }) {
     const updates = {
-      title: title || '',
-      description: description || '',
       updated_at: new Date().toISOString(),
     };
     if (imageUrl !== undefined) {

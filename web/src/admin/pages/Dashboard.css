@@ -209,20 +209,14 @@
   flex-shrink: 0;
   z-index: 160;
   transition: transform 0.25s ease;
-  padding: 12px 10px;
+  scrollbar-width: none !important;
+  -ms-overflow-style: none !important;
 }
 
 .db__sidebar::-webkit-scrollbar {
-  width: 4px;
-}
-
-.db__sidebar::-webkit-scrollbar-track {
-  background: transparent;
-}
-
-.db__sidebar::-webkit-scrollbar-thumb {
-  background: #ccc;
-  border-radius: 4px;
+  display: none !important;
+  width: 0 !important;
+  height: 0 !important;
 }
 
 .db__sidenav {

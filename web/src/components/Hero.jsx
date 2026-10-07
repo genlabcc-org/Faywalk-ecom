@@ -41,9 +41,6 @@ export default function Hero() {
         {banners.map((b, i) => {
           const img = b.image_url || b.image;
           if (!img) return null;
-          const title = b.title || "";
-          const desc = b.description || b.tagline || "";
-          const hasText = !!(title || desc);
 
           return (
             <SwiperSlide key={b.banner_id ?? i}>
@@ -62,31 +59,12 @@ export default function Hero() {
                   )}
                   <img
                     src={img}
-                    alt={title || `Banner ${i + 1}`}
+                    alt={`Banner ${i + 1}`}
                     className="hero-image"
                     fetchPriority={i === 0 ? "high" : "auto"}
                     loading={i === 0 ? "eager" : "lazy"}
                   />
                 </picture>
-
-                {hasText && (
-                  <>
-                    <div className="hero-overlay" />
-                    <div className="hero-content">
-                      {title && <h1 className="hero-title">{title}</h1>}
-                      {desc && <p className="hero-subtitle">{desc}</p>}
-                      <button
-                        className="explore-btn"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          document.getElementById("shop")?.scrollIntoView({ behavior: "smooth" });
-                        }}
-                      >
-                        Explore Now
-                      </button>
-                    </div>
-                  </>
-                )}
               </div>
             </SwiperSlide>
           );

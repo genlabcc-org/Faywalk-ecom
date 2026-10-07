@@ -1,4 +1,3 @@
-import "@supabase/functions-js/edge-runtime.d.ts";
 import { handleCorsPreflight, corsHeaders } from "../_shared/cors.ts";
 
 const ADMIN_EMAIL = "jeyareshd@gmail.com";

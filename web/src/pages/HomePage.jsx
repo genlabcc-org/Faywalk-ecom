@@ -7,15 +7,12 @@ import './HomePage.css';
 import { useStore } from '../hooks/useStore';
 import { getNavPath } from "../services/categoryRoute";
 
-const ProductSection = lazy(() => import('../components/ProductSection'));
-const NecklaceSection = lazy(() => import('../components/NecklaceSection'));
 const BannerSection = lazy(() => import('../components/BannerSection'));
 const CategorySection = lazy(() => import('../components/CategorySection'));
 const NewArrivals = lazy(() => import('../components/NewArrivals'));
 const BestSellers = lazy(() => import('../components/BestSellers'));
 const CollectionsSection = lazy(() => import('../components/CollectionsSection'));
 const RealExperience = lazy(() => import('../components/RealExperience'));
-const Offers = lazy(() => import('../components/Offers'));
 const CustomerExperiences = lazy(() => import('../components/CustomerExperiences'));
 const SiteFooter = lazy(() => import('../components/SiteFooter'));
 
@@ -62,12 +59,9 @@ export default function HomePage() {
         <div id="best-sellers">
           <BestSellers onProductClick={handleProductClick} />
         </div>
-        <div id="shop"><ProductSection onProductClick={handleProductClick} /></div>
-        <div id="necklaces-section"><NecklaceSection onProductClick={handleProductClick} /></div>
         {/* <BannerSection /> */}
         {/* <CollectionsSection /> */}
         <RealExperience />
-        <div id="offers"><Offers onProductClick={handleProductClick} /></div>
         <div id="reviews"><CustomerExperiences /></div>
         <SiteFooter />
       </Suspense>

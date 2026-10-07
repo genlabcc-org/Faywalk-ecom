@@ -98,14 +98,9 @@ const BannerList = ({ banners: initialBanners = [], onAddBanner, onEditBanner, o
                 </div>
                 <div className="bl__card-info">
                   <div className="bl__card-top">
-                    <span className="bl__card-title">{banner.title || "Untitled Banner"}</span>
+                    <span className="bl__card-title">Banner #{banner.id ?? banner.banner_id}</span>
                     <span className="bl__badge bl__badge--active">Active</span>
                   </div>
-                  {desc && (
-                    <div className="bl__card-meta" style={{ color: "#475569", marginTop: "4px" }}>
-                      {desc}
-                    </div>
-                  )}
                   <div className="bl__card-meta" style={{ marginTop: "6px" }}>
                     Created: {banner.created_at ? new Date(banner.created_at).toLocaleDateString() : "—"}
                   </div>
@@ -178,11 +173,7 @@ const CarouselPreview = ({ banners }) => {
     <div className="bl__carousel" style={{ position: "relative", overflow: "hidden", borderRadius: "12px" }}>
       {imgSrc ? (
         <div style={{ position: "relative", width: "100%", height: "220px" }}>
-          <img src={imgSrc} alt={banner.title} className="bl__carousel-img" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
-          <div style={{ position: "absolute", inset: 0, background: "linear-gradient(to right, rgba(0,0,0,0.6) 0%, rgba(0,0,0,0.2) 60%, transparent 100%)", display: "flex", flexDirection: "column", justifyContent: "center", padding: "24px" }}>
-            <h3 style={{ color: "#fff", margin: "0 0 6px 0", fontSize: "20px", fontWeight: "700" }}>{banner.title}</h3>
-            {desc && <p style={{ color: "rgba(255,255,255,0.85)", margin: 0, fontSize: "14px" }}>{desc}</p>}
-          </div>
+          <img src={imgSrc} alt="Banner Preview" className="bl__carousel-img" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
         </div>
       ) : (
         <div className="bl__carousel-placeholder">No image</div>

@@ -9,15 +9,12 @@ html {
 
 /* Performance Optimization: Skip rendering for off-screen sections */
 section, 
-.product-section, 
 .banner-section, 
 .category-section, 
 .new-arrivals-section,
 .best-sellers-section,
 .collections-section, 
-.necklace-showcase, 
 .real-experience, 
-.offers, 
 .customer-experiences, 
 .site-footer {
   content-visibility: auto;

@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
+import SplitButton from './ui/SplitButton';
 import './SiteFooter.css';
 
 const SiteFooter = () => {
@@ -24,36 +25,30 @@ const SiteFooter = () => {
             <Link to="/" className="fw-logo-wrap" aria-label="Faywalk Home">
               <img src="/logo.png" alt="FAYWALK" className="fw-logo-img" />
             </Link>
-            <p className="fw-mono-text fw-made-by">Made by FAYWALK</p>
+            <p className="fw-brand-desc">Refined everyday essentials crafted for effortless elegance.</p>
 
             <div className="fw-brand-bottom">
-              <p className="fw-mono-text fw-copy">&copy; 2026 FAYWALK</p>
-              <Link to="/Privacy" className="fw-mono-text fw-privacy-link">
-                Privacy Policy.
+              <p className="fw-copy">&copy; {new Date().getFullYear()} FAYWALK</p>
+              <Link to="/Privacy" className="fw-privacy-link">
+                Privacy Policy
               </Link>
             </div>
           </div>
 
-          {/* Column 2: SHOPS */}
+          {/* Column 2: SHOP */}
           <div className="fw-col">
-            <div className="fw-col-header">
-              <span className="fw-col-title">SHOPS</span>
-              <span className="fw-col-line" />
-            </div>
+            <h4 className="fw-col-title">Shop</h4>
             <ul className="fw-link-list">
-              <li><Link to="/category/new-arrivals">NEW ARRIVAL</Link></li>
-              <li><Link to="/category/male">MENS</Link></li>
-              <li><Link to="/category/female">WOMENS</Link></li>
-              <li><Link to="/category/trending-now">WINTER</Link></li>
+              <li><Link to="/category/new-arrivals">New Arrivals</Link></li>
+              <li><Link to="/category/male">Men</Link></li>
+              <li><Link to="/category/female">Women</Link></li>
+              <li><Link to="/category/best-sellers">Best Sellers</Link></li>
             </ul>
           </div>
 
-          {/* Column 3: BRAND */}
+          {/* Column 3: ABOUT */}
           <div className="fw-col">
-            <div className="fw-col-header">
-              <span className="fw-col-title">BRAND</span>
-              <span className="fw-col-line" />
-            </div>
+            <h4 className="fw-col-title">About</h4>
             <ul className="fw-link-list">
               <li><a href="/#about">ABOUT</a></li>
               <li><Link to="/contact">CONTACT</Link></li>
@@ -62,42 +57,36 @@ const SiteFooter = () => {
             </ul>
           </div>
 
-          {/* Column 4: FOLLOW US */}
+          {/* Column 4: FOLLOW */}
           <div className="fw-col">
-            <div className="fw-col-header">
-              <span className="fw-col-title">FOLLOW US</span>
-              <span className="fw-col-line" />
-            </div>
+            <h4 className="fw-col-title">Follow</h4>
             <ul className="fw-link-list">
-              <li><a href="https://twitter.com" target="_blank" rel="noopener noreferrer">X/TWITTER</a></li>
-              <li><a href="https://facebook.com" target="_blank" rel="noopener noreferrer">FACEBOOK</a></li>
-              <li><a href="https://instagram.com" target="_blank" rel="noopener noreferrer">INSTAGRAM</a></li>
-              <li><a href="https://tiktok.com" target="_blank" rel="noopener noreferrer">TIKTOK</a></li>
+              <li><a href="https://instagram.com" target="_blank" rel="noopener noreferrer">Instagram</a></li>
+              <li><a href="https://facebook.com" target="_blank" rel="noopener noreferrer">Facebook</a></li>
+              <li><a href="https://twitter.com" target="_blank" rel="noopener noreferrer">X / Twitter</a></li>
             </ul>
           </div>
 
-          {/* Column 5: DON'T MISS OUT! */}
+          {/* Column 5: Newsletter */}
           <div className="fw-col fw-newsletter-col">
-            <h3 className="fw-newsletter-title">DON'T MISS OUT!</h3>
-            <p className="fw-mono-text fw-newsletter-desc">
-              Register for our newsletter and enjoy a 15% discount on your initial purchase!
+            <h4 className="fw-col-title">Newsletter</h4>
+            <p className="fw-newsletter-desc">
+              Subscribe to receive updates, exclusive launches & offers.
             </p>
 
             <form className="fw-subscribe-form" onSubmit={handleSubscribe}>
               <input
                 type="email"
                 className="fw-subscribe-input"
-                placeholder="Email address"
+                placeholder="Enter your email"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 required
               />
-              <button type="submit" className="fw-subscribe-btn" aria-label="Subscribe">
-                <span className="fw-btn-main">
-                  {subscribed ? 'Subscribed!' : 'Subscribe'}
-                </span>
-                <span className="fw-btn-icon" aria-hidden="true">&#x2197;</span>
-              </button>
+              <SplitButton
+                type="submit"
+                text={subscribed ? 'Subscribed!' : 'Subscribe'}
+              />
             </form>
           </div>
 
@@ -106,7 +95,7 @@ const SiteFooter = () => {
 
       {/* Giant Bottom Watermark */}
       <div className="fw-giant-watermark" aria-hidden="true">
-        A LEGACY SINCE 1934
+        FAYWALKVIBEE
       </div>
     </footer>
   );

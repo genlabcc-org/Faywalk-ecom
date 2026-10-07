@@ -46,16 +46,6 @@ body {
   max-width: 580px;
 }
 
-.checkout-logo-wrap {
-  margin-bottom: 32px;
-}
-
-.checkout-logo {
-  height: 48px;
-  cursor: pointer;
-  object-fit: contain;
-}
-
 /* Form Sections */
 .checkout-section {
   margin-bottom: 50px;
