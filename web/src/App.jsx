@@ -21,6 +21,7 @@ import CategoryPage from "./pages/CategoryPage";
 
 import TermsPage from './pages/TermsPage';
 import PrivacyPage from './pages/PrivacyPage';
+import ContactPage from './pages/ContactPage';
 
 import AdminRoute from "./components/AdminRoute";
 import Dashboard from "./admin/pages/Dashboard";
@@ -137,6 +138,7 @@ function App() {
 
         <Route path="/terms" element={<TermsPage />} />
         <Route path="/privacy" element={<PrivacyPage />} />
+        <Route path="/contact" element={<ContactPage />} />
 
         <Route path="/cart" element={<CartPage />} />
         <Route path="/wishlist" element={<WishlistPage />} />

@@ -59,8 +59,7 @@ const NAV_ITEMS = [
   {
     name: "Contact Us",
     hasDropdown: false,
-    path: "/#contact",
-    isAnchor: true,
+    path: "/contact",
   },
 ];
 

@@ -56,7 +56,7 @@ const SiteFooter = () => {
             </div>
             <ul className="fw-link-list">
               <li><a href="/#about">ABOUT</a></li>
-              <li><a href="/#contact">CONTACT</a></li>
+              <li><Link to="/contact">CONTACT</Link></li>
               <li><Link to="/category/best-sellers">BLOG</Link></li>
               <li><Link to="/Privacy">404</Link></li>
             </ul>
