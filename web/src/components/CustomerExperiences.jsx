@@ -1,68 +1,140 @@
 import React from 'react';
+import { FaTwitter, FaFacebookF, FaInstagram, FaStar } from 'react-icons/fa';
 import './CustomerExperiences.css';
 
+const TESTIMONIALS = [
+  {
+    id: 1,
+    name: 'From Ashik',
+    title: 'Loved the product!',
+    text: 'Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua quis nostrud exercitation ullamcoLorem ipsum dolor sit amet, consectetur adipiscing elit, sed do',
+    rating: '4.7',
+    stars: 5,
+  },
+  {
+    id: 2,
+    name: 'Ilangovan',
+    title: 'Loved the product!',
+    text: 'Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua quis nostrud exercitation ullamcoLorem ipsum dolor sit amet, consectetur adipiscing elit, sed do',
+    rating: '4.8',
+    stars: 5,
+  },
+  {
+    id: 3,
+    name: 'From Sneha Patel',
+    title: 'Super comfortable fit!',
+    text: 'The fabric softness and breathable feel exceeded all expectations. Perfect for everyday wear, holding up amazingly even after multiple washes.',
+    rating: '4.9',
+    stars: 5,
+  },
+  {
+    id: 4,
+    name: 'From Vignesh',
+    title: 'Outstanding quality!',
+    text: 'Unmatched comfort and modern cut. The seams are smooth under clothing and the support is fantastic. Will definitely be ordering more soon.',
+    rating: '4.7',
+    stars: 5,
+  },
+  {
+    id: 5,
+    name: 'From Ananya Reddy',
+    title: 'Pure everyday luxury',
+    text: 'Loved the product! So lightweight and gentle on the skin. You barely feel it on, and the premium quality shows in every detail.',
+    rating: '5.0',
+    stars: 5,
+  },
+  {
+    id: 6,
+    name: 'From Rahul Verma',
+    title: 'Loved the product!',
+    text: 'Exceptional craftsmanship and sleek look. Delivered quickly in pristine packaging. Best apparel purchase I have made this season.',
+    rating: '4.8',
+    stars: 5,
+  },
+];
 
-
-// New Review Images
-import Rev1 from '../assets/review/review1.png';
-import Rev2 from '../assets/review/review2.png';
-import Rev3 from '../assets/review/review3.png';
-import Rev4 from '../assets/review/review4.png';
-import Rev5 from '../assets/review/review5.png';
-import Rev6 from '../assets/review/review6.png';
-import Rev7 from '../assets/review/review7.png';
-import Rev8 from '../assets/review/review8.png';
-import Rev9 from '../assets/review/review9.png';
-import Rev10 from '../assets/review/review10.png';
-
-const CustomerExperiences = () => {
-  // Creating perfect loops of 8 images (4 unique images repeated twice)
-  // This ensures the 50% translation animation loops seamlessly.
-  const column1 = [Rev1, Rev2, Rev3, Rev4, Rev1, Rev2, Rev3, Rev4];
-  const column2 = [Rev5, Rev6, Rev7, Rev8, Rev5, Rev6, Rev7, Rev8];
-  const column3 = [Rev9, Rev10, Rev1, Rev2, Rev9, Rev10, Rev1, Rev2];
-  const column4 = [Rev3, Rev4, Rev5, Rev6, Rev3, Rev4, Rev5, Rev6];
+const RealExperience = () => {
+  // Duplicate list to create a seamless infinite loop
+  const loopItems = [...TESTIMONIALS, ...TESTIMONIALS];
 
   return (
-    <section className="customer-experiences">
-      <div className="experiences-text-content">
-        <h2 className="experiences-title">Real Experiences</h2>
-        <p className="experiences-subtitle">Hear from our happy customers who've experienced our world-magic.</p>
+    <section className="testimonials-section" aria-label="Customer Testimonials">
+      <div className="testimonials-heading-container">
+        <h2 className="testimonials-heading">CUSTOMER TESTIMONIALS</h2>
       </div>
 
-      <div className="experiences-visual-container">
-        <div className="experiences-grid">
-          {/* Column 1: Scrolling Down */}
-          <div className="grid-column scroll-down">
-            {column1.map((img, i) => (
-              <img key={`c1-${i}`} src={img} alt="Customer Story" className="instagram-post-img" />
-            ))}
-          </div>
+      <div className="testimonials-scroll-container">
+        <div className="testimonials-track">
+          {loopItems.map((item, idx) => (
+            <div className="testimonial-card" key={`${item.id}-${idx}`}>
+              <div className="testimonial-header">
+                <h3 className="testimonial-author">{item.name}</h3>
+              </div>
 
-          {/* Column 2: Scrolling Up */}
-          <div className="grid-column scroll-up">
-            {column2.map((img, i) => (
-              <img key={`c2-${i}`} src={img} alt="Customer Story" className="instagram-post-img" />
-            ))}
-          </div>
+              <div className="testimonial-quote-wrapper">
+                <svg
+                  className="testimonial-quote-icon"
+                  width="36"
+                  height="26"
+                  viewBox="0 0 32 24"
+                  fill="none"
+                  xmlns="http://www.w3.org/2000/svg"
+                  aria-hidden="true"
+                >
+                  <path
+                    d="M0 14.4C0 6.4 5.12 1.2 12.4 0L14 3.2C9.6 4.4 7.2 7.2 6.8 10.8H13.6V24H0V14.4ZM18.4 14.4C18.4 6.4 23.52 1.2 30.8 0L32.4 3.2C28 4.4 25.6 7.2 25.2 10.8H32V24H18.4V14.4Z"
+                    fill="#2563EB"
+                  />
+                </svg>
+              </div>
 
-          {/* Column 3: Scrolling Down */}
-          <div className="grid-column scroll-down">
-            {column3.map((img, i) => (
-              <img key={`c3-${i}`} src={img} alt="Customer Story" className="instagram-post-img" />
-            ))}
-          </div>
+              <h4 className="testimonial-card-title">{item.title}</h4>
 
-          {/* Column 4: Scrolling Up */}
-          <div className="grid-column scroll-up">
-            {column4.map((img, i) => (
-              <img key={`c4-${i}`} src={img} alt="Customer Story" className="instagram-post-img" />
-            ))}
-          </div>
+              <p className="testimonial-card-text">{item.text}</p>
+
+              <div className="testimonial-card-footer">
+                <div className="testimonial-socials">
+                  <a
+                    href="#twitter"
+                    aria-label="Twitter"
+                    className="testimonial-social-btn"
+                    onClick={(e) => e.preventDefault()}
+                  >
+                    <FaTwitter />
+                  </a>
+                  <a
+                    href="#facebook"
+                    aria-label="Facebook"
+                    className="testimonial-social-btn"
+                    onClick={(e) => e.preventDefault()}
+                  >
+                    <FaFacebookF />
+                  </a>
+                  <a
+                    href="#instagram"
+                    aria-label="Instagram"
+                    className="testimonial-social-btn"
+                    onClick={(e) => e.preventDefault()}
+                  >
+                    <FaInstagram />
+                  </a>
+                </div>
+
+                <div className="testimonial-rating">
+                  <span className="rating-score">{item.rating}</span>
+                  <div className="rating-stars">
+                    {[...Array(item.stars)].map((_, sIdx) => (
+                      <FaStar key={sIdx} className="star-icon" />
+                    ))}
+                  </div>
+                </div>
+              </div>
+            </div>
+          ))}
         </div>
       </div>
     </section>
   );
 };
 
-export default CustomerExperiences;
+export default RealExperience;
