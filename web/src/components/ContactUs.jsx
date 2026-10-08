@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { FaWhatsapp, FaFacebookF, FaInstagram } from 'react-icons/fa';
+import { FaWhatsapp, FaFacebook, FaInstagram } from 'react-icons/fa';
 import './ContactUs.css';
 
 const ContactUs = () => {
@@ -169,7 +169,7 @@ const ContactUs = () => {
                 aria-label="Facebook"
                 className="contactus-social-icon"
               >
-                <FaFacebookF />
+                <FaFacebook />
               </a>
               <a
                 href="https://instagram.com"
