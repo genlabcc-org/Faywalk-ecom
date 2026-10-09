@@ -1,5 +1,6 @@
 import { supabase } from '../lib/supabase';
 import { compressImage } from '../utils/imageCompression';
+import { productService } from './productService';
 
 // ── SKU generation ──────────────────────────────────────────
 const generateBaseSku = (productName) => {
@@ -98,6 +99,8 @@ export const variantService = {
    * Updates an existing product plus its variants (create/update/delete in one call).
    */
   async updateProductWithVariants(productId, productData, variants, deletedVariantIds = []) {
+    const oldImageUrls = await productService.getProductImageUrls(productId).catch(() => []);
+
     const { data: product, error: productError } = await supabase
       .from('products')
       // Bump updated_at so storefront image caches know to refresh
@@ -177,6 +180,7 @@ export const variantService = {
     }
 
     // ── Keep base product images in sync on edit too ──
+    let finalProduct = product;
     const firstWithImages = savedVariants.find(v => v.images?.length > 0);
     if (firstWithImages) {
       const { data: updatedProduct, error: syncError } = await supabase
@@ -186,11 +190,14 @@ export const variantService = {
         .select()
         .single();
       if (!syncError && updatedProduct) {
-        return { product: updatedProduct, variants: savedVariants };
+        finalProduct = updatedProduct;
       }
     }
 
-    return { product, variants: savedVariants };
+    // Images replaced or removed in this edit (incl. deleted variants) are deleted from R2
+    await productService.deleteRemovedProductImages(productId, oldImageUrls);
+
+    return { product: finalProduct, variants: savedVariants };
   },
 
   /**

@@ -82,11 +82,7 @@ export const productService = {
    * @returns {Promise<void>}
    */
   async deleteProduct(productId) {
-    const { data: existing } = await supabase
-      .from('products')
-      .select('image_url, images, product_variants(images)')
-      .eq('product_id', productId)
-      .single();
+    const allUrls = await this.getProductImageUrls(productId).catch(() => []);
 
     const { error } = await supabase
       .from('products')
@@ -94,23 +90,59 @@ export const productService = {
       .eq('product_id', productId);
     if (error) throw error;
 
-    const r2Base = import.meta.env.VITE_R2_PUBLIC_URL;
-    const allUrls = [
-      ...(existing?.image_url ? [existing.image_url] : []),
-      ...(existing?.images || []),
-      ...(existing?.product_variants || []).flatMap(v => v.images || []),
-    ];
+    await this.deleteR2Images(allUrls);
+  },
 
-    const r2FilePaths = allUrls
+  /**
+   * Every image URL a product references (base images + all variant images).
+   * @param {string|number} productId
+   * @returns {Promise<string[]>}
+   */
+  async getProductImageUrls(productId) {
+    const { data, error } = await supabase
+      .from('products')
+      .select('image_url, images, product_variants(images)')
+      .eq('product_id', productId)
+      .single();
+    if (error) throw error;
+    return [
+      ...(data?.image_url ? [data.image_url] : []),
+      ...(data?.images || []),
+      ...(data?.product_variants || []).flatMap(v => v.images || []),
+    ];
+  },
+
+  /**
+   * Deletes image files from Cloudflare R2. Non-R2 URLs are skipped; failures are logged, not thrown.
+   * @param {string[]} urls
+   */
+  async deleteR2Images(urls) {
+    const r2Base = import.meta.env.VITE_R2_PUBLIC_URL;
+    const r2FilePaths = [...new Set(urls)]
       .filter(url => url?.includes(r2Base))
       .map(url => url.replace(`${r2Base}/`, ''));
 
-    for (const filePath of r2FilePaths) {
+    await Promise.all(r2FilePaths.map(async (filePath) => {
       try {
         await this.deleteSubcategoryImageR2(filePath);
       } catch (err) {
         console.warn(`Failed to delete image ${filePath} from R2:`, err);
       }
+    }));
+  },
+
+  /**
+   * After an edit: deletes from R2 the images the product used before (oldUrls) but no longer uses.
+   * @param {string|number} productId
+   * @param {string[]} oldUrls
+   */
+  async deleteRemovedProductImages(productId, oldUrls) {
+    if (!oldUrls?.length) return;
+    try {
+      const currentUrls = new Set(await this.getProductImageUrls(productId));
+      await this.deleteR2Images(oldUrls.filter(url => !currentUrls.has(url)));
+    } catch (err) {
+      console.warn('Failed to clean up removed product images:', err);
     }
   },
 
@@ -144,15 +176,7 @@ export const productService = {
       .eq('category_id', categoryId);
     if (error) throw error;
 
-    const r2Base = import.meta.env.VITE_R2_PUBLIC_URL;
-    if (existing?.image_url?.includes(r2Base)) {
-      const filePath = existing.image_url.replace(`${r2Base}/`, '');
-      try {
-        await this.deleteSubcategoryImageR2(filePath);
-      } catch (err) {
-        console.warn('Failed to delete category image from R2:', err);
-      }
-    }
+    await this.deleteR2Images([existing?.image_url]);
   },
 
   /**
@@ -225,12 +249,24 @@ export const productService = {
    * @returns {Promise<any>}
    */
   async updateCategory(categoryId, categoryData) {
+    const { data: existing } = await supabase
+      .from('categories')
+      .select('image_url')
+      .eq('category_id', categoryId)
+      .single();
+
     const { data, error } = await supabase
       .from('categories')
       .update(categoryData)
       .eq('category_id', categoryId)
       .select();
     if (error) throw error;
+
+    // Old image replaced or removed in this edit is deleted from R2
+    const saved = data?.[0];
+    if (saved && existing?.image_url && existing.image_url !== saved.image_url) {
+      await this.deleteR2Images([existing.image_url]);
+    }
     return data;
   },
 
@@ -242,6 +278,7 @@ export const productService = {
    */
   async updateProduct(productId, productData) {
     const formatted = this.formatProductPayload(productData);
+    const oldImageUrls = await this.getProductImageUrls(productId).catch(() => []);
     const { data, error } = await supabase
       .from('products')
       // Bump updated_at so storefront image caches know to refresh
@@ -249,6 +286,9 @@ export const productService = {
       .eq('product_id', productId)
       .select();
     if (error) throw error;
+
+    // Images replaced or removed in this edit are deleted from R2
+    await this.deleteRemovedProductImages(productId, oldImageUrls);
     return data;
   },
 
@@ -487,6 +527,12 @@ export const productService = {
    * @returns {Promise<any>}
    */
   async updateSubcategory(id, payload) {
+    const { data: existing } = await supabase
+      .from("subcategories")
+      .select("image_url")
+      .eq("subcategory_id", id)
+      .single();
+
     const { data, error } = await supabase
       .from("subcategories")
       .update(payload)
@@ -495,6 +541,11 @@ export const productService = {
       .single();
 
     if (error) throw error;
+
+    // Old image replaced or removed in this edit is deleted from R2
+    if (data && existing?.image_url && existing.image_url !== data.image_url) {
+      await this.deleteR2Images([existing.image_url]);
+    }
     return data;
   },
 
@@ -517,13 +568,6 @@ export const productService = {
 
     if (error) throw error;
 
-    if (existing?.image_url?.includes(import.meta.env.VITE_R2_PUBLIC_URL)) {
-      const filePath = existing.image_url.replace(`${import.meta.env.VITE_R2_PUBLIC_URL}/`, '');
-      try {
-        await this.deleteSubcategoryImageR2(filePath);
-      } catch (err) {
-        console.warn('Failed to delete subcategory image from R2:', err);
-      }
-    }
+    await this.deleteR2Images([existing?.image_url]);
   },
 };
