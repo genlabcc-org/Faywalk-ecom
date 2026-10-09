@@ -1,5 +1,6 @@
 import React, { useState, useRef, useEffect } from "react";
 import { productService } from "../../services/productService";
+import { useStore } from "../../hooks/useStore";
 import back from "../../assets/admin/back.png";
 import "./addproduct.css";
 
@@ -374,6 +375,7 @@ export default function AddProduct({ onBack, onPublish, onSaveDraft, onAddVarian
         // Update existing product
         const productId = initialData?.product_id || initialData?.id;
         const data = await productService.updateProduct(productId, productData);
+        useStore.getState().invalidateProductDetails(productId);
         return { data: data[0], error: null };
       } else {
         // Insert new product

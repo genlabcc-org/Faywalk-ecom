@@ -47,7 +47,7 @@ const loadPdCache = () => {
     Object.entries(parsed).forEach(([id, entry]) => {
       if (entry.cachedAt && (now - entry.cachedAt) < PD_CACHE_TTL) {
         // Only restore images — price/stock are re-fetched fresh on every refresh
-        valid[id] = { cachedAt: entry.cachedAt, images: entry.images || [] };
+        valid[id] = { cachedAt: entry.cachedAt, updatedAt: entry.updatedAt, images: entry.images || [] };
       }
     });
     return valid;
@@ -61,7 +61,7 @@ const savePdCache = (cache) => {
   try {
     const imgOnly = {};
     Object.entries(cache).forEach(([id, entry]) => {
-      imgOnly[id] = { cachedAt: entry.cachedAt, images: entry.images || [] };
+      imgOnly[id] = { cachedAt: entry.cachedAt, updatedAt: entry.updatedAt, images: entry.images || [] };
     });
     localStorage.setItem(PD_CACHE_KEY, JSON.stringify(imgOnly));
   } catch (e) {
@@ -169,20 +169,25 @@ export const useStore = create((set, get) => ({
       set({ sessionLoading: false });
     }
 
-    // Subscribe to auth state changes
-    supabase.auth.onAuthStateChange(async (event, session) => {
+    // Subscribe to auth state changes.
+    // Keep this callback synchronous: awaiting Supabase calls inside it deadlocks the auth lock
+    // (e.g. on token refresh), after which every query hangs until a page refresh.
+    // Supabase work is deferred with setTimeout so it runs after the callback returns.
+    supabase.auth.onAuthStateChange((event, session) => {
       // console.log('Auth event in Zustand store:', event, session?.user?.id);
       if (session) {
         const currentUser = get().user;
         if (!currentUser || currentUser.id !== session.user.id) {
           // New sign-in (or first load) — set user and sync guest cart/wishlist
           set({ session, user: session.user });
-          await get().syncCartAndWishlist(session.user.id);
-          await get().checkAdminStatus(session.user.id);
+          setTimeout(async () => {
+            await get().syncCartAndWishlist(session.user.id);
+            await get().checkAdminStatus(session.user.id);
+          }, 0);
         } else {
           // Same user, but metadata may have changed (e.g. profile edit) — keep it fresh
           set({ session, user: session.user });
-          await get().checkAdminStatus(session.user.id);
+          setTimeout(() => get().checkAdminStatus(session.user.id), 0);
         }
       } else {
         // Sign out / Clear session
@@ -327,36 +332,28 @@ export const useStore = create((set, get) => ({
     if (!force && cached?.base) return cached;
 
     try {
-      // If images already in cache (from localStorage), skip image DB call
-      const hasImages = cached?.images?.length > 0;
+      // Price/stock always fetched fresh; updated_at tells us whether cached images are stale
+      const { data: baseData, error: baseError } = await supabase
+        .from('products')
+        .select('price, compare_price, sku, stock, stock_alert, sizes, colors, has_variants, updated_at')
+        .eq('product_id', productId)
+        .single();
+      if (baseError) throw baseError;
 
-      const fetchTasks = [
-        hasImages
-          ? Promise.resolve({ data: { images: cached.images, image_url: null }, error: null })
-          : supabase
-            .from('products')
-            .select('images, image_url')
-            .eq('product_id', productId)
-            .single(),
-        // Price/stock always fetched fresh
-        supabase
+      // Reuse cached images (from localStorage) unless the product was edited since they were cached
+      let images = cached?.images || [];
+      const imagesFresh = images.length > 0 && cached.updatedAt === baseData?.updated_at;
+      if (!imagesFresh) {
+        const { data: imgData, error: imgError } = await supabase
           .from('products')
-          .select('price, compare_price, sku, stock, stock_alert, sizes, colors, has_variants')
+          .select('images, image_url')
           .eq('product_id', productId)
-          .single(),
-      ];
-
-      const [imgResult, baseResult] = await Promise.all(fetchTasks);
-
-      const imgData = imgResult.data;
-      const baseData = baseResult.data;
-      if (baseResult.error) throw baseResult.error;
-
-      const images = hasImages
-        ? cached.images
-        : (Array.isArray(imgData?.images) && imgData.images.length > 0
+          .single();
+        if (imgError) throw imgError;
+        images = Array.isArray(imgData?.images) && imgData.images.length > 0
           ? imgData.images
-          : (imgData?.image_url ? [imgData.image_url] : []));
+          : (imgData?.image_url ? [imgData.image_url] : []);
+      }
 
       let variantRows = [];
       if (baseData?.has_variants) {
@@ -367,7 +364,7 @@ export const useStore = create((set, get) => ({
         }
       }
 
-      const details = { cachedAt: Date.now(), images, base: baseData, variants: variantRows };
+      const details = { cachedAt: Date.now(), updatedAt: baseData?.updated_at, images, base: baseData, variants: variantRows };
       const updatedCache = { ...get().productDetails, [productId]: details };
       set({ productDetails: updatedCache });
       savePdCache(updatedCache); // persists images only (price excluded by savePdCache)
@@ -395,6 +392,15 @@ export const useStore = create((set, get) => ({
       }
     });
     if (changed) set({ productDetails: updatedCache });
+  },
+
+  // After an admin edit: drop this product's cached details so the next view refetches
+  invalidateProductDetails: (productId) => {
+    if (!productId) return;
+    const updatedCache = { ...get().productDetails };
+    delete updatedCache[productId];
+    set({ productDetails: updatedCache });
+    evictPdEntry(productId);
   },
 
   // Caching Orders
@@ -679,7 +685,7 @@ export const useStore = create((set, get) => ({
           product_id: dbItem.productId,
           qty: dbItem.qty,
           size: dbItem.size,
-          color: dbItem.color
+          color: dbItem.storedColor ?? dbItem.color
         });
       });
 

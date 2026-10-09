@@ -1,5 +1,6 @@
 import React, { useState, useRef, useEffect } from "react";
 import { variantService } from "../../../services/variantService";
+import { useStore } from "../../../hooks/useStore";
 import ConfirmDialog from "../dialogs/confirmdialogs";
 import "./ProductVariant.css";
 
@@ -333,6 +334,7 @@ const CreateMultipleProduct = ({
       const result = isEditing
         ? await variantService.updateProductWithVariants(editingProductId, productData, variants, deletedVariantIds)
         : await variantService.createProductWithVariants({ ...productData, has_variants: true }, variants);
+      if (isEditing) useStore.getState().invalidateProductDetails(editingProductId);
       onSave?.(result);
     } catch (err) {
       console.error("Failed to save variant product:", err);

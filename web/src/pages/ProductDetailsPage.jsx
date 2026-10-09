@@ -12,9 +12,6 @@ import TopBar from '../components/TopBar';
 import Toast from '../components/Toast';
 import { useStore } from '../hooks/useStore';
 
-// Main gallery images fallback
-import MainBangle from '../assets/Product1.webp';
-
 // Lazy load Footer
 const SiteFooter = lazy(() => import('../components/SiteFooter'));
 
@@ -44,34 +41,38 @@ const ProductGallery = memo(({ activeThumb, setActiveThumb, displayImage, displa
 
   return (
     <div className="dp-gallery-layout">
-      {/* Vertical Thumbnails on Left */}
-      <div className="dp-thumbs-vertical-col">
-        {thumbs.map((item, idx) => (
-          <button
-            key={item.id || idx}
-            type="button"
-            className={`dp-thumb-item-btn ${currentIndex === idx ? 'active' : ''}`}
-            onClick={() => setActiveThumb(idx)}
-            aria-label={`Thumbnail ${idx + 1}`}
-          >
-            <img src={item.img} alt={item.alt || displayName} className="dp-thumb-img" />
-          </button>
-        ))}
-      </div>
+      {/* Vertical Thumbnails on Left (only when there is more than one image) */}
+      {thumbs.length > 1 && (
+        <div className="dp-thumbs-vertical-col">
+          {thumbs.map((item, idx) => (
+            <button
+              key={item.id || idx}
+              type="button"
+              className={`dp-thumb-item-btn ${currentIndex === idx ? 'active' : ''}`}
+              onClick={() => setActiveThumb(idx)}
+              aria-label={`Thumbnail ${idx + 1}`}
+            >
+              <img src={item.img} alt={item.alt || displayName} className="dp-thumb-img" />
+            </button>
+          ))}
+        </div>
+      )}
 
       {/* Main Big Image */}
       <div className="dp-main-image-container">
-        <div className="dp-main-image-inner" onClick={() => setZoomOpen(true)}>
-          <img
-            src={currentImg}
-            alt={displayName}
-            className="dp-main-img-display"
-          />
+        <div className="dp-main-image-inner" onClick={() => currentImg && setZoomOpen(true)}>
+          {currentImg && (
+            <img
+              src={currentImg}
+              alt={displayName}
+              className="dp-main-img-display"
+            />
+          )}
         </div>
       </div>
 
       {/* Fullscreen Zoom Lightbox */}
-      {zoomOpen && (
+      {zoomOpen && currentImg && (
         <div className="dp-zoom-overlay" onClick={closeZoom}>
           <button className="dp-zoom-close-btn" onClick={closeZoom} aria-label="Close zoom">✕</button>
           <img
@@ -151,8 +152,6 @@ export default function ProductDetailsPage({ onBack = () => window.history.back(
   const [variants, setVariants] = useState([]);
   const [selectedColor, setSelectedColor] = useState("");
 
-  const DEFAULT_COLORS = ["#5f5b40", "#6e3b24", "#d9e2ec", "#b89f81", "#333f48", "#adff2f"];
-
   const productId = selectedProduct?.productId || selectedProduct?.id;
   const cachedEntry = productId ? productDetailsCache[productId] : undefined;
 
@@ -178,7 +177,7 @@ export default function ProductDetailsPage({ onBack = () => window.history.back(
         const firstVariant = variantRows[0];
         if (sizes.length > 0) setSize(sizes);
         setSelectedSize(firstVariant?.size || '80');
-        setSelectedColor(firstVariant?.color || DEFAULT_COLORS[0]);
+        setSelectedColor(firstVariant?.color || '');
       } else {
         setProductPrice(baseData);
         if (baseData?.sizes?.length) {
@@ -188,7 +187,7 @@ export default function ProductDetailsPage({ onBack = () => window.history.back(
         const parsedColors = Array.isArray(baseData?.colors)
           ? baseData.colors
           : (typeof baseData?.colors === 'string' ? baseData.colors.split(',').map(s => s.trim()).filter(Boolean) : []);
-        setSelectedColor(parsedColors.length > 0 ? parsedColors[0] : DEFAULT_COLORS[0]);
+        setSelectedColor(parsedColors[0] || '');
       }
       return;
     }
@@ -205,7 +204,7 @@ export default function ProductDetailsPage({ onBack = () => window.history.back(
         const firstVariant = variantRows[0];
         if (sizes.length > 0) setSize(sizes);
         setSelectedSize(firstVariant?.size || '80');
-        setSelectedColor(firstVariant?.color || DEFAULT_COLORS[0]);
+        setSelectedColor(firstVariant?.color || '');
       } else {
         setProductPrice(baseData);
         if (baseData?.sizes?.length) {
@@ -215,7 +214,7 @@ export default function ProductDetailsPage({ onBack = () => window.history.back(
         const parsedColors = Array.isArray(baseData?.colors)
           ? baseData.colors
           : (typeof baseData?.colors === 'string' ? baseData.colors.split(',').map(s => s.trim()).filter(Boolean) : []);
-        setSelectedColor(parsedColors.length > 0 ? parsedColors[0] : DEFAULT_COLORS[0]);
+        setSelectedColor(parsedColors[0] || '');
       }
     });
   }, [selectedProduct, cat, cachedEntry]);
@@ -254,7 +253,7 @@ export default function ProductDetailsPage({ onBack = () => window.history.back(
     ? (selectedVariant?.compare_price ?? null)
     : (productPrices?.compare_price ?? selectedProduct?.compare_price ?? null);
 
-  const displayImage = selectedProduct?.img || selectedProduct?.image || MainBangle;
+  const displayImage = selectedProduct?.img || selectedProduct?.image || selectedProduct?.image_url || '';
   const displayName = selectedProduct?.name || 'GREEN ROUND NECK FULL HAND T- SHIRT';
 
   const displaySku = hasVariants
@@ -285,7 +284,7 @@ export default function ProductDetailsPage({ onBack = () => window.history.back(
     if (typeof rawColors === 'string' && rawColors.trim()) {
       return rawColors.split(',').map(c => c.trim()).filter(Boolean);
     }
-    return DEFAULT_COLORS;
+    return [];
   }, [hasVariants, variants, activeSizeValue, productPrices, selectedProduct]);
 
   useEffect(() => {
@@ -313,14 +312,12 @@ export default function ProductDetailsPage({ onBack = () => window.history.back(
       imgs = productImages;
     }
 
-    if (imgs.length === 0) {
-      // Repeat main image for thumbnails if only 1 image exists
-      imgs = [displayImage, displayImage, displayImage];
-    } else if (imgs.length === 1) {
-      imgs = [imgs[0], imgs[0], imgs[0]];
-    } else if (imgs.length === 2) {
-      imgs = [imgs[0], imgs[1], imgs[0]];
+    if (imgs.length === 0 && displayImage) {
+      imgs = [displayImage];
     }
+
+    // Only the product's real images, each once
+    imgs = [...new Set(imgs.filter(Boolean))];
 
     return imgs.map((img, i) => ({
       id: i + 1,

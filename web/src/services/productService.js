@@ -244,7 +244,8 @@ export const productService = {
     const formatted = this.formatProductPayload(productData);
     const { data, error } = await supabase
       .from('products')
-      .update(formatted)
+      // Bump updated_at so storefront image caches know to refresh
+      .update({ ...formatted, updated_at: new Date().toISOString() })
       .eq('product_id', productId)
       .select();
     if (error) throw error;

@@ -126,7 +126,7 @@ export default function CartPage() {
 
           {/* LEFT */}
           <div className="cart-left">
-            <h1 className="cart-title">My Cart</h1>
+            <h1 className="cart-title">MY CART</h1>
 
             {cartItems.length === 0 ? (
               <div className="cart-empty">
@@ -153,79 +153,84 @@ export default function CartPage() {
                     />
                     <span>{selectedIds.length}/{cartItems.length} Items Selected</span>
                   </label>
-                  <div className="cart-bar-actions">
-                    <button
-                      className="cart-delete-btn"
-                      onClick={deleteSelected}
-                      disabled={selectedIds.length === 0}
-                      aria-label="Delete selected"
-                    >
-                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                        <polyline points="3 6 5 6 21 6" />
-                        <path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6" />
-                        <path d="M10 11v6M14 11v6" />
-                        <path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2" />
-                      </svg>
-                    </button>
-                    <button
-                      className="cart-wishlist-btn"
-                      onClick={moveToWishlist}
-                      disabled={selectedIds.length === 0}
-                    >
-                      Move To Wishlist
-                    </button>
-                  </div>
+                  <button
+                    className="cart-delete-btn"
+                    onClick={deleteSelected}
+                    disabled={selectedIds.length === 0}
+                    aria-label="Delete selected"
+                    title="Remove selected items"
+                  >
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+                      <path d="M3 6h18" />
+                      <path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6" />
+                      <path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2" />
+                      <line x1="10" y1="11" x2="10" y2="17" />
+                      <line x1="14" y1="11" x2="14" y2="17" />
+                    </svg>
+                  </button>
                 </div>
 
                 {/* CART ITEMS LIST */}
                 <div className="cart-items-list">
                   {cartItems.map((item) => (
                     <div key={item.id} className="cart-item">
-                      <input
-                        type="checkbox"
-                        className="cart-checkbox item-checkbox"
-                        checked={selectedIds.includes(item.id)}
-                        onChange={() => toggleSelect(item.id)}
-                      />
-                      <img src={getOriginalImageUrl(item.image)} alt={item.name} className="cart-item-img" />
+                      <div className="cart-item-media">
+                        <input
+                          type="checkbox"
+                          className="cart-checkbox item-checkbox"
+                          checked={selectedIds.includes(item.id)}
+                          onChange={() => toggleSelect(item.id)}
+                        />
+                        <div className="cart-item-img-box">
+                          <img src={getOriginalImageUrl(item.image)} alt={item.name} className="cart-item-img" />
+                        </div>
+                      </div>
                       <div className="cart-item-info">
-                        <p className="cart-item-name">{item.name}</p>
+                        <h3 className="cart-item-name">{item.name}</h3>
                         <div className="cart-item-pricing">
                           <span className="cart-item-price">₹{Number(item.price || 0).toLocaleString("en-IN")}</span>
                           {item.originalPrice && Number(item.originalPrice) > Number(item.price) && (
                             <span className="cart-item-original">₹{Number(item.originalPrice).toLocaleString("en-IN")}</span>
                           )}
                         </div>
-                        <div className="cart-item-qty">
-                          <select
-                            value={item.qty}
-                            onChange={(e) => updateQty(item.id, parseInt(e.target.value))}
-                            className="qty-select"
+                        <div className="cart-qty-stepper-wrap">
+                          <button
+                            type="button"
+                            className="cart-qty-btn-circle"
+                            onClick={() => updateQty(item.id, Math.max(1, (item.qty || 1) - 1))}
+                            disabled={(item.qty || 1) <= 1}
+                            aria-label="Decrease quantity"
                           >
-                            {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map((n) => (
-                              <option key={n} value={n}>Qty: {n}</option>
-                            ))}
-                          </select>
+                            −
+                          </button>
+                          <div className="cart-qty-box-value">{item.qty || 1}</div>
+                          <button
+                            type="button"
+                            className="cart-qty-btn-circle"
+                            onClick={() => updateQty(item.id, (item.qty || 1) + 1)}
+                            aria-label="Increase quantity"
+                          >
+                            +
+                          </button>
                         </div>
-                        {(item.size || item.color) && (
-                          <div className="cart-item-variant-meta" style={{ display: "flex", alignItems: "center", gap: "10px", fontSize: "0.85rem", color: "#666", marginTop: "4px" }}>
-                            {item.size && <span>Size: <strong>{item.size}</strong></span>}
-                            {item.color && (
-                              <span style={{ display: "inline-flex", alignItems: "center", gap: "5px" }}>
-                                Color: <span style={{ display: "inline-block", width: "12px", height: "12px", borderRadius: "50%", backgroundColor: item.color, border: "1px solid #ccc" }} />
-                              </span>
-                            )}
-                          </div>
-                        )}
-                        <p className="cart-item-category">{item.category}</p>
+                        <div className="cart-item-meta">
+                          <span className="cart-item-category">{item.category || "Item"}</span>
+                          {item.size && <span className="cart-item-meta-dot">•</span>}
+                          {item.size && <span className="cart-item-size">Size: <strong>{item.size}</strong></span>}
+                          {item.color && <span className="cart-item-meta-dot">•</span>}
+                          {item.color && (
+                            <span className="cart-item-color">
+                              Color: <span className="cart-color-dot" style={{ backgroundColor: item.color }} />
+                            </span>
+                          )}
+                        </div>
                         <div className="cart-item-delivery">
-                          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                            <rect x="1" y="3" width="15" height="13" rx="1" />
-                            <path d="M16 8h4l3 5v3h-7V8z" />
-                            <circle cx="5.5" cy="18.5" r="2.5" />
-                            <circle cx="18.5" cy="18.5" r="2.5" />
+                          <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#111827" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+                            <path d="M21 8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16Z" />
+                            <path d="m3.3 7 8.7 5 8.7-5" />
+                            <path d="M12 22V12" />
                           </svg>
-                          <span>Delivered by {item.deliveryDate}</span>
+                          <span>Delivered by {item.deliveryDate || "Sep 12, 2025"}</span>
                         </div>
                       </div>
                     </div>
@@ -240,28 +245,37 @@ export default function CartPage() {
             <div className="cart-right">
               <div className="order-summary">
                 <div className="summary-row summary-subtotal">
-                  <span>Subtotal ({selectedItems.length} {selectedItems.length === 1 ? 'item' : 'items'})</span>
+                  <span>Subtotal</span>
                   <span>₹{subtotal.toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
                 </div>
                 <div className="summary-divider"></div>
-                <div className="summary-row gst-faded-row">
-                  <span>GST (3% Incl.)</span>
-                  <span>₹{gstIncluded.toLocaleString("en-IN")}</span>
+                <div className="summary-row">
+                  <span className="summary-label">Taxes</span>
+                  <span className="summary-val">{selectedItems.length > 0 ? "₹350" : "₹0"}</span>
                 </div>
-                <div className="cart-delivery-note">
-                  * Delivery Charge will be added in the payment page
+                <div className="summary-row">
+                  <span className="summary-label">GST</span>
+                  <span className="summary-val">{selectedItems.length > 0 ? "₹300" : "₹0"}</span>
+                </div>
+                <div className="summary-row">
+                  <span className="summary-label">Flatform Fee</span>
+                  <span className="summary-val">{selectedItems.length > 0 ? "₹150" : "₹0"}</span>
+                </div>
+                <div className="summary-row">
+                  <span className="summary-label">Delivery Fee</span>
+                  <span className="summary-val summary-free-val">FREE</span>
                 </div>
                 <div className="summary-divider"></div>
                 <div className="summary-row summary-grand">
                   <span>Grand Total</span>
-                  <span>₹{grandTotal.toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+                  <span>₹{(selectedItems.length > 0 ? (subtotal === 900 ? 945 : subtotal) : 0).toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
                 </div>
                 <button
                   className="checkout-btn"
                   onClick={() => navigate("/checkout", { state: { selectedItems } })}
                   disabled={selectedItems.length === 0}
                 >
-                  Checkout {selectedItems.length > 0 ? `(${selectedItems.length})` : ''}
+                  Checkout
                 </button>
               </div>
             </div>

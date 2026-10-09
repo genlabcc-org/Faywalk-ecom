@@ -25,6 +25,16 @@ const getOriginalImageUrl = (url) => {
   return clean;
 };
 
+const normalizeColor = (c) => String(c || '').trim().toLowerCase();
+
+/** Colors the product actually offers (its variant colors plus its own colors list) */
+const getRealColors = (product, variants) => {
+  const productColors = Array.isArray(product.colors)
+    ? product.colors
+    : String(product.colors || '').split(',');
+  return [...variants.map(v => v.color), ...productColors].map(normalizeColor).filter(Boolean);
+};
+
 export const cartService = {
   /**
    * Retrieves all cart items for a user.
@@ -89,6 +99,10 @@ export const cartService = {
 
       const sku = matchedVariant?.sku || product.sku || '';
 
+      // Older cart rows may hold a placeholder color the product never offered — hide it
+      const storedColor = item.color || '';
+      const realColor = getRealColors(product, variants).includes(normalizeColor(storedColor)) ? storedColor : '';
+
       return {
         id: item.id,
         productId: item.product_id,
@@ -99,7 +113,9 @@ export const cartService = {
         sku: sku,
         qty: item.qty || 1,
         size: item.size || '',
-        color: item.color || '',
+        color: realColor,
+        // Exact value in the DB row; part of the cart's unique key, so sync must use it
+        storedColor,
         image: getOriginalImageUrl(image),
         deliveryDate: "2 - 3 days"
       };

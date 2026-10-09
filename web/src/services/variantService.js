@@ -100,7 +100,8 @@ export const variantService = {
   async updateProductWithVariants(productId, productData, variants, deletedVariantIds = []) {
     const { data: product, error: productError } = await supabase
       .from('products')
-      .update(productData)
+      // Bump updated_at so storefront image caches know to refresh
+      .update({ ...productData, updated_at: new Date().toISOString() })
       .eq('product_id', productId)
       .select()
       .single();
