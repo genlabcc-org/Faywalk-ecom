@@ -35,9 +35,9 @@ const AdminAccount = () => {
         if (user) {
           setAdminEmail(user.email || "");
           
-          // Fetch profile from public.profiles
-          const { data: profile, error } = await supabase
-            .from("profiles")
+          // Fetch user record from public.users
+          const { data: profile } = await supabase
+            .from("users")
             .select("*")
             .eq("id", user.id)
             .maybeSingle();
@@ -45,14 +45,12 @@ const AdminAccount = () => {
           if (profile) {
             setAdminName(profile.name || "");
             setPhone(profile.phone || "");
+            setRole(profile.role || "admin");
           } else {
             setAdminName(user.user_metadata?.name || "");
             setPhone(user.user_metadata?.phone || "");
+            setRole("admin");
           }
-
-          // Fetch role from admin_users
-          const adminInfo = await authService.checkAdminUser(user.id);
-          setRole(adminInfo?.role || "admin");
         }
       } catch (error) {
         console.error("Error loading admin profile:", error);
@@ -71,9 +69,9 @@ const AdminAccount = () => {
         return;
       }
 
-      // Update public.profiles
+      // Update public.users
       const { error: profileError } = await supabase
-        .from("profiles")
+        .from("users")
         .upsert({
           id: user.id,
           name: adminName,

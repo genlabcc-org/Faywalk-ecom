@@ -9,7 +9,6 @@ html {
 
 /* Performance Optimization: Skip rendering for off-screen sections */
 section, 
-.banner-section, 
 .category-section, 
 .new-arrivals-section,
 .best-sellers-section,

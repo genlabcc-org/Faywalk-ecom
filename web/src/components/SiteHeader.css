@@ -8,10 +8,15 @@
   z-index: 99999 !important;
   background: #ffffff !important;
   color: #111827;
-  border-bottom: none !important;
-  box-shadow: none !important;
+  border-bottom: 1px solid rgba(0, 0, 0, 0.06) !important;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08) !important;
   width: 100%;
   overflow: visible !important;
+}
+
+.header.header--scrolled {
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08) !important;
+  border-bottom-color: rgba(0, 0, 0, 0.06) !important;
 }
 
 .header-container {
@@ -540,6 +545,43 @@
   color: #002b66;
   text-decoration: none;
   padding: 6px 8px;
+}
+
+.mobile-extra-link.mobile-admin-link {
+  color: #b45309 !important;
+  font-weight: 700 !important;
+  background: #fef3c7;
+  border-radius: 6px;
+  display: inline-block;
+  margin-top: 4px;
+}
+
+/* ─── Admin Quick Pill in Header Actions ─── */
+.header-admin-pill {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 6px 14px;
+  background: #111827;
+  color: #ffffff !important;
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+  border-radius: 9999px;
+  text-decoration: none;
+  transition: background-color 0.15s ease, filter 0.15s ease;
+  white-space: nowrap;
+}
+
+.header-admin-pill:hover {
+  background: #000000;
+  filter: brightness(0.9);
+}
+
+.header-admin-pill:active {
+  background: #000000;
+  filter: brightness(0.8);
 }
 
 /* ─── Responsive Breakpoints ─── */

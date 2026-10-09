@@ -1,0 +1,416 @@
+/* ─── ProductPage / Trending Styles ─── */
+@import url('https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Outfit:wght@400;500;600;700&display=swap');
+
+.trending-page-root {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  background-color: #ffffff;
+  font-family: 'Outfit', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  color: #111827;
+}
+
+/* ─── Main Container (Sidebar + Content Grid) ─── */
+.trending-main-container {
+  max-width: 1280px;
+  width: 100%;
+  margin: 0 auto;
+  padding: 36px 32px 60px 32px;
+  display: grid;
+  grid-template-columns: 200px 1fr;
+  gap: 48px;
+  box-sizing: border-box;
+}
+
+/* ─── Sidebar Filters ─── */
+.trending-sidebar {
+  width: 100%;
+  position: sticky;
+  top: 96px;
+  height: fit-content;
+  display: flex;
+  flex-direction: column;
+  gap: 28px;
+}
+
+.filter-group {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.filter-heading {
+  font-size: 17px;
+  font-weight: 700;
+  color: #000000;
+  margin: 0;
+  letter-spacing: -0.2px;
+}
+
+.filter-options {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+/* Custom Checkbox Input */
+.custom-filter-checkbox {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  cursor: pointer;
+  font-size: 13.5px;
+  color: #374151;
+  user-select: none;
+  font-weight: 400;
+  transition: color 0.15s ease;
+}
+
+.custom-filter-checkbox:hover {
+  color: #000000;
+}
+
+.custom-filter-checkbox input[type="checkbox"] {
+  position: absolute;
+  opacity: 0;
+  width: 0;
+  height: 0;
+  pointer-events: none;
+}
+
+.checkbox-box {
+  width: 15px;
+  height: 15px;
+  border: 1.5px solid #4b5563;
+  border-radius: 2px;
+  background-color: #ffffff;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  transition: all 0.15s ease;
+  position: relative;
+}
+
+.custom-filter-checkbox input[type="checkbox"]:checked + .checkbox-box {
+  background-color: #000000;
+  border-color: #000000;
+}
+
+.custom-filter-checkbox input[type="checkbox"]:checked + .checkbox-box::after {
+  content: "";
+  display: block;
+  width: 4px;
+  height: 8px;
+  border: solid #ffffff;
+  border-width: 0 2px 2px 0;
+  transform: rotate(45deg) translate(-1px, -1px);
+}
+
+.checkbox-text {
+  line-height: 1.2;
+}
+
+/* ─── Content Panel ─── */
+.trending-content-panel {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  min-width: 0;
+}
+
+/* ─── Header Section ─── */
+.trending-header-bar {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-end;
+  margin-bottom: 28px;
+  padding-bottom: 4px;
+}
+
+.trending-title-block {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.trending-headline {
+  font-family: 'Bebas Neue', 'Oswald', sans-serif;
+  font-size: 38px;
+  font-weight: 900;
+  letter-spacing: 0.5px;
+  color: #000000;
+  line-height: 1;
+  margin: 0;
+  text-transform: uppercase;
+}
+
+.trending-subtitle {
+  font-size: 14px;
+  color: #374151;
+  margin: 0;
+  font-weight: 400;
+}
+
+.trending-product-count {
+  font-size: 14.5px;
+  font-weight: 600;
+  color: #000000;
+  white-space: nowrap;
+}
+
+/* ─── Products Grid (3 Columns) ─── */
+.trending-products-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  column-gap: 24px;
+  row-gap: 36px;
+  width: 100%;
+}
+
+/* ─── Product Card ─── */
+.trending-card {
+  display: flex;
+  flex-direction: column;
+  cursor: pointer;
+  position: relative;
+  background: transparent;
+  transition: transform 0.2s ease;
+}
+
+.trending-image-box {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 3 / 4.1;
+  background-color: #f3f4f6;
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.trending-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+  transition: transform 0.35s ease;
+}
+
+.trending-card:hover .trending-img {
+  transform: scale(1.02);
+}
+
+/* Floating Add To Cart Pill */
+.trending-cart-pill-btn {
+  position: absolute;
+  bottom: 12px;
+  right: 12px;
+  z-index: 3;
+  background: #ffffff;
+  color: #1e3a8a;
+  border: 1px solid rgba(0, 0, 0, 0.08);
+  border-radius: 6px;
+  padding: 6px 12px;
+  font-size: 11px;
+  font-weight: 600;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
+  cursor: pointer;
+  transition: all 0.2s ease;
+  white-space: nowrap;
+  font-family: inherit;
+}
+
+.trending-cart-pill-btn:hover {
+  background: #f8fafc;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.15);
+  transform: translateY(-1px);
+}
+
+.trending-cart-pill-btn:active {
+  transform: scale(0.97);
+}
+
+.cart-svg-icon {
+  flex-shrink: 0;
+}
+
+/* Product Info Below Image */
+.trending-details-box {
+  margin-top: 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.trending-product-name {
+  font-size: 14.5px;
+  font-weight: 500;
+  color: #000000;
+  margin: 0;
+  line-height: 1.35;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.trending-product-price {
+  font-size: 14.5px;
+  font-weight: 700;
+  color: #000000;
+  margin: 0;
+}
+
+/* ─── Pagination Bar ─── */
+.trending-pagination-container {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 14px;
+  margin-top: 48px;
+  margin-bottom: 20px;
+}
+
+.trending-page-nav-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 16px;
+  border: 1px solid #e5e7eb;
+  border-radius: 6px;
+  background: #ffffff;
+  color: #111827;
+  font-size: 12.5px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  font-family: inherit;
+}
+
+.trending-page-nav-pill:hover:not(:disabled) {
+  background: #f9fafb;
+  border-color: #d1d5db;
+}
+
+.trending-page-nav-pill:disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
+}
+
+.trending-page-numbers-group {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.trending-page-number-btn {
+  min-width: 28px;
+  height: 28px;
+  padding: 0 6px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 13px;
+  font-weight: 500;
+  color: #374151;
+  background: transparent;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  font-family: inherit;
+}
+
+.trending-page-number-btn:hover:not(.active) {
+  background: #f3f4f6;
+  color: #000000;
+}
+
+.trending-page-number-btn.active {
+  background-color: #00235a;
+  color: #ffffff;
+  font-weight: 600;
+}
+
+/* ─── Empty State ─── */
+.trending-empty-state {
+  text-align: center;
+  padding: 60px 20px;
+  background: #f9fafb;
+  border-radius: 8px;
+  margin-top: 20px;
+}
+
+.trending-empty-state h3 {
+  font-size: 18px;
+  font-weight: 600;
+  color: #111827;
+  margin: 0 0 8px 0;
+}
+
+.trending-empty-state p {
+  font-size: 14px;
+  color: #6b7280;
+  margin: 0 0 20px 0;
+}
+
+.trending-reset-btn {
+  background: #000000;
+  color: #ffffff;
+  border: none;
+  border-radius: 6px;
+  padding: 10px 20px;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+}
+
+/* ─── Responsive Breakdown ─── */
+@media (max-width: 992px) {
+  .trending-main-container {
+    grid-template-columns: 180px 1fr;
+    gap: 32px;
+    padding: 24px 20px 48px 20px;
+  }
+
+  .trending-products-grid {
+    grid-template-columns: repeat(2, 1fr);
+    column-gap: 16px;
+    row-gap: 28px;
+  }
+}
+
+@media (max-width: 768px) {
+  .trending-main-container {
+    grid-template-columns: 1fr;
+    gap: 24px;
+    padding: 16px 16px 40px 16px;
+  }
+
+  .trending-sidebar {
+    position: static;
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 16px;
+    padding-bottom: 16px;
+    border-bottom: 1px solid #f3f4f6;
+  }
+
+  .trending-headline {
+    font-size: 30px;
+  }
+
+  .trending-products-grid {
+    grid-template-columns: repeat(2, 1fr);
+    column-gap: 12px;
+    row-gap: 20px;
+  }
+
+  .trending-cart-pill-btn {
+    bottom: 8px;
+    right: 8px;
+    padding: 5px 9px;
+    font-size: 10px;
+  }
+}

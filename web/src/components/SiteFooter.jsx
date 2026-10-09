@@ -27,7 +27,7 @@ const SiteFooter = () => {
             </Link>
             <p className="fw-brand-desc">Refined everyday essentials crafted for effortless elegance.</p>
 
-            <div className="fw-brand-bottom">
+            <div className="fw-brand-bottom fw-desktop-only">
               <p className="fw-copy">&copy; {new Date().getFullYear()} FAYWALK</p>
               <Link to="/Privacy" className="fw-privacy-link">
                 Privacy Policy
@@ -36,7 +36,7 @@ const SiteFooter = () => {
           </div>
 
           {/* Column 2: SHOP */}
-          <div className="fw-col">
+          <div className="fw-col fw-nav-col">
             <h4 className="fw-col-title">Shop</h4>
             <ul className="fw-link-list">
               <li><Link to="/category/new-arrivals">New Arrivals</Link></li>
@@ -47,7 +47,7 @@ const SiteFooter = () => {
           </div>
 
           {/* Column 3: ABOUT */}
-          <div className="fw-col">
+          <div className="fw-col fw-nav-col">
             <h4 className="fw-col-title">About</h4>
             <ul className="fw-link-list">
               <li><a href="/#about">ABOUT</a></li>
@@ -58,7 +58,7 @@ const SiteFooter = () => {
           </div>
 
           {/* Column 4: FOLLOW */}
-          <div className="fw-col">
+          <div className="fw-col fw-nav-col fw-follow-col">
             <h4 className="fw-col-title">Follow</h4>
             <ul className="fw-link-list">
               <li><a href="https://instagram.com" target="_blank" rel="noopener noreferrer">Instagram</a></li>
@@ -90,6 +90,14 @@ const SiteFooter = () => {
             </form>
           </div>
 
+        </div>
+
+        {/* Mobile / Tablet Bottom Bar */}
+        <div className="fw-mobile-bottom-bar">
+          <p className="fw-copy">&copy; {new Date().getFullYear()} FAYWALK</p>
+          <Link to="/Privacy" className="fw-privacy-link">
+            Privacy Policy
+          </Link>
         </div>
       </div>
 

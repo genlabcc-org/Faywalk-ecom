@@ -3,17 +3,14 @@ import { useNavigate, useLocation } from "react-router-dom";
 import { orderService } from "../services/orderService";
 import { productService } from "../services/productService";
 import { useStore } from "../hooks/useStore";
-import { getUserInitials } from "../utils/avatarUtils";
+import ProfileLayout from "./ProfileLayout";
 import "./Orders.css";
-import Navbar from "../components/SiteHeader";
-import Footer from "../components/SiteFooter";
 import ThermalInvoice from "../admin/components/ThermalInvoice";
 
-const TABS = ["Profile", "Orders", "Addresses", "Wishlists", "Account"];
 const PAGE_SIZE = 5;
 
 export default function Orders() {
-  const [activeTab, setActiveTab] = useState("Orders");
+
   const [visibleCount, setVisibleCount] = useState(PAGE_SIZE);
   const [productsMap, setProductsMap] = useState({});
   const [cancellingOrderId, setCancellingOrderId] = useState(null);
@@ -154,75 +151,34 @@ export default function Orders() {
     }
   };
 
-  const handleTabClick = (tab) => {
-    if (tab === "Profile") {
-      navigate("/profile");
-    } else if (tab === "Orders") {
-      setActiveTab("Orders");
-    } else if (tab === "Addresses") {
-      navigate("/profile/addresses");
-    } else if (tab === "Wishlists") {
-      navigate("/profile/wishlists");
-    } else if (tab === "Account") {
-      navigate("/profile/account");
-    }
-  };
-
-  const handleNavClick = (link) => {
-    if (link === "Home") navigate("/");
-    else navigate(`/${link.toLowerCase()}`);
-  };
-
   const visibleOrders = orders.slice(0, visibleCount);
   const hasMore = visibleCount < orders.length;
 
   return (
-    <>
-      <Navbar onLinkClick={handleNavClick} />
-      <div className="ao-root">
-        <div className="ao-page-top">
-          <h1 className="ao-profile-title">Profile</h1>
+    <ProfileLayout>
+      {/* ── ORDER HISTORY CARD ── */}
+      <div className="ao-card">
+        <div className="ao-card-header">
+          <h2 className="ao-card-title">Order History</h2>
+          <span className="ao-order-count">{orders.length} {orders.length === 1 ? 'Order' : 'Orders'}</span>
         </div>
 
-        {/* ── USER INFO — real data ── */}
-        <div className="ao-user-section">
-          <div className="ao-avatar">
-            {getUserInitials(user?.user_metadata?.name || user?.email)}
-          </div>
-          <div className="ao-user-text">
-            <span className="ao-user-name">{user?.user_metadata?.name || "User"}</span>
-            <span className="ao-user-meta">
-              {user?.email} &nbsp;·&nbsp; Member since{" "}
-              {user ? new Date(user.created_at).toLocaleDateString("en-IN", {
-                month: "short", year: "numeric"
-              }) : ""}
-            </span>
-            <span className="ao-vip-badge">{orders.length} orders</span>
-          </div>
-        </div>
-
-        <hr className="ao-divider" />
-
-        {/* ── TABS ── */}
-        <div className="ao-tabs">
-          {TABS.map((tab) => (
-            <button
-              key={tab}
-              className={`ao-tab${activeTab === tab ? " ao-tab--active" : ""}`}
-              onClick={() => handleTabClick(tab)}
-            >
-              {tab}
+        {orders.length === 0 ? (
+          <div className="ao-empty-state">
+            <div className="ao-empty-icon-wrap">
+              <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="#9ca3af" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4Z" />
+                <line x1="3" y1="6" x2="21" y2="6" />
+                <path d="M16 10a4 4 0 0 1-8 0" />
+              </svg>
+            </div>
+            <p className="ao-empty-title">No orders yet</p>
+            <p className="ao-empty-desc">When you place an order, it will appear here.</p>
+            <button className="ao-empty-btn" onClick={() => navigate("/")}>
+              Start Shopping
             </button>
-          ))}
-        </div>
-
-        {/* ── ORDER HISTORY CARD ── */}
-        <div className="ao-card">
-          <div className="ao-card-header">
-            <span className="ao-card-title">Order History</span>
-            <span className="ao-order-count">{orders.length} Orders</span>
           </div>
-
+        ) : (
           <div className="ao-order-list">
             {visibleOrders.map((order, idx) => {
               const orderItems = order.order_items && order.order_items.length > 0
@@ -242,66 +198,66 @@ export default function Orders() {
                 return `${i.product_name}${q > 1 ? ` (×${q})` : ''}`;
               }).join(', ');
 
+              const isDelivered =
+                (order.delivery_status || order.deliveryStatus || "").toLowerCase() === "delivered" ||
+                (order.status || "").toLowerCase() === "delivered";
+              const isCancelled =
+                (order.delivery_status || order.deliveryStatus || "").toLowerCase().includes("cancel") ||
+                (order.status || "").toLowerCase().includes("cancel");
+
+              const displayStatus = isCancelled ? "Cancelled" : isDelivered ? "Delivered" : order.status;
+              const statusClass = displayStatus.toLowerCase().replace(/\s+/g, '-');
+
               return (
                 <div
-                  key={idx}
+                  key={order.id || idx}
                   className="ao-order-block"
                   onClick={() => handleTrackOrder(order, orderItems[0])}
-                  style={{
-                    borderBottom: idx < visibleOrders.length - 1 ? '1px solid #ebebeb' : 'none',
-                    padding: '16px 20px',
-                    display: 'flex',
-                    flexDirection: 'column',
-                    gap: '10px',
-                    cursor: 'pointer',
-                    transition: 'background 0.15s ease'
-                  }}
                 >
                   {/* Top Line: Name & Order ID (left) + Price (right) */}
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '12px', width: '100%' }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
-                      <span style={{ fontWeight: '700', color: '#111', fontSize: '13.5px' }}>Order: #{order.id?.slice(-8) || order.id}</span>
-                      <span style={{ color: '#aaa' }}>·</span>
-                      <span style={{ fontSize: '12px', color: '#666' }}>{order.date}</span>
-                      <span style={{ color: '#aaa' }}>·</span>
-                      <span style={{ fontSize: '12px', color: '#666' }}>{totalItemCount} item{totalItemCount > 1 ? 's' : ''}</span>
+                  <div className="ao-order-top">
+                    <div className="ao-order-meta-wrap">
+                      <span className="ao-order-id">Order #{order.id?.slice(-8) || order.id}</span>
+                      <span className="ao-order-dot">·</span>
+                      <span className="ao-order-date">{order.date}</span>
+                      <span className="ao-order-dot">·</span>
+                      <span className="ao-order-qty">{totalItemCount} {totalItemCount === 1 ? 'item' : 'items'}</span>
                     </div>
-                    <div style={{ fontWeight: '700', color: '#111', fontSize: '14.5px', flexShrink: 0 }}>
+                    <div className="ao-order-price">
                       {order.price}
                     </div>
                   </div>
 
                   {/* Middle Line: Product Thumbnails & Product Names */}
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '12px', width: '100%' }}>
-                    {/* Overlapping Product Thumbnails */}
-                    <div style={{ display: 'flex', alignItems: 'center', flexShrink: 0, position: 'relative' }}>
+                  <div className="ao-order-items-row">
+                    <div className="ao-order-thumbs">
                       {orderItems.slice(0, 3).map((item, imgIdx) => {
                         const product = productsMap[item.product_name];
                         const image = item.image_url || product?.image_url || (product?.images && product.images[0]) || '/src/assets/cart/bangle1.webp';
                         return (
                           <div
                             key={imgIdx}
+                            className="ao-order-thumb-wrap"
                             style={{
-                              width: '44px',
-                              height: '44px',
-                              borderRadius: '8px',
-                              overflow: 'hidden',
-                              border: '2px solid #fff',
-                              boxShadow: '0 1px 4px rgba(0,0,0,0.1)',
-                              background: '#f4f4f5',
                               marginLeft: imgIdx > 0 ? '-14px' : '0',
                               zIndex: 3 - imgIdx,
-                              flexShrink: 0
                             }}
                           >
-                            <img src={image} alt={item.product_name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                            <img
+                              src={image}
+                              alt={item.product_name}
+                              className="ao-order-thumb-img"
+                              onError={(e) => {
+                                e.currentTarget.onerror = null;
+                                e.currentTarget.src = '/src/assets/cart/bangle1.webp';
+                              }}
+                            />
                           </div>
                         );
                       })}
                     </div>
 
-                    {/* Product Names */}
-                    <div style={{ flex: 1, minWidth: 0, fontSize: '13px', fontWeight: '500', color: '#333', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                    <div className="ao-order-summary">
                       {itemsSummary}
                     </div>
                   </div>
@@ -309,51 +265,26 @@ export default function Orders() {
                   {/* Shipment Tracking Info (only shown if waybill is present) */}
                   {order.waybill && (() => {
                     const statusStr = (order.delivery_status || order.deliveryStatus || '').trim();
-                    const isCancelled = statusStr.toLowerCase().includes('cancel');
+                    const waybillCancelled = statusStr.toLowerCase().includes('cancel');
                     const isNDR = statusStr.toUpperCase().startsWith('NDR');
-                    const isDelivered = statusStr.toLowerCase() === 'delivered' || (order.status || '').toLowerCase() === 'delivered';
+                    const waybillDelivered = statusStr.toLowerCase() === 'delivered' || (order.status || '').toLowerCase() === 'delivered';
 
-                    const boxBg = isCancelled ? '#fef2f2' : isNDR ? '#fffbeb' : isDelivered ? '#f0fdf4' : '#f8fafc';
-                    const boxBorder = isCancelled ? '#fecaca' : isNDR ? '#fde68a' : isDelivered ? '#bbf7d0' : '#e2e8f0';
-                    const textColor = isCancelled ? '#991b1b' : isNDR ? '#92400e' : isDelivered ? '#166534' : '#475569';
-                    const badgeBg = isCancelled ? '#fee2e2' : isNDR ? '#fef3c7' : isDelivered ? '#dcfce7' : '#e2e8f0';
-                    const badgeText = isCancelled ? '#b91c1c' : isNDR ? '#b45309' : isDelivered ? '#15803d' : '#334155';
+                    const barClass = waybillCancelled ? 'cancelled' : isNDR ? 'ndr' : waybillDelivered ? 'delivered' : 'active';
 
                     return (
                       <div
-                        style={{
-                          display: 'flex',
-                          alignItems: 'center',
-                          justifyContent: 'space-between',
-                          background: boxBg,
-                          border: `1px solid ${boxBorder}`,
-                          borderRadius: '6px',
-                          padding: '7px 12px',
-                          fontSize: '12px',
-                          flexWrap: 'wrap',
-                          gap: '8px',
-                          transition: 'all 0.15s ease'
-                        }}
+                        className={`ao-shipment-bar ao-shipment-bar--${barClass}`}
                         onClick={(e) => e.stopPropagation()}
                       >
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap', color: textColor }}>
+                        <div className="ao-shipment-meta">
                           <span><strong>Courier:</strong> {order.courier_name || order.courierName || order.deliveryProvider || 'iCarry'}</span>
-                          <span style={{ color: boxBorder }}>·</span>
+                          <span className="ao-shipment-dot">·</span>
                           <span><strong>AWB:</strong> {order.waybill}</span>
-                          <span style={{ color: boxBorder }}>·</span>
+                          <span className="ao-shipment-dot">·</span>
                           <span>
                             <strong>Status:</strong>{' '}
-                            <span style={{
-                              display: 'inline-block',
-                              padding: '2px 8px',
-                              borderRadius: '4px',
-                              fontSize: '11px',
-                              fontWeight: '600',
-                              background: badgeBg,
-                              color: badgeText,
-                              border: isDelivered ? '1px solid #bbf7d0' : undefined
-                            }}>
-                              {isDelivered ? 'Delivered' : (statusStr || 'Booked')}
+                            <span className={`ao-shipment-badge ao-shipment-badge--${barClass}`}>
+                              {waybillDelivered ? 'Delivered' : (statusStr || 'Booked')}
                             </span>
                           </span>
                         </div>
@@ -362,18 +293,7 @@ export default function Orders() {
                             href={order.tracking_url || order.trackingUrl}
                             target="_blank"
                             rel="noopener noreferrer"
-                            style={{
-                              color: isCancelled ? '#dc2626' : isNDR ? '#b45309' : isDelivered ? '#15803d' : '#C42049',
-                              fontWeight: '600',
-                              textDecoration: 'none',
-                              display: 'inline-flex',
-                              alignItems: 'center',
-                              gap: '4px',
-                              padding: '3px 8px',
-                              borderRadius: '4px',
-                              background: isCancelled ? '#fee2e2' : isNDR ? '#fef3c7' : isDelivered ? '#dcfce7' : '#fff',
-                              border: `1px solid ${boxBorder}`
-                            }}
+                            className="ao-shipment-track-link"
                           >
                             Track Package ↗
                           </a>
@@ -383,112 +303,76 @@ export default function Orders() {
                   })()}
 
                   {/* Bottom Line: Status Badge & Actions */}
-                  {(() => {
-                    const isDelivered =
-                      (order.delivery_status || order.deliveryStatus || "").toLowerCase() === "delivered" ||
-                      (order.status || "").toLowerCase() === "delivered";
-                    const isCancelled =
-                      (order.delivery_status || order.deliveryStatus || "").toLowerCase().includes("cancel") ||
-                      (order.status || "").toLowerCase().includes("cancel");
+                  <div className="ao-order-bottom">
+                    <span className={`ao-status-badge ao-status-badge--${statusClass}`}>
+                      {displayStatus}
+                    </span>
 
-                    const displayStatus = isCancelled ? "Cancelled" : isDelivered ? "Delivered" : order.status;
-                    const statusClass = displayStatus.toLowerCase().replace(/\s+/g, '-');
-
-                    return (
-                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '10px', width: '100%', paddingTop: '2px' }}>
-                        <span
-                          className={`ao-order-status ao-status--${statusClass}`}
-                          style={{
-                            fontSize: '11px',
-                            padding: '4px 9px',
-                            borderRadius: '12px',
-                            fontWeight: '600',
-                            ...(isDelivered
-                              ? {
-                                  background: '#dcfce7',
-                                  color: '#15803d',
-                                  border: '1px solid #bbf7d0'
-                                }
-                              : {})
-                          }}
+                    <div className="ao-order-actions" onClick={(e) => e.stopPropagation()}>
+                      <button
+                        className="ao-invoice-btn"
+                        onClick={() => handleViewInvoice(order)}
+                        title="View and print invoice"
+                      >
+                        <svg
+                          width="14"
+                          height="14"
+                          viewBox="0 0 24 24"
+                          fill="none"
+                          stroke="currentColor"
+                          strokeWidth="2"
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          className="ao-btn-icon"
                         >
-                          {displayStatus}
-                        </span>
+                          <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+                          <polyline points="14 2 14 8 20 8" />
+                          <line x1="16" y1="13" x2="8" y2="13" />
+                          <line x1="16" y1="17" x2="8" y2="17" />
+                          <line x1="10" y1="9" x2="8" y2="9" />
+                        </svg>
+                        Invoice
+                      </button>
 
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }} onClick={(e) => e.stopPropagation()}>
-                          <button
-                            onClick={() => handleViewInvoice(order)}
-                            title="View and print invoice"
-                            style={{
-                              background: '#fff',
-                              border: '1px solid #d4d4d8',
-                              borderRadius: '6px',
-                              padding: '4px 10px',
-                              fontSize: '11.5px',
-                              fontWeight: '500',
-                              color: '#333',
-                              cursor: 'pointer',
-                              display: 'inline-flex',
-                              alignItems: 'center',
-                              gap: '5px',
-                              height: '28px',
-                              boxSizing: 'border-box'
-                            }}
-                          >
-                            <span>🧾</span> Invoice
-                          </button>
+                      {(order.status === "Pending" || order.status === "Confirmed") &&
+                        !isDelivered &&
+                        !isCancelled && (
+                        <button
+                          className="ao-cancel-btn"
+                          onClick={() => handleCancelOrder(order.id)}
+                          disabled={cancellingOrderId === order.id}
+                        >
+                          {cancellingOrderId === order.id ? 'Cancelling...' : 'Cancel'}
+                        </button>
+                      )}
 
-                          {(order.status === "Pending" || order.status === "Confirmed") &&
-                            !isDelivered &&
-                            !isCancelled && (
-                            <button
-                              className="ao-cancel-order-btn"
-                              onClick={() => handleCancelOrder(order.id)}
-                              disabled={cancellingOrderId === order.id}
-                              style={{ height: '28px', padding: '4px 10px', fontSize: '11.5px' }}
-                            >
-                              {cancellingOrderId === order.id ? 'Cancelling...' : 'Cancel'}
-                            </button>
-                          )}
-
-                          <span
-                            onClick={() => handleTrackOrder(order, orderItems[0])}
-                            style={{
-                              fontSize: '12px',
-                              color: '#C42049',
-                              fontWeight: '600',
-                              cursor: 'pointer',
-                              display: 'inline-flex',
-                              alignItems: 'center',
-                              gap: '2px',
-                              marginLeft: '4px'
-                            }}
-                          >
-                            Track →
-                          </span>
-                        </div>
-                      </div>
-                    );
-                  })()}
+                      <button
+                        className="ao-track-btn"
+                        onClick={() => handleTrackOrder(order, orderItems[0])}
+                      >
+                        Track →
+                      </button>
+                    </div>
+                  </div>
                 </div>
               );
             })}
           </div>
+        )}
 
-          {hasMore && (
-            <div className="ao-show-more-wrap">
-              <button
-                className="ao-show-more-btn"
-                onClick={() => setVisibleCount((c) => c + PAGE_SIZE)}
-              >
-                Show More
-              </button>
-            </div>
-          )}
-        </div>
+        {hasMore && (
+          <div className="ao-show-more-wrap">
+            <button
+              className="ao-show-more-btn"
+              onClick={() => setVisibleCount((c) => c + PAGE_SIZE)}
+            >
+              Show More
+            </button>
+          </div>
+        )}
       </div>
 
-      {/* Invoice Modal for Customer */}
+        {/* Invoice Modal for Customer */}
       {selectedInvoiceOrder && (
         <div className="inv__modal-overlay" onClick={() => setSelectedInvoiceOrder(null)}>
           <div className="inv__modal-content" onClick={(e) => e.stopPropagation()}>
@@ -549,8 +433,6 @@ export default function Orders() {
           <ThermalInvoice order={selectedInvoiceOrder} address={invoiceAddress} />
         </div>
       )}
-
-      <Footer />
-    </>
+    </ProfileLayout>
   );
 }

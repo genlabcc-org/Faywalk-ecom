@@ -357,8 +357,20 @@ export default function SiteHeader({ activeLink = "", onLinkClick }) {
   const cartItems = useStore((state) => state.cartItems);
   const categories = useStore((state) => state.categories);
   const fetchCategories = useStore((state) => state.fetchCategories);
+  const isAdmin = useStore((state) => state.isAdmin);
 
   const cartCount = cartItems.reduce((acc, item) => acc + item.qty, 0);
+
+  const [isScrolled, setIsScrolled] = useState(false);
+
+  useEffect(() => {
+    const handleScroll = () => {
+      setIsScrolled(window.scrollY > 8);
+    };
+    handleScroll();
+    window.addEventListener("scroll", handleScroll, { passive: true });
+    return () => window.removeEventListener("scroll", handleScroll);
+  }, []);
 
   useEffect(() => {
     fetchCategories();
@@ -440,7 +452,7 @@ export default function SiteHeader({ activeLink = "", onLinkClick }) {
 
   return (
     <>
-      <header className="header">
+      <header className={`header${isScrolled ? " header--scrolled" : ""}`}>
         <div className="header-container">
           {/* Mobile hamburger button */}
           <button
@@ -505,6 +517,13 @@ export default function SiteHeader({ activeLink = "", onLinkClick }) {
                 <line x1="21" y1="21" x2="16.65" y2="16.65" />
               </svg>
             </button>
+
+            {/* Admin Quick Button (visible to admins) */}
+            {isAdmin && (
+              <Link to="/admin" className="header-admin-pill" title="Go to Admin Panel">
+                Admin
+              </Link>
+            )}
 
             {/* User Account / Profile Dropdown */}
             <LoginDropdown />
@@ -616,6 +635,11 @@ export default function SiteHeader({ activeLink = "", onLinkClick }) {
             <Link to="/profile" onClick={() => setMenuOpen(false)} className="mobile-extra-link">
               My Profile
             </Link>
+            {isAdmin && (
+              <Link to="/admin" onClick={() => setMenuOpen(false)} className="mobile-extra-link mobile-admin-link">
+                Admin Panel ⚡
+              </Link>
+            )}
           </div>
         </nav>
       </div>

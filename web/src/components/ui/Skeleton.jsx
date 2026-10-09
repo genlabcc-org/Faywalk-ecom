@@ -22,12 +22,15 @@ export function Skeleton({ className = '', style = {}, width, height, borderRadi
 export function SkeletonProductCard() {
   return (
     <div className="skeleton-product-card">
-      <Skeleton height="220px" width="100%" borderRadius="8px" />
-      <Skeleton height="20px" width="80%" />
-      <Skeleton height="16px" width="50%" />
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '8px' }}>
-        <Skeleton height="24px" width="35%" />
-        <Skeleton height="36px" width="40%" borderRadius="20px" />
+      <div className="skeleton-image-box">
+        <Skeleton width="100%" height="100%" borderRadius="4px" />
+        <div className="skeleton-cart-pill">
+          <Skeleton width="92px" height="28px" borderRadius="6px" />
+        </div>
+      </div>
+      <div className="skeleton-details-box">
+        <Skeleton height="16px" width="78%" borderRadius="4px" />
+        <Skeleton height="16px" width="36%" borderRadius="4px" />
       </div>
     </div>
   );
@@ -45,6 +48,16 @@ export function SkeletonProductGrid({ count = 8 }) {
 
 export function SkeletonBanner() {
   return <Skeleton className="skeleton-hero" />;
+}
+
+export function SkeletonHero() {
+  return (
+    <section className="hero-section hero-section--loading" aria-busy="true" aria-label="Loading hero banner">
+      <div className="hero-skeleton-wrapper">
+        <Skeleton className="hero-skeleton" />
+      </div>
+    </section>
+  );
 }
 
 export function SkeletonCategories({ count = 4 }) {

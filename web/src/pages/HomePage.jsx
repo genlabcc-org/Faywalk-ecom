@@ -7,7 +7,7 @@ import './HomePage.css';
 import { useStore } from '../hooks/useStore';
 import { getNavPath } from "../services/categoryRoute";
 
-const BannerSection = lazy(() => import('../components/BannerSection'));
+
 const CategorySection = lazy(() => import('../components/CategorySection'));
 const NewArrivals = lazy(() => import('../components/NewArrivals'));
 const BestSellers = lazy(() => import('../components/BestSellers'));
@@ -59,7 +59,6 @@ export default function HomePage() {
         <div id="best-sellers">
           <BestSellers onProductClick={handleProductClick} />
         </div>
-        {/* <BannerSection /> */}
         {/* <CollectionsSection /> */}
         <RealExperience />
         <div id="reviews"><CustomerExperiences /></div>

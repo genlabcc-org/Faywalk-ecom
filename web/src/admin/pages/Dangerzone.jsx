@@ -209,7 +209,7 @@ const DangerZone = () => {
     try {
       setExporting("customers");
       const { data: customers, error } = await supabase
-        .from("profiles")
+        .from("users")
         .select("*")
         .order("created_at", { ascending: false });
 

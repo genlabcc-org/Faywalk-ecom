@@ -562,9 +562,8 @@ const CreateMultipleProduct = ({
                   <div className="cmp-color-grid">
                     <button
                       type="button"
-                      className={`cmp-color-swatch cmp-color-swatch--none${
-                        !v.color ? " cmp-color-swatch--selected" : ""
-                      }`}
+                      className={`cmp-color-swatch cmp-color-swatch--none${!v.color ? " cmp-color-swatch--selected" : ""
+                        }`}
                       onClick={() => updateVariant(v.id, "color", null)}
                       aria-label="No color (None)"
                       title="No color (None)"
@@ -651,7 +650,7 @@ const CreateMultipleProduct = ({
                           if (data.type === "existing") {
                             handleReorderExistingImages(v.id, data.index, i);
                           }
-                        } catch (err) {}
+                        } catch (err) { }
                       }}
                       title="Drag to reorder"
                       style={{ cursor: "grab" }}
@@ -688,7 +687,7 @@ const CreateMultipleProduct = ({
                           if (data.type === "new") {
                             handleReorderMedia(v.id, data.index, i);
                           }
-                        } catch (err) {}
+                        } catch (err) { }
                       }}
                       title="Drag to reorder"
                       style={{ cursor: "grab" }}

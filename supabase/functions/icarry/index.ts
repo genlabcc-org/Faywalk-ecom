@@ -11,16 +11,15 @@ const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
 const supabaseAdmin = createClient(supabaseUrl, supabaseServiceKey);
 
 /**
- * Checks if the given user ID belongs to public.admin_users with role = 'admin'.
+ * Checks if the given user ID belongs to public.users with role = 'admin'.
  */
 async function checkIsAdmin(userId: string): Promise<boolean> {
   const { data } = await supabaseAdmin
-    .from("admin_users")
-    .select("id")
+    .from("users")
+    .select("role")
     .eq("id", userId)
-    .eq("role", "admin")
     .maybeSingle();
-  return !!data;
+  return data?.role === "admin";
 }
 
 /**

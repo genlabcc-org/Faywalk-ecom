@@ -93,18 +93,29 @@ export const authService = {
   },
 
   /**
-   * Checks if a user is registered as an admin.
+   * Checks if a user is registered as an admin from the users table.
+   * Reads the 'role' or 'roles' column in a case-insensitive manner.
    * @param {string} userId 
-   * @returns {Promise<any>}
+   * @returns {Promise<{ role: string }>}
    */
   async checkAdminUser(userId) {
-    const { data, error } = await supabase
-      .from("admin_users")
-      .select("role")
-      .eq("id", userId)
-      .maybeSingle();
-    if (error) throw error;
-    return data;
+    if (!userId) return { role: "user" };
+    try {
+      const { data, error } = await supabase
+        .from("users")
+        .select("*")
+        .eq("id", userId)
+        .maybeSingle();
+      if (error) {
+        console.warn("checkAdminUser query error:", error.message);
+        return { role: "user" };
+      }
+      const rawRole = (data?.role || data?.roles || "user").toString().trim().toLowerCase();
+      return { role: rawRole };
+    } catch (err) {
+      console.error("checkAdminUser exception:", err);
+      return { role: "user" };
+    }
   },
 
   /**

@@ -152,7 +152,7 @@ export const useStore = create((set, get) => ({
       if (session) {
         set({ session, user: session.user });
         await get().syncCartAndWishlist(session.user.id);
-        get().checkAdminStatus(session.user.id);
+        await get().checkAdminStatus(session.user.id);
         await get().syncProfileFromMetadata(session.user);
       } else {
         // Load guest cart & wishlist from localStorage
@@ -178,9 +178,11 @@ export const useStore = create((set, get) => ({
           // New sign-in (or first load) — set user and sync guest cart/wishlist
           set({ session, user: session.user });
           await get().syncCartAndWishlist(session.user.id);
+          await get().checkAdminStatus(session.user.id);
         } else {
           // Same user, but metadata may have changed (e.g. profile edit) — keep it fresh
           set({ session, user: session.user });
+          await get().checkAdminStatus(session.user.id);
         }
       } else {
         // Sign out / Clear session
@@ -213,11 +215,11 @@ export const useStore = create((set, get) => ({
     }
     try {
       const data = await authService.checkAdminUser(userId);
-      const isAdmin = data?.role === "admin";
+      const isAdmin = (data?.role || "").toString().trim().toLowerCase() === "admin";
       set({ isAdmin, adminChecked: true });
       return isAdmin;
     } catch (err) {
-      console.error('Admin check error:', err.message);
+      console.error('Admin check error:', err?.message || err);
       set({ isAdmin: false, adminChecked: true });
       return false;
     }
@@ -769,7 +771,7 @@ export const useStore = create((set, get) => ({
     if (!user) return;
 
     const { error } = await supabase
-      .from("profiles")
+      .from("users")
       .upsert(
         {
           id: user.id,

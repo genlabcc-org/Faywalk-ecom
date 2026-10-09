@@ -7,14 +7,15 @@ import { useStore } from "../hooks/useStore";
 import { supabase } from "../lib/supabase";
 import { icarryService } from "../services/icarryService";
 import { shippingService, normState } from "../services/shippingService";
-import "./shippingAddress.css";
-import Navbar from "./SiteHeader";
-import Footer from "./SiteFooter";
-import Toast from "./Toast";
+import "./CheckoutPage.css";
+import Navbar from "../components/SiteHeader";
+import TopBar from "../components/TopBar";
+import Footer from "../components/SiteFooter";
+import Toast from "../components/Toast";
 import UpiIcon from "../assets/upi.svg";
 import VisaIcon from "../assets/visa.svg";
 import MastercardIcon from "../assets/mastercard.svg";
-import PaymentMorePopup from "./PaymentMorePopup";
+import PaymentMorePopup from "../components/PaymentMorePopup";
 import { getOriginalImageUrl } from '../utils/imageUtils';
 import { getNavPath } from "../services/categoryRoute";
 
@@ -65,9 +66,7 @@ const emptyForm = {
   isDefault: false,
 };
 
-// const serviceabilityPromiseCache = {};
-
-export default function ShippingAddress() {
+export default function CheckoutPage() {
   const [addresses, setAddresses] = useState([]);
   const [selectedId, setSelectedId] = useState(null);
   const [form, setForm] = useState(emptyForm);
@@ -75,15 +74,14 @@ export default function ShippingAddress() {
   const [toast, setToast] = useState({ message: "", type: "" });
   const [userId, setUserId] = useState(null);
 
-  // Shopify layout states
-  const [paymentMethod, setPaymentMethod] = useState('RAZORPAY'); // Default payment method RAZORPAY
-  const [billingSame, setBillingSame] = useState(true);
-  const [emailNews, setEmailNews] = useState(true);
+  // Layout states
+  const [paymentMethod, setPaymentMethod] = useState('RAZORPAY');
+  const [isAddingNewAddress, setIsAddingNewAddress] = useState(false);
   const [discountInput, setDiscountInput] = useState("");
   const [appliedDiscount, setAppliedDiscount] = useState(null);
 
   const [isProcessingPayment, setIsProcessingPayment] = useState(false);
-  const [pincodeServiceable, setPincodeServiceable] = useState(null); // null: untested/fallback, true: serviceable, false: unserviceable
+  const [pincodeServiceable, setPincodeServiceable] = useState(null);
   const [pincodeChecking, setPincodeChecking] = useState(false);
   const [rates, setRates] = useState([]);
   const [ratesLoaded, setRatesLoaded] = useState(false);
@@ -91,9 +89,6 @@ export default function ShippingAddress() {
 
   const navigate = useNavigate();
   const location = useLocation();
-  const hasAddresses = addresses.length > 0;
-  const selectedAddress = addresses.find((a) => a.address_id === selectedId);
-
   const isCODAvailable = false;
 
   const categories = useStore((state) => state.categories);
@@ -111,11 +106,9 @@ export default function ShippingAddress() {
       const data = await orderService.getAddresses(user.id);
       if (data && data.length > 0) {
         setAddresses(data);
-        // Default to first address
         const addr = data[0];
         setSelectedId(addr.address_id);
 
-        // Fill form fields
         const parts = (addr.full_name || "").split(" ");
         const firstName = parts[0] || "";
         const lastName = parts.slice(1).join(" ") || "";
@@ -149,19 +142,49 @@ export default function ShippingAddress() {
     });
   }, []);
 
+  // If selectedId is null and user has addresses, pick the first address by default
+  useEffect(() => {
+    if (selectedId === null && addresses.length > 0 && !isAddingNewAddress) {
+      const firstAddr = addresses[0];
+      setSelectedId(firstAddr.address_id);
+      const parts = (firstAddr.full_name || "").split(" ");
+      const firstName = parts[0] || "";
+      const lastName = parts.slice(1).join(" ") || "";
+      setForm(f => ({
+        ...f,
+        firstName: f.firstName || firstName,
+        lastName: f.lastName || lastName,
+        mobile: f.mobile || firstAddr.phone_number || "",
+        flat: f.flat || firstAddr.address_line1 || "",
+        area: f.area || firstAddr.address_line2 || "",
+        city: f.city || firstAddr.city || "",
+        pinCode: f.pinCode || firstAddr.postal_code || "",
+        state: f.state || firstAddr.state || "Tamil Nadu",
+      }));
+    }
+  }, [addresses, selectedId, isAddingNewAddress]);
+
   const validate = () => {
     const e = {};
-    if (!form.firstName.trim()) e.firstName = "First name is required";
-    if (!form.lastName.trim()) e.lastName = "Last name is required";
-    if (!form.email.trim() || !/\S+@\S+\.\S+/.test(form.email)) e.email = "Valid email is required";
-    if (!form.mobile.trim() || !/^\d{10}$/.test(form.mobile.replace(/\D/g, ""))) e.mobile = "Valid 10-digit phone is required";
-    if (!form.flat.trim()) e.flat = "Address is required";
-    if (!form.pinCode.trim() || !isValidPincodeRegex(form.pinCode)) {
-      e.pinCode = "Valid 6-digit PIN required";
-    } else if (pincodeServiceable === false) {
-      e.pinCode = "Pincode not serviceable for delivery";
-    } else if (pinStateError) {
-      e.pinCode = pinStateError;
+    if (!form.email.trim() || !/\S+@\S+\.\S+/.test(form.email)) {
+      e.email = "Valid email is required";
+    }
+
+    const hasSelectedAddress = selectedId && !isAddingNewAddress && addresses.some(a => a.address_id === selectedId);
+
+    if (!hasSelectedAddress) {
+      if (!form.firstName.trim()) e.firstName = "First name is required";
+      if (!form.mobile.trim() || !/^\d{10}$/.test(form.mobile.replace(/\D/g, ""))) {
+        e.mobile = "Valid 10-digit phone is required";
+      }
+      if (!form.flat.trim()) e.flat = "Address is required";
+      if (!form.pinCode.trim() || !isValidPincodeRegex(form.pinCode)) {
+        e.pinCode = "Valid 6-digit PIN required";
+      } else if (pincodeServiceable === false) {
+        e.pinCode = "Pincode not serviceable for delivery";
+      } else if (pinStateError) {
+        e.pinCode = pinStateError;
+      }
     }
     return e;
   };
@@ -177,38 +200,25 @@ export default function ShippingAddress() {
     setErrors((err) => ({ ...err, [name]: undefined }));
   };
 
-  const handleAddressSelectChange = (e) => {
-    const value = e.target.value;
-    if (value === "new") {
-      setSelectedId(null);
-      setForm({
-        ...emptyForm,
-        email: form.email, // keep current email
-      });
-      setErrors({});
-    } else {
-      const addrId = parseInt(value, 10);
-      const addr = addresses.find((a) => a.address_id === addrId);
-      if (addr) {
-        setSelectedId(addrId);
-        const parts = (addr.full_name || "").split(" ");
-        const firstName = parts[0] || "";
-        const lastName = parts.slice(1).join(" ") || "";
-        setForm({
-          firstName,
-          lastName,
-          email: form.email || "",
-          mobile: addr.phone_number || "",
-          flat: addr.address_line1 || "",
-          area: addr.address_line2 || "",
-          city: addr.city || "",
-          pinCode: addr.postal_code || "",
-          state: addr.state || "Tamil Nadu",
-          isDefault: addr.is_default || false,
-        });
-        setErrors({});
-      }
-    }
+  const handleSelectAddressCard = (addr) => {
+    setSelectedId(addr.address_id);
+    setIsAddingNewAddress(false);
+    const parts = (addr.full_name || "").split(" ");
+    const firstName = parts[0] || "";
+    const lastName = parts.slice(1).join(" ") || "";
+    setForm({
+      firstName,
+      lastName,
+      email: form.email || "",
+      mobile: addr.phone_number || "",
+      flat: addr.address_line1 || "",
+      area: addr.address_line2 || "",
+      city: addr.city || "",
+      pinCode: addr.postal_code || "",
+      state: addr.state || "Tamil Nadu",
+      isDefault: addr.is_default || false,
+    });
+    setErrors({});
   };
 
   // Debounced iCarry pincode serviceability check
@@ -235,9 +245,6 @@ export default function ShippingAddress() {
 
         if (!active) return;
 
-        // Response shape: { success: 1, msg: [{ prepaid, cod, pickup }] }
-        // success: 0 or empty msg means not serviceable.
-        // Treat 'U' (unknown) as serviceable, don't block on it.
         if (res && res.success === 1 && Array.isArray(res.msg) && res.msg.length > 0) {
           const hasService = res.msg.some(
             (m) => m.prepaid === 'Y' || m.prepaid === 'U' || !m.prepaid
@@ -259,7 +266,6 @@ export default function ShippingAddress() {
             pinCode: "Pincode not serviceable for delivery",
           }));
         } else {
-          // Fall back to regex (fail open)
           setPincodeServiceable(isValidPincodeRegex(pin));
         }
       } catch (err) {
@@ -295,7 +301,7 @@ export default function ShippingAddress() {
     const t = setTimeout(async () => {
       const info = await shippingService.lookupPincode(pin);
       if (cancelled) return;
-      setPinState(info?.state || null); // null/undefined = don't block
+      setPinState(info?.state || null);
     }, 400);
     return () => { cancelled = true; clearTimeout(t); };
   }, [form.pinCode]);
@@ -329,7 +335,7 @@ export default function ShippingAddress() {
     : (selectedCartItems && selectedCartItems.length > 0 ? selectedCartItems : cartItems);
 
   const subtotal = checkoutProduct
-    ? (parsePrice(checkoutProduct.price) * checkoutProduct.qty)
+    ? (parsePrice(checkoutProduct.price) * (checkoutProduct.qty || 1))
     : checkoutItems.reduce((sum, item) => sum + (Number(item.price) || 0) * (Number(item.qty) || 1), 0);
 
   const discountAmount = appliedDiscount
@@ -342,10 +348,13 @@ export default function ShippingAddress() {
     ? shippingService.calcFee(rates, form.state, subtotal - discountAmount)
     : 0;
 
-  // GST is already included in product price — extract for display only, not added to total
   const gstIncluded = subtotal > 0 ? Math.round(subtotal - (subtotal / 1.03)) : 0;
   const platformFee = 0;
   const grandTotal = subtotal - discountAmount + shippingFee + platformFee;
+
+  const totalQuantity = checkoutItems.reduce((sum, item) => sum + (Number(item.qty) || 1), 0);
+  const primaryItem = checkoutItems[0] || null;
+  const primaryItemPrice = primaryItem ? parsePrice(primaryItem.price) : 0;
 
   const handleCheckoutSubmit = async (e) => {
     if (e) e.preventDefault();
@@ -360,11 +369,11 @@ export default function ShippingAddress() {
       return;
     }
 
-    // 1. Validate form fields
     const eErrors = validate();
     if (Object.keys(eErrors).length > 0) {
       setErrors(eErrors);
-      showToast("Please fill all required shipping information.", "error");
+      const firstErrMsg = Object.values(eErrors)[0] || "Please fill all required shipping information.";
+      showToast(firstErrMsg, "error");
       return;
     }
 
@@ -381,8 +390,7 @@ export default function ShippingAddress() {
       let activeAddrId = selectedId;
       const fullName = `${form.firstName} ${form.lastName}`.trim();
 
-      if (!selectedId) {
-        // Create new address in database
+      if (!selectedId || isAddingNewAddress) {
         const inserted = await orderService.createAddress({
           user_id: currentUserId,
           full_name: fullName,
@@ -396,11 +404,13 @@ export default function ShippingAddress() {
         });
 
         const newAddr = Array.isArray(inserted) ? inserted[0] : inserted;
-        setAddresses((prev) => [...prev, newAddr]);
-        activeAddrId = newAddr.address_id;
-        setSelectedId(newAddr.address_id);
+        if (newAddr && newAddr.address_id) {
+          setAddresses((prev) => [...prev, newAddr]);
+          activeAddrId = newAddr.address_id;
+          setSelectedId(newAddr.address_id);
+          setIsAddingNewAddress(false);
+        }
       } else {
-        // Update if details changed
         const selectedAddressObj = addresses.find(a => a.address_id === selectedId);
         const isModified = selectedAddressObj && (
           selectedAddressObj.full_name !== fullName ||
@@ -468,7 +478,6 @@ export default function ShippingAddress() {
       }
 
       if (paymentMethod === "COD") {
-        // COD order placement
         const mainItem = checkoutItems[0];
 
         const { data, error } = await supabase
@@ -492,7 +501,6 @@ export default function ShippingAddress() {
 
         const generatedOrderId = data.id;
 
-        // Insert order items
         const orderItemsToInsert = checkoutItems.map(item => ({
           order_id: generatedOrderId,
           product_id: item.productId || item.id || null,
@@ -512,7 +520,6 @@ export default function ShippingAddress() {
 
         if (itemsError) throw itemsError;
 
-        // Trigger order notification email to jeyareshd@gmail.com
         emailService.sendOrderNotificationEmail({
           orderId: generatedOrderId,
           customerName: `${form.firstName} ${form.lastName}`.trim(),
@@ -524,7 +531,6 @@ export default function ShippingAddress() {
             mobile: form.mobile,
             flat: form.flat,
             area: form.area,
-            landmark: form.landmark,
             city: form.city,
             state: form.state,
             pincode: form.pinCode,
@@ -536,7 +542,6 @@ export default function ShippingAddress() {
           shippingFee: shippingFee,
         });
 
-        // Clear cart
         if (!checkoutProduct) {
           const removeFromCart = useStore.getState().removeFromCart;
           for (const item of checkoutItems) {
@@ -549,8 +554,6 @@ export default function ShippingAddress() {
           navigate("/profile/orders");
         }, 2000);
       } else {
-
-        // Razorpay Online Payment flow
         const isLoaded = await loadRazorpayScript();
         if (!isLoaded) {
           showToast("Failed to load Razorpay SDK. Please check your connection.", "error");
@@ -582,7 +585,7 @@ export default function ShippingAddress() {
         }
 
         const { data: profile } = await supabase
-          .from("profiles")
+          .from("users")
           .select("name, phone")
           .eq("id", userId)
           .single();
@@ -592,7 +595,7 @@ export default function ShippingAddress() {
           amount: orderData.amount,
           currency: orderData.currency,
           name: "Faywalk",
-          description: `Order for ${orderData.productName}`,
+          description: `Order for ${orderData.productName || 'Purchase'}`,
           order_id: orderData.orderId,
           handler: async function (response) {
             try {
@@ -631,7 +634,6 @@ export default function ShippingAddress() {
 
               showToast("Payment successful! Order placed.", "success");
 
-              // Trigger order notification email to jeyareshd@gmail.com
               emailService.sendOrderNotificationEmail({
                 orderId: verifyData?.order?.id || response.razorpay_order_id,
                 customerName: profile?.name || `${form.firstName} ${form.lastName}`.trim(),
@@ -676,7 +678,7 @@ export default function ShippingAddress() {
             contact: profile?.phone || "",
           },
           theme: {
-            color: "#8b0030",
+            color: "#092c85",
           },
           modal: {
             ondismiss: function () {
@@ -697,6 +699,7 @@ export default function ShippingAddress() {
 
   return (
     <>
+      <TopBar />
       <Navbar onLinkClick={handleNavClick} />
       <div className="checkout-page-container">
 
@@ -707,339 +710,326 @@ export default function ShippingAddress() {
           onClose={() => setToast({ message: "", type: "" })}
         />
 
-        <div className="checkout-split-layout">
-          {/* LEFT COLUMN: Checkout Form */}
-          <div className="checkout-left-col">
-            <div className="checkout-left-content">
-              {/* Form */}
-              <form onSubmit={handleCheckoutSubmit} className="checkout-form">
+        <div className="checkout-main-wrap">
+          {/* Main Title */}
+          <h1 className="checkout-page-heading">CHECKOUT</h1>
 
-                {/* Contact Section */}
-                <div className="checkout-section">
-                  <div className="checkout-section-header">
-                    <h2 className="checkout-section-title">Contact</h2>
-                    {!userId && (
-                      <a href="/account/login" className="checkout-signin-link">Sign in</a>
-                    )}
+          <div className="checkout-layout-grid">
+
+            {/* LEFT COLUMN: Main Form & Sections */}
+            <div className="checkout-content-col">
+
+              {/* TOP: Product Details Box */}
+              {primaryItem && (
+                <div className="checkout-product-preview-card">
+                  <div className="checkout-product-thumb-wrap">
+                    <img
+                      src={getOriginalImageUrl(primaryItem.img || primaryItem.image || (primaryItem.images && primaryItem.images[0]) || "")}
+                      alt={primaryItem.name || "Product"}
+                      className="checkout-product-thumb-img"
+                      onError={(e) => {
+                        e.target.onerror = null;
+                        e.target.src = "https://images.unsplash.com/photo-1521572267360-ee0c2909d518?auto=format&fit=crop&w=400&q=80";
+                      }}
+                    />
                   </div>
+                  <div className="checkout-product-info">
+                    <h2 className="checkout-product-title">{primaryItem.name}</h2>
+                    <p className="checkout-product-desc">
+                      {primaryItem.description || primaryItem.short_description || `${primaryItem.name} - Premium Quality Fabric & Fit`}
+                    </p>
+                    <div className="checkout-product-price-tag">
+                      Rs. {primaryItemPrice.toLocaleString('en-IN')}
+                    </div>
+                  </div>
+                </div>
+              )}
 
-                  <div className="checkout-field-wrap">
+              {/* Form */}
+              <form onSubmit={handleCheckoutSubmit} className="checkout-form-container">
+
+                {/* 1. Contact Section */}
+                <div className="checkout-section-block">
+                  <h2 className="checkout-block-title">Contact</h2>
+                  <div className="checkout-input-wrap">
                     <input
                       type="email"
                       name="email"
                       placeholder="Email"
                       value={form.email}
                       onChange={handleChange}
-                      className={`checkout-input ${errors.email ? "error" : ""}`}
+                      className={`checkout-styled-input ${errors.email ? "error" : ""}`}
                       required
                     />
                     {errors.email && <span className="checkout-err-msg">{errors.email}</span>}
                   </div>
-
-                  <label className="checkout-checkbox-label">
-                    <input
-                      type="checkbox"
-                      checked={emailNews}
-                      onChange={(e) => setEmailNews(e.target.checked)}
-                      className="checkout-checkbox"
-                    />
-                    <span>Email me with news and offers</span>
-                  </label>
                 </div>
 
-                {/* Delivery Section */}
-                <div className="checkout-section">
-                  <h2 className="checkout-section-title">Delivery</h2>
+                {/* 2. Choose Delivery Address Section */}
+                <div className="checkout-section-block">
+                  <h2 className="checkout-block-title">Choose Delivery Address</h2>
 
-                  {/* Saved Address Dropdown (If logged in and has addresses) */}
                   {addresses.length > 0 && (
-                    <div className="checkout-field-wrap">
-                      <select
-                        className="checkout-input checkout-select"
-                        value={selectedId || "new"}
-                        onChange={handleAddressSelectChange}
-                      >
-                        <option value="new">Use a new address...</option>
-                        {addresses.map((addr) => (
-                          <option key={addr.address_id} value={addr.address_id}>
-                            {addr.full_name} - {addr.address_line1}, {addr.city}
-                          </option>
-                        ))}
-                      </select>
+                    <div className="checkout-address-cards-list">
+                      {addresses.map((addr) => {
+                        const isSelected = selectedId === addr.address_id && !isAddingNewAddress;
+                        return (
+                          <div
+                            key={addr.address_id}
+                            className={`checkout-address-card ${isSelected ? 'is-selected' : ''}`}
+                            onClick={() => handleSelectAddressCard(addr)}
+                          >
+                            <div className="checkout-address-card-checkbox">
+                              <input
+                                type="checkbox"
+                                checked={isSelected}
+                                readOnly
+                                className="checkout-address-hidden-cb"
+                              />
+                              <div className={`checkout-styled-checkbox-box ${isSelected ? 'active' : ''}`}>
+                                {isSelected && (
+                                  <svg width="11" height="9" viewBox="0 0 11 9" fill="none">
+                                    <path d="M1.5 4.5L4 7L9.5 1.5" stroke="#ffffff" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+                                  </svg>
+                                )}
+                              </div>
+                            </div>
+                            <div className="checkout-address-card-info">
+                              <div className="checkout-address-card-name">{addr.full_name}</div>
+                              <div className="checkout-address-card-text">
+                                {addr.address_line1}{addr.address_line2 ? `, ${addr.address_line2}` : ''}{addr.city ? `, ${addr.city}` : ''} -{addr.postal_code}
+                              </div>
+                            </div>
+                          </div>
+                        );
+                      })}
                     </div>
                   )}
 
-                  <div className="checkout-field-wrap">
-                    <select
-                      name="country"
-                      className="checkout-input checkout-select"
-                      disabled
-                      value="India"
+                  {/* Add New Address Toggle button if addresses exist */}
+                  {addresses.length > 0 && (
+                    <button
+                      type="button"
+                      className="checkout-add-address-trigger"
+                      onClick={() => {
+                        setIsAddingNewAddress(prev => !prev);
+                        if (!isAddingNewAddress) {
+                          setSelectedId(null);
+                          setForm({
+                            ...emptyForm,
+                            email: form.email,
+                          });
+                          setErrors({});
+                        }
+                      }}
                     >
-                      <option>India</option>
-                    </select>
-                  </div>
+                      <span className="plus-sign">{isAddingNewAddress ? "✕" : "+"}</span>
+                      <span>{isAddingNewAddress ? "Cancel New Address" : "Add New Address"}</span>
+                    </button>
+                  )}
 
-                  <div className="checkout-fields-row">
-                    <div className="checkout-field-wrap flex-1">
-                      <input
-                        type="text"
-                        name="firstName"
-                        placeholder="First name"
-                        value={form.firstName}
-                        onChange={handleChange}
-                        className={`checkout-input ${errors.firstName ? "error" : ""}`}
-                      />
-                      {errors.firstName && <span className="checkout-err-msg">{errors.firstName}</span>}
+                  {/* New Address Input Form (Visible when Add New Address is clicked OR when no saved addresses exist) */}
+                  {(isAddingNewAddress || addresses.length === 0) && (
+                    <div className="checkout-new-address-form-box">
+                      <div className="checkout-fields-row">
+                        <div className="checkout-input-wrap flex-1">
+                          <input
+                            type="text"
+                            name="firstName"
+                            placeholder="First name"
+                            value={form.firstName}
+                            onChange={handleChange}
+                            className={`checkout-styled-input ${errors.firstName ? "error" : ""}`}
+                          />
+                          {errors.firstName && <span className="checkout-err-msg">{errors.firstName}</span>}
+                        </div>
+                        <div className="checkout-input-wrap flex-1">
+                          <input
+                            type="text"
+                            name="lastName"
+                            placeholder="Last name"
+                            value={form.lastName}
+                            onChange={handleChange}
+                            className={`checkout-styled-input ${errors.lastName ? "error" : ""}`}
+                          />
+                          {errors.lastName && <span className="checkout-err-msg">{errors.lastName}</span>}
+                        </div>
+                      </div>
+
+                      <div className="checkout-input-wrap">
+                        <input
+                          type="text"
+                          name="flat"
+                          placeholder="Address (House/Flat No, Building)"
+                          value={form.flat}
+                          onChange={handleChange}
+                          className={`checkout-styled-input ${errors.flat ? "error" : ""}`}
+                        />
+                        {errors.flat && <span className="checkout-err-msg">{errors.flat}</span>}
+                      </div>
+
+                      <div className="checkout-input-wrap">
+                        <input
+                          type="text"
+                          name="area"
+                          placeholder="Area, Street, Sector (optional)"
+                          value={form.area}
+                          onChange={handleChange}
+                          className="checkout-styled-input"
+                        />
+                      </div>
+
+                      <div className="checkout-fields-row tertiary">
+                        <div className="checkout-input-wrap city-field">
+                          <input
+                            type="text"
+                            name="city"
+                            placeholder="City"
+                            value={form.city}
+                            onChange={handleChange}
+                            className="checkout-styled-input"
+                          />
+                        </div>
+                        <div className="checkout-input-wrap state-field">
+                          <select
+                            name="state"
+                            value={form.state}
+                            onChange={handleChange}
+                            className="checkout-styled-input checkout-select-input"
+                          >
+                            {indianStates.map((s) => <option key={s}>{s}</option>)}
+                          </select>
+                        </div>
+                        <div className="checkout-input-wrap pin-field">
+                          <input
+                            type="text"
+                            name="pinCode"
+                            placeholder="PIN code"
+                            value={form.pinCode}
+                            onChange={handleChange}
+                            maxLength={6}
+                            className={`checkout-styled-input ${errors.pinCode || pinStateError ? "error" : ""}`}
+                          />
+                          {pincodeChecking && (
+                            <span className="checkout-pin-checking-text">Checking PIN...</span>
+                          )}
+                          {(errors.pinCode || pinStateError) && (
+                            <span className="checkout-err-msg">{errors.pinCode || pinStateError}</span>
+                          )}
+                        </div>
+                      </div>
+
+                      <div className="checkout-input-wrap">
+                        <input
+                          type="tel"
+                          name="mobile"
+                          placeholder="Phone number"
+                          value={form.mobile}
+                          onChange={handleChange}
+                          className={`checkout-styled-input ${errors.mobile ? "error" : ""}`}
+                        />
+                        {errors.mobile && <span className="checkout-err-msg">{errors.mobile}</span>}
+                      </div>
                     </div>
-                    <div className="checkout-field-wrap flex-1">
-                      <input
-                        type="text"
-                        name="lastName"
-                        placeholder="Last name"
-                        value={form.lastName}
-                        onChange={handleChange}
-                        className={`checkout-input ${errors.lastName ? "error" : ""}`}
-                      />
-                      {errors.lastName && <span className="checkout-err-msg">{errors.lastName}</span>}
-                    </div>
-                  </div>
-
-                  <div className="checkout-field-wrap">
-                    <input
-                      type="text"
-                      name="flat"
-                      placeholder="Address"
-                      value={form.flat}
-                      onChange={handleChange}
-                      className={`checkout-input ${errors.flat ? "error" : ""}`}
-                    />
-                    {errors.flat && <span className="checkout-err-msg">{errors.flat}</span>}
-                  </div>
-
-                  <div className="checkout-field-wrap">
-                    <input
-                      type="text"
-                      name="area"
-                      placeholder="Apartment, suite, etc. (optional)"
-                      value={form.area}
-                      onChange={handleChange}
-                      className="checkout-input"
-                    />
-                  </div>
-
-                  <div className="checkout-fields-row tertiary">
-                    <div className="checkout-field-wrap city-field">
-                      <input
-                        type="text"
-                        name="city"
-                        placeholder="City"
-                        value={form.city}
-                        onChange={handleChange}
-                        className="checkout-input"
-                      />
-                    </div>
-                    <div className="checkout-field-wrap state-field">
-                      <select
-                        name="state"
-                        value={form.state}
-                        onChange={handleChange}
-                        className="checkout-input checkout-select"
-                      >
-                        {indianStates.map((s) => <option key={s}>{s}</option>)}
-                      </select>
-                    </div>
-                    <div className="checkout-field-wrap pin-field">
-                      <input
-                        type="text"
-                        name="pinCode"
-                        placeholder="PIN code"
-                        value={form.pinCode}
-                        onChange={handleChange}
-                        maxLength={6}
-                        className={`checkout-input ${errors.pinCode || pinStateError ? "error" : ""}`}
-                      />
-                      {pincodeChecking && (
-                        <span style={{ fontSize: '11px', color: '#666', marginTop: '2px', display: 'block' }}>
-                          Checking serviceability...
-                        </span>
-                      )}
-                      {(errors.pinCode || pinStateError) && (
-                        <span className="checkout-err-msg">{errors.pinCode || pinStateError}</span>
-                      )}
-                    </div>
-                  </div>
-
-                  <div className="checkout-field-wrap">
-                    <input
-                      type="tel"
-                      name="mobile"
-                      placeholder="Phone"
-                      value={form.mobile}
-                      onChange={handleChange}
-                      className={`checkout-input ${errors.mobile ? "error" : ""}`}
-                    />
-                    {errors.mobile && <span className="checkout-err-msg">{errors.mobile}</span>}
-                  </div>
-
-                  <label className="checkout-checkbox-label">
-                    <input
-                      type="checkbox"
-                      checked={form.isDefault}
-                      name="isDefault"
-                      onChange={handleChange}
-                      className="checkout-checkbox"
-                    />
-                    <span>Save this information for next time</span>
-                  </label>
+                  )}
                 </div>
 
-                {/* Shipping Method Section */}
-                <div className="checkout-section">
-                  <h2 className="checkout-section-title">Shipping method</h2>
-                  <div className="checkout-shipping-box">
+                {/* 3. Shipping Method Section */}
+                <div className="checkout-section-block">
+                  <h2 className="checkout-block-title">Shipping method</h2>
+                  <div className="checkout-shipping-display-box">
                     {isAddressServiceable ? (
-                      <div className="checkout-shipping-rate">
-                        <span className="rate-name">Standard Shipping</span>
-                        <span className="rate-price">{shippingFee > 0 ? `₹${shippingFee.toFixed(2)}` : "FREE"}</span>
+                      <div className="checkout-shipping-ready-row">
+                        <span className="shipping-type-text">Standard Shipping</span>
+                        <span className="shipping-cost-text">{shippingFee > 0 ? `₹${shippingFee.toFixed(2)}` : "FREE"}</span>
                       </div>
                     ) : (
-                      <span className="checkout-shipping-hint">Enter your shipping address to view available shipping methods.</span>
+                      <span className="checkout-shipping-placeholder-text">
+                        Enter your shipping address to view available shipping methods.
+                      </span>
                     )}
                   </div>
                 </div>
 
-                {/* Payment Section */}
-                <div className="checkout-section">
-                  <h2 className="checkout-section-title">Payment</h2>
-                  <p className="checkout-section-subtitle">All transactions are secure and encrypted.</p>
+                {/* 4. Payment Section */}
+                <div className="checkout-section-block">
+                  <h2 className="checkout-block-title">Payment</h2>
+                  <p className="checkout-block-subtitle">All transactions are secure and encrypted.</p>
 
-                  <div className="checkout-accordion-group">
-                    {/* Online Payment (Razorpay) */}
-                    <div className={`checkout-accordion-item ${paymentMethod === 'RAZORPAY' ? 'active' : ''}`}>
-                      <label className="checkout-accordion-header" onClick={() => setPaymentMethod('RAZORPAY')}>
-                        <div className="checkout-radio-wrap">
+                  <div className="checkout-payment-box-group">
+                    {/* Option 1: Razorpay */}
+                    <div className={`checkout-payment-option-row ${paymentMethod === 'RAZORPAY' ? 'is-active' : ''}`}>
+                      <label className="checkout-payment-option-header" onClick={() => setPaymentMethod('RAZORPAY')}>
+                        <div className="checkout-radio-label-left">
                           <input
                             type="radio"
                             name="paymentMethod"
                             checked={paymentMethod === 'RAZORPAY'}
                             onChange={() => setPaymentMethod('RAZORPAY')}
-                            className="checkout-radio"
+                            className="checkout-native-radio"
                           />
-                          <span className="payment-method-name">Razorpay Secure (UPI, Cards, Int'l Cards, Wallets)</span>
+                          <span className="checkout-payment-label-text">
+                            Razorpay Secure (UPI, Cards, Int'l Cards, Wallets)
+                          </span>
                         </div>
-                        <div className="payment-card-logos">
-                          <img src={UpiIcon} alt="UPI" className="payment-card-logo-img upi-logo" />
-                          <img src={VisaIcon} alt="Visa" className="payment-card-logo-img visa-logo" />
-                          <img src={MastercardIcon} alt="Mastercard" className="payment-card-logo-img mc-logo" />
-                          <PaymentMorePopup />
+                        <div className="checkout-payment-icons-row">
+                          <img src={UpiIcon} alt="UPI" className="payment-badge-img" />
+                          <img src={VisaIcon} alt="Visa" className="payment-badge-img" />
+                          <img src={MastercardIcon} alt="Mastercard" className="payment-badge-img" />
+                          <PaymentMorePopup count="+18" />
                         </div>
                       </label>
 
                       {paymentMethod === 'RAZORPAY' && (
-                        <div className="checkout-accordion-body">
-                          <div className="payment-redirect-box">
-                            <svg className="redirect-icon" width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="#666" strokeWidth="1.5">
-                              <rect x="2" y="5" width="20" height="14" rx="2" />
-                              <line x1="2" y1="10" x2="22" y2="10" />
+                        <div className="checkout-payment-redirect-content">
+                          <div className="payment-card-icon-box">
+                            <svg width="48" height="36" viewBox="0 0 48 36" fill="none">
+                              <rect x="1" y="1" width="46" height="34" rx="4" stroke="#444" strokeWidth="2" fill="none" />
+                              <line x1="1" y1="11" x2="47" y2="11" stroke="#444" strokeWidth="2" />
                             </svg>
-                            <p>You'll be redirected to Razorpay Secure (UPI, Cards, Int'l Cards, Wallets) to complete your purchase.</p>
                           </div>
+                          <p className="payment-redirect-notice-text">
+                            You'll be redirected to Razorpay Secure (UPI, Cards, Int'l Cards, Wallets) to complete your purchase.
+                          </p>
                         </div>
                       )}
                     </div>
 
-                    {/* Cash on Delivery (COD) */}
-                    <div className={`checkout-accordion-item checkout-accordion-item--cod ${paymentMethod === 'COD' ? 'active' : ''}`}>
+                    {/* Option 2: Cash on Delivery */}
+                    <div className={`checkout-payment-option-row ${paymentMethod === 'COD' ? 'is-active' : ''}`}>
                       <label
-                        className={`checkout-accordion-header ${!isCODAvailable ? 'checkout-option-disabled' : ''}`}
+                        className={`checkout-payment-option-header ${!isCODAvailable ? 'is-disabled' : ''}`}
                         onClick={() => isCODAvailable && setPaymentMethod('COD')}
                       >
-                        <div className="checkout-radio-wrap">
+                        <div className="checkout-radio-label-left">
                           <input
                             type="radio"
                             name="paymentMethod"
                             checked={paymentMethod === 'COD'}
                             onChange={() => isCODAvailable && setPaymentMethod('COD')}
                             disabled={!isCODAvailable}
-                            className="checkout-radio"
+                            className="checkout-native-radio"
                           />
-                          <span className="payment-method-name">Cash on Delivery (COD)</span>
+                          <span className="checkout-payment-label-text">Cash on Delivery (COD)</span>
                         </div>
+                        {!isCODAvailable && (
+                          <span className="checkout-badge-unavailable">CURRENTLY NOT AVAILABLE</span>
+                        )}
                       </label>
-                      {!isCODAvailable && (
-                        <span className="checkout-option-sticker">Currently Not Available</span>
-                      )}
                       {paymentMethod === 'COD' && (
-                        <div className="checkout-accordion-body">
-                          <p>Pay with cash upon delivery.</p>
+                        <div className="checkout-payment-redirect-content">
+                          <p className="payment-redirect-notice-text">Pay with cash upon delivery.</p>
                         </div>
                       )}
                     </div>
                   </div>
                 </div>
 
-                {/* Billing Address Section */}
-                <div className="checkout-section">
-                  <h2 className="checkout-section-title">Billing address</h2>
-
-                  <div className="checkout-accordion-group">
-                    <div className={`checkout-accordion-item ${billingSame ? 'active' : ''}`}>
-                      <label className="checkout-accordion-header" onClick={() => setBillingSame(true)}>
-                        <div className="checkout-radio-wrap">
-                          <input
-                            type="radio"
-                            name="billingAddress"
-                            checked={billingSame}
-                            onChange={() => setBillingSame(true)}
-                            className="checkout-radio"
-                          />
-                          <span className="payment-method-name">Same as shipping address</span>
-                        </div>
-                      </label>
-                    </div>
-
-                    <div className={`checkout-accordion-item ${!billingSame ? 'active' : ''}`}>
-                      <label className="checkout-accordion-header" onClick={() => setBillingSame(false)}>
-                        <div className="checkout-radio-wrap">
-                          <input
-                            type="radio"
-                            name="billingAddress"
-                            checked={!billingSame}
-                            onChange={() => setBillingSame(false)}
-                            className="checkout-radio"
-                          />
-                          <span className="payment-method-name">Use a different billing address</span>
-                        </div>
-                      </label>
-
-                      {!billingSame && (
-                        <div className="checkout-accordion-body">
-                          <div className="checkout-fields-row">
-                            <input type="text" placeholder="First name" className="checkout-input flex-1" />
-                            <input type="text" placeholder="Last name" className="checkout-input flex-1" />
-                          </div>
-                          <input type="text" placeholder="Address" className="checkout-input" />
-                          <input type="text" placeholder="Apartment, suite, etc. (optional)" className="checkout-input" />
-                          <div className="checkout-fields-row tertiary">
-                            <input type="text" placeholder="City" className="checkout-input city-field" />
-                            <select className="checkout-input checkout-select state-field">
-                              {indianStates.map((s) => <option key={s}>{s}</option>)}
-                            </select>
-                            <input type="text" placeholder="PIN code" className="checkout-input pin-field" />
-                          </div>
-                          <input type="tel" placeholder="Phone" className="checkout-input" />
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                </div>
-
-                {/* Place Order Button */}
-                <div className="checkout-submit-wrap">
+                {/* Pay Now Button */}
+                <div className="checkout-action-wrap">
                   <button
                     type="submit"
-                    className="checkout-pay-btn"
+                    className="checkout-primary-pay-btn"
                     disabled={isProcessingPayment || !ratesLoaded}
                   >
                     {isProcessingPayment ? "Processing..." : (paymentMethod === "COD" ? "Place order" : "Pay now")}
@@ -1047,104 +1037,81 @@ export default function ShippingAddress() {
                 </div>
 
               </form>
-
-              {/* Footer Links */}
-              <div className="checkout-footer-links">
-                <a href="/terms" target="_blank" rel="noopener noreferrer">Refund policy</a>
-                <a href="/terms" target="_blank" rel="noopener noreferrer">Shipping</a>
-                <a href="/privacy" target="_blank" rel="noopener noreferrer">Privacy policy</a>
-                <a href="/terms" target="_blank" rel="noopener noreferrer">Terms of service</a>
-              </div>
             </div>
-          </div>
 
-          {/* RIGHT COLUMN: Order Summary Sidebar */}
-          <div className="checkout-right-col">
-            <div className="checkout-right-content">
+            {/* RIGHT COLUMN: Billing Summary Box */}
+            <div className="checkout-sidebar-col">
+              <div className="checkout-billing-summary-panel">
+                <h3 className="checkout-billing-title">Billing</h3>
 
-              {/* Product list */}
-              <div className="checkout-items-list">
-                {checkoutItems.map((item, idx) => {
-                  const imgUrl = getOriginalImageUrl(item.img || item.image || (item.images && item.images[0]) || "");
-                  return (
-                    <div key={idx} className="checkout-item-row">
-                      <div className="checkout-item-img-wrap">
-                        <img src={imgUrl} alt={item.name} className="checkout-item-img" />
-                        <span className="checkout-item-qty-badge">{item.qty || 1}</span>
-                      </div>
-                      <div className="checkout-item-details">
-                        <h3 className="checkout-item-name">{item.name}</h3>
-                        {item.size && <p className="checkout-item-option">{item.size}</p>}
-                        {item.color && <p className="checkout-item-option">{item.color}</p>}
-                      </div>
-                      <div className="checkout-item-price">
-                        ₹{(parsePrice(item.price) * (item.qty || 1)).toLocaleString('en-IN')}.00
-                      </div>
+                <div className="checkout-billing-details-list">
+                  <div className="checkout-billing-line">
+                    <span className="billing-key">Price:</span>
+                    <span className="billing-val">₹{primaryItemPrice.toFixed(2)}</span>
+                  </div>
+
+                  <div className="checkout-billing-line">
+                    <span className="billing-key">Quantity:</span>
+                    <span className="billing-val">{totalQuantity}</span>
+                  </div>
+
+                  <div className="checkout-billing-line">
+                    <span className="billing-key">Subtotal</span>
+                    <span className="billing-val">₹{subtotal.toFixed(2)}</span>
+                  </div>
+
+                  {appliedDiscount && (
+                    <div className="checkout-billing-line discount-highlight">
+                      <span className="billing-key">Discount ({appliedDiscount.code})</span>
+                      <span className="billing-val">-₹{discountAmount.toFixed(2)}</span>
                     </div>
-                  );
-                })}
-              </div>
+                  )}
 
-              {/* Discount Code Input */}
-              <div className="checkout-discount-wrap">
-                <input
-                  type="text"
-                  placeholder="Discount code"
-                  value={discountInput}
-                  onChange={(e) => setDiscountInput(e.target.value)}
-                  className="checkout-input discount-input"
-                />
-                <button
-                  type="button"
-                  onClick={handleApplyDiscount}
-                  className="checkout-discount-btn"
-                >
-                  Apply
-                </button>
-              </div>
-
-              {/* Pricing calculations */}
-              <div className="checkout-summary-box">
-                <div className="checkout-summary-row">
-                  <span>Subtotal</span>
-                  <span className="summary-val">₹{subtotal.toLocaleString('en-IN')}.00</span>
-                </div>
-
-                {appliedDiscount && (
-                  <div className="checkout-summary-row discount-row">
-                    <span>Discount ({appliedDiscount.code})</span>
-                    <span className="summary-val">-₹{discountAmount.toLocaleString('en-IN')}.00</span>
+                  <div className="checkout-billing-line gst-line">
+                    <span className="billing-key">GST (3% Incl.)</span>
+                    <span className="billing-val">₹{gstIncluded}</span>
                   </div>
-                )}
 
-                <div className="checkout-summary-row gst-faded-row">
-                  <span>GST (3% Incl.)</span>
-                  <span className="summary-val">₹{gstIncluded.toLocaleString('en-IN')}</span>
-                </div>
-
-                <div className="checkout-summary-row">
-                  <span>Shipping</span>
-                  <span className="summary-val">
-                    {isAddressServiceable
-                      ? (shippingFee === 0 ? "Free" : `₹${shippingFee.toLocaleString('en-IN')}.00`)
-                      : "Enter shipping address"}
-                  </span>
-                </div>
-
-                <div className="checkout-total-divider"></div>
-
-                <div className="checkout-summary-row total-row">
-                  <div className="total-label-wrap">
-                    <span className="total-main-label">Total</span>
+                  <div className="checkout-billing-line">
+                    <span className="billing-key">Shipping</span>
+                    <span className="billing-val shipping-status-text">
+                      {isAddressServiceable
+                        ? (shippingFee === 0 ? "Free" : `₹${shippingFee.toFixed(2)}`)
+                        : "Enter shipping address"}
+                    </span>
                   </div>
-                  <div className="total-price-wrap">
-                    <span className="total-currency">INR</span>
-                    <span className="total-price-val">₹{grandTotal.toLocaleString('en-IN')}.00</span>
+                </div>
+
+                {/* Discount Code Input */}
+                <div className="checkout-inline-discount-wrap">
+                  <input
+                    type="text"
+                    placeholder="Discount code"
+                    value={discountInput}
+                    onChange={(e) => setDiscountInput(e.target.value)}
+                    className="checkout-styled-input checkout-discount-input"
+                  />
+                  <button
+                    type="button"
+                    onClick={handleApplyDiscount}
+                    className="checkout-discount-apply-btn"
+                  >
+                    Apply
+                  </button>
+                </div>
+
+                <div className="checkout-billing-divider-line" />
+
+                <div className="checkout-billing-grand-total">
+                  <span className="grand-total-label">Total</span>
+                  <div className="grand-total-amount-wrap">
+                    <span className="currency-label">INR</span>
+                    <span className="grand-total-val">₹{grandTotal.toFixed(2)}</span>
                   </div>
                 </div>
               </div>
-
             </div>
+
           </div>
         </div>
       </div>

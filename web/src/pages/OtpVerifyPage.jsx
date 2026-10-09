@@ -86,71 +86,71 @@ export default function OtpVerifyPage() {
   };
 
   return (
-    <div className="otp-page">
+      <div className="otp-page">
 
-      <div className="otp-left">
-        <img src={otpImg} alt="OTP Image" />
-      </div>
-
-      <div className="otp-right">
-        <div className="otp-form-wrapper">
-
-          <h1 className="otp-title">Enter OTP</h1>
-          <p className="otp-subtitle">
-            6-digit code sent to {email ?? "your email"}
-          </p>
-
-          <div className="otp-boxes">
-            {otp.map((digit, index) => (
-              <input
-                key={index}
-                ref={(el) => (inputRefs.current[index] = el)}
-                type="text"
-                inputMode="numeric"
-                maxLength={1}
-                className="otp-box"
-                value={digit}
-                onChange={(e) => handleChange(index, e.target.value)}
-                onKeyDown={(e) => handleKeyDown(index, e)}
-                onPaste={handlePaste}
-                disabled={loading}
-              />
-            ))}
-          </div>
-
-          <button
-            className="otp-btn-verify"
-            onClick={handleVerify}
-            disabled={loading}
-          >
-            {loading ? (
-              <span className="otp-btn-loading">
-                <span className="otp-spinner" />
-                Verifying...
-              </span>
-            ) : (
-              "Verify"
-            )}
-          </button>
-
-          <p className="otp-resend-text">
-            Resend OTP Now!{" "}
-            <button 
-              className="otp-resend-link"
-              onClick={handleResend}
-              disabled={loading || resending}
-            >
-              {resending ? "Resending..." : "Click Here"}
-            </button>
-          </p>
-
+        <div className="otp-left">
+          <img src={otpImg} alt="OTP Image" />
         </div>
+
+        <div className="otp-right">
+          <div className="otp-form-wrapper">
+
+            <h1 className="otp-title">Enter OTP</h1>
+            <p className="otp-subtitle">
+              6-digit code sent to {email ?? "your email"}
+            </p>
+
+            <div className="otp-boxes">
+              {otp.map((digit, index) => (
+                <input
+                  key={index}
+                  ref={(el) => (inputRefs.current[index] = el)}
+                  type="text"
+                  inputMode="numeric"
+                  maxLength={1}
+                  className="otp-box"
+                  value={digit}
+                  onChange={(e) => handleChange(index, e.target.value)}
+                  onKeyDown={(e) => handleKeyDown(index, e)}
+                  onPaste={handlePaste}
+                  disabled={loading}
+                />
+              ))}
+            </div>
+
+            <button
+              className="otp-btn-verify"
+              onClick={handleVerify}
+              disabled={loading}
+            >
+              {loading ? (
+                <span className="otp-btn-loading">
+                  <span className="otp-spinner" />
+                  Verifying...
+                </span>
+              ) : (
+                "Verify"
+              )}
+            </button>
+
+            <p className="otp-resend-text">
+              Resend OTP Now!{" "}
+              <button 
+                className="otp-resend-link"
+                onClick={handleResend}
+                disabled={loading || resending}
+              >
+                {resending ? "Resending..." : "Click Here"}
+              </button>
+            </p>
+
+          </div>
+        </div>
+        <Toast
+          message={toast.message}
+          type={toast.type}
+          onClose={() => setToast({ message: "", type: ""})}
+        />
       </div>
-      <Toast
-        message={toast.message}
-        type={toast.type}
-        onClose={() => setToast({ message: "", type: ""})}
-      />
-    </div>
   );
 }

@@ -6,10 +6,12 @@ import "swiper/css";
 import "swiper/css/pagination";
 import "./Hero.css";
 import { bannerService } from "../services/bannerService";
+import { Skeleton } from "./ui/Skeleton";
 
 export default function Hero() {
   const navigate = useNavigate();
   const [banners, setBanners] = useState([]);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     async function fetchBanners() {
@@ -20,10 +22,22 @@ export default function Hero() {
         }
       } catch (err) {
         console.error("Failed to load hero banners:", err);
+      } finally {
+        setLoading(false);
       }
     }
     fetchBanners();
   }, []);
+
+  if (loading) {
+    return (
+      <section className="hero-section hero-section--loading" aria-busy="true" aria-label="Loading hero banner">
+        <div className="hero-skeleton-wrapper">
+          <Skeleton className="hero-skeleton" />
+        </div>
+      </section>
+    );
+  }
 
   if (!banners || banners.length === 0) return null;
 

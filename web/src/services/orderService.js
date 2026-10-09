@@ -168,12 +168,12 @@ export const orderService = {
   },
 
   /**
-   * Retrieves all customer profiles in the system (admin view).
+   * Retrieves all customer records in the system (admin view).
    * @returns {Promise<any[]>}
    */
   async getAllCustomers() {
     const { data, error } = await supabase
-      .from('profiles')
+      .from('users')
       .select('*')
       .order('updated_at', { ascending: false });
     if (error) throw error;

@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import "./CartPage.css";
 import Navbar from "../components/SiteHeader";
+import TopBar from "../components/TopBar";
 import Footer from "../components/SiteFooter";
 import { useNavigate } from "react-router-dom";
 import WishlistPage from "./WishlistPage";
@@ -107,6 +108,7 @@ export default function CartPage() {
 
   return (
     <>
+      <TopBar />
       <Navbar activeLink="" onLinkClick={handleNavClick} />
       <div className="cart-page-wrapper">
 
@@ -256,7 +258,7 @@ export default function CartPage() {
                 </div>
                 <button
                   className="checkout-btn"
-                  onClick={() => navigate("/shipping", { state: { selectedItems } })}
+                  onClick={() => navigate("/checkout", { state: { selectedItems } })}
                   disabled={selectedItems.length === 0}
                 >
                   Checkout {selectedItems.length > 0 ? `(${selectedItems.length})` : ''}

@@ -254,7 +254,7 @@ const Invoices = ({ orders = [], loading = false }) => {
           if (newOrder.user_id) {
             try {
               const { data: profile } = await supabase
-                .from("profiles")
+                .from("users")
                 .select("*")
                 .eq("id", newOrder.user_id)
                 .single();

@@ -1,425 +1,348 @@
-:root {
-  --brand-red: #8b0030;
-  --brand-red-dark: #6e0026;
-  --white: #ffffff;
-  --page-bg: #ffffff;
-  --border-gray: #e2e2e2;
-  --input-border: #d8d8d8;
-  --input-bg: #f9f9f9;
-  --card-bg: #f7f7f7;
-  --card-selected-bg: #ffffff;
-  --card-selected-border: #c8c8c8;
-  --text-dark: #1a1a1a;
-  --text-mid: #555555;
-  --text-light: #888888;
-  --vip-bg: #fff8dc;
-  --vip-text: #7a5a00;
-  --delete-color: #c0392b;
-  --delete-bg: #fff0f0;
-  --edit-color: #333333;
-  --edit-bg: #f0f0f0;
-  --add-btn-bg: #1a1a1a;
-  --add-btn-text: #ffffff;
-}
-
-*,
-*::before,
-*::after {
-  box-sizing: border-box;
-  margin: 0;
-  padding: 0;
-}
-
-body {
-  font-family: 'Lato', sans-serif;
-  background: var(--page-bg);
-  color: var(--text-dark);
-  min-height: 100vh;
-}
-
-/* ── ROOT ─────────────────────────────────────────────────── */
-.addr-root {
-  max-width: 960px;
-  margin: 0 auto;
-  padding: 36px 24px 60px;
-}
-
-/* ── PAGE HEADING ─────────────────────────────────────────── */
-.addr-profile-title {
-  font-family: "Agraham", serif;
-  font-weight: 400;
-  font-size: 34px;
-  color: var(--text-dark);
-  letter-spacing: -0.5px;
-  margin-bottom: 28px;
-}
-
-/* ── USER INFO ────────────────────────────────────────────── */
-.addr-user-section {
+/* ── SAVED ADDRESSES HEADER ──────────────────────────────── */
+.addr-header-row {
   display: flex;
-  align-items: flex-start;
-  gap: 14px;
-  margin-bottom: 18px;
-}
-
-.addr-avatar {
-  width: 52px;
-  height: 52px;
-  border-radius: 50%;
-  background: #8b0030;
-  color: #ffffff;
-  font-size: 18px;
-  font-weight: 700;
-  display: flex;
+  justify-content: space-between;
   align-items: center;
-  justify-content: center;
-  flex-shrink: 0;
-  letter-spacing: 0.5px;
-  text-transform: uppercase;
-  box-shadow: 0 2px 8px rgba(123, 29, 29, 0.2);
+  margin-top: 4px;
+  margin-bottom: 24px;
 }
 
-.addr-user-text {
-  display: flex;
-  flex-direction: column;
-  gap: 3px;
-  padding-top: 2px;
-}
-
-.addr-user-name {
-  font-size: 15px;
-  font-weight: 700;
-  color: var(--text-dark);
-}
-
-.addr-user-meta {
-  font-size: 12.5px;
-  color: var(--text-mid);
-}
-
-.addr-vip-badge {
-  display: inline-block;
-  background: var(--vip-bg);
-  color: var(--vip-text);
-  font-size: 11px;
-  font-weight: 600;
-  padding: 2px 9px;
-  border-radius: 10px;
-  width: fit-content;
-}
-
-/* ── DIVIDER ──────────────────────────────────────────────── */
-.addr-divider {
-  border: none;
-  border-top: 1px solid var(--border-gray);
-  margin-bottom: 20px;
-}
-
-/* ── TABS ─────────────────────────────────────────────────── */
-.addr-tabs {
-  display: flex;
-  gap: 8px;
-  flex-wrap: wrap;
-  margin-bottom: 26px;
-}
-
-.addr-tab {
-  background: var(--white);
-  border: 1px solid var(--border-gray);
-  border-radius: 4px;
-  padding: 6px 18px;
-  font-size: 13px;
-  font-family: 'Lato', sans-serif;
-  color: var(--text-mid);
-  cursor: pointer;
-  transition: background 0.15s, color 0.15s, border-color 0.15s;
-}
-
-.addr-tab:hover {
-  border-color: #bbb;
-  color: var(--text-dark);
-}
-
-.addr-tab--active {
-  background: var(--brand-red);
-  color: var(--white);
-  border-color: var(--brand-red);
-}
-
-/* ── SAVED ADDRESSES HEADING ──────────────────────────────── */
 .addr-section-title {
-  font-size: 17px;
+  font-family: 'Outfit', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  font-size: 28px;
   font-weight: 700;
-  color: var(--text-dark);
-  margin-bottom: 14px;
+  color: #111827;
+  letter-spacing: -0.3px;
+  margin: 0;
 }
 
-/* ── SAVED ADDRESS GRID ───────────────────────────────────── */
+.addr-top-add-btn {
+  background-color: #002277;
+  color: #ffffff;
+  border: none;
+  border-radius: 8px;
+  padding: 8px 24px;
+  font-size: 13.5px;
+  font-weight: 600;
+  font-family: 'Outfit', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  cursor: pointer;
+  transition: background-color 0.15s ease, transform 0.1s ease;
+}
+
+.addr-top-add-btn:hover {
+  background-color: #001a5e;
+}
+
+.addr-top-add-btn:active {
+  transform: scale(0.98);
+}
+
+.addr-empty-state {
+  color: #6b7280;
+  font-size: 14px;
+  margin-bottom: 24px;
+  background-color: #f8f9fa;
+  border-radius: 12px;
+  padding: 24px;
+  text-align: center;
+}
+
+/* ── SAVED ADDRESSES GRID ─────────────────────────────────── */
 .addr-saved-grid {
   display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 14px;
-  margin-bottom: 28px;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 20px;
+  margin-bottom: 32px;
 }
 
 .addr-saved-card {
-  background: var(--card-bg);
-  border: 1px solid var(--border-gray);
-  border-radius: 8px;
-  padding: 14px 14px 12px;
+  background-color: #f8f9fa;
+  border-radius: 16px;
+  padding: 22px 24px 20px;
   display: flex;
   flex-direction: column;
-  gap: 12px;
-}
-
-.addr-saved-card--selected {
-  background: var(--card-selected-bg);
-  border-color: var(--card-selected-border);
-  box-shadow: 0 0 0 1px var(--card-selected-border);
+  justify-content: space-between;
+  min-height: 160px;
+  box-sizing: border-box;
+  transition: box-shadow 0.2s ease, border-color 0.2s ease;
 }
 
 .addr-saved-card-top {
   display: flex;
   align-items: flex-start;
-  gap: 10px;
+  gap: 12px;
 }
 
-/* Checkbox */
-.addr-check {
-  width: 15px;
-  height: 15px;
-  margin-top: 2px;
-  flex-shrink: 0;
-  accent-color: var(--brand-red);
+/* Custom rounded checkbox */
+.addr-custom-checkbox {
+  width: 18px;
+  height: 18px;
+  border-radius: 4px;
+  border: 1.5px solid #d1d5db;
+  background-color: transparent;
+  padding: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   cursor: pointer;
+  flex-shrink: 0;
+  margin-top: 2px;
+  transition: all 0.15s ease;
+}
+
+.addr-custom-checkbox--checked {
+  background-color: #002277;
+  border-color: #002277;
 }
 
 .addr-saved-info {
   display: flex;
   flex-direction: column;
-  gap: 3px;
+  gap: 4px;
 }
 
 .addr-saved-name {
-  font-size: 13px;
+  font-family: 'Outfit', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  font-size: 14.5px;
   font-weight: 700;
-  color: var(--text-dark);
+  color: #111827;
+  line-height: 1.3;
 }
 
 .addr-saved-addr {
-  font-size: 11.5px;
-  color: var(--text-mid);
-  line-height: 1.5;
+  font-family: 'Outfit', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  font-size: 13px;
+  font-weight: 400;
+  color: #555e6d;
+  line-height: 1.55;
+  word-break: break-word;
 }
 
 /* Card action buttons */
 .addr-saved-actions {
   display: flex;
-  gap: 8px;
-}
-
-.addr-edit-btn,
-.addr-delete-btn {
-  display: flex;
-  align-items: center;
-  gap: 5px;
-  border: none;
-  border-radius: 5px;
-  padding: 6px 14px;
-  font-size: 12px;
-  font-family: 'Lato', sans-serif;
-  font-weight: 500;
-  cursor: pointer;
-  transition: background 0.15s;
-  flex: 1;
-  justify-content: center;
+  gap: 12px;
+  margin-top: 18px;
 }
 
 .addr-edit-btn {
-  background: var(--edit-bg);
-  color: var(--edit-color);
-  border: 1px solid #ddd;
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  background-color: #ffffff;
+  border: 1px solid #d1d5db;
+  border-radius: 9999px;
+  height: 36px;
+  font-family: 'Outfit', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  font-size: 13px;
+  font-weight: 500;
+  color: #1f2937;
+  cursor: pointer;
+  transition: background-color 0.15s ease, border-color 0.15s ease;
 }
 
 .addr-edit-btn:hover {
-  background: #e4e4e4;
+  background-color: #f3f4f6;
+  border-color: #9ca3af;
 }
 
 .addr-delete-btn {
-  background: var(--delete-bg);
-  color: var(--delete-color);
-  border: 1px solid #f5c6c6;
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  background-color: #fee2e2;
+  border: none;
+  border-radius: 9999px;
+  height: 36px;
+  font-family: 'Outfit', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  font-size: 13px;
+  font-weight: 500;
+  color: #ef4444;
+  cursor: pointer;
+  transition: background-color 0.15s ease;
 }
 
 .addr-delete-btn:hover {
-  background: #fde0e0;
+  background-color: #fecaca;
 }
 
-/* ── ADD NEW ADDRESS FORM CARD ────────────────────────────── */
+/* ── ADD A NEW ADDRESS FORM CARD ──────────────────────────── */
 .addr-form-card {
-  background: #f5f5f5;
-  border: 1px solid var(--border-gray);
-  border-radius: 8px;
-  padding: 22px 22px 24px;
+  background-color: #f8f9fa;
+  border-radius: 16px;
+  padding: 32px 36px;
+  margin-top: 24px;
+  box-sizing: border-box;
 }
 
 .addr-form-title {
-  font-size: 15px;
+  font-family: 'Outfit', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  font-size: 19px;
   font-weight: 700;
-  color: var(--text-dark);
-  margin-bottom: 18px;
+  color: #111827;
+  margin: 0 0 24px 0;
 }
 
 /* ── FORM FIELDS ──────────────────────────────────────────── */
 .addr-field {
-  margin-bottom: 14px;
+  margin-bottom: 18px;
 }
 
 .addr-label {
   display: block;
-  font-size: 12.5px;
-  font-weight: 400;
-  color: var(--text-dark);
-  margin-bottom: 5px;
+  font-family: 'Outfit', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  font-size: 13.5px;
+  font-weight: 700;
+  color: #111827;
+  margin-bottom: 8px;
 }
 
 .addr-input {
   width: 100%;
-  padding: 9px 12px;
-  border: 1px solid var(--input-border);
-  border-radius: 5px;
-  font-size: 13px;
-  font-family: 'Lato', sans-serif;
-  color: var(--text-dark);
-  background: var(--white);
+  box-sizing: border-box;
+  padding: 12px 16px;
+  border: 1px solid #d1d5db;
+  border-radius: 10px;
+  font-family: 'Outfit', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  font-size: 13.5px;
+  color: #1f2937;
+  background-color: transparent;
   outline: none;
-  transition: border-color 0.2s, box-shadow 0.2s;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
 }
 
 .addr-input::placeholder {
-  color: #b8b8b8;
-  font-size: 12.5px;
+  color: #9ca3af;
+  font-size: 13.5px;
 }
 
 .addr-input:focus {
-  border-color: #aaa;
-  box-shadow: 0 0 0 2px rgba(0, 0, 0, 0.06);
+  border-color: #94a3b8;
+  box-shadow: 0 0 0 2px rgba(0, 0, 0, 0.04);
 }
 
 /* Select wrapper */
 .addr-select-wrap {
   position: relative;
-}
-
-.addr-select-wrap::after {
-  content: '';
-  position: absolute;
-  right: 14px;
-  top: 50%;
-  transform: translateY(-50%);
-  width: 0;
-  height: 0;
-  border-left: 5px solid transparent;
-  border-right: 5px solid transparent;
-  border-top: 5px solid #888;
-  pointer-events: none;
+  width: 100%;
 }
 
 .addr-select {
   width: 100%;
-  padding: 9px 36px 9px 12px;
-  border: 1px solid var(--input-border);
-  border-radius: 5px;
-  font-size: 13px;
-  font-family: 'Lato', sans-serif;
-  color: var(--text-dark);
-  background: var(--white);
+  box-sizing: border-box;
+  padding: 12px 40px 12px 16px;
+  border: 1px solid #d1d5db;
+  border-radius: 10px;
+  font-family: 'Outfit', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  font-size: 13.5px;
+  color: #1f2937;
+  background-color: transparent;
   appearance: none;
   outline: none;
   cursor: pointer;
-  transition: border-color 0.2s;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
 }
 
 .addr-select:focus {
-  border-color: #aaa;
-  box-shadow: 0 0 0 2px rgba(0, 0, 0, 0.06);
+  border-color: #94a3b8;
+  box-shadow: 0 0 0 2px rgba(0, 0, 0, 0.04);
 }
 
-/* Default checkbox row */
+.addr-select-chevron {
+  position: absolute;
+  right: 16px;
+  top: 50%;
+  transform: translateY(-50%);
+  pointer-events: none;
+  color: #1f2937;
+}
+
+/* Checkbox row */
 .addr-checkbox-row {
-  display: flex;
+  display: inline-flex;
   align-items: center;
-  gap: 8px;
-  margin-bottom: 20px;
-  margin-top: 4px;
-}
-
-.addr-check-label {
-  font-size: 12.5px;
-  color: var(--text-dark);
+  gap: 10px;
+  margin-top: 6px;
+  margin-bottom: 24px;
   cursor: pointer;
   user-select: none;
 }
 
-/* Add New Address button */
-.addr-add-btn {
-  background: var(--add-btn-bg);
-  color: var(--add-btn-text);
-  border: none;
-  border-radius: 22px;
-  padding: 11px 28px;
+.addr-check-label {
+  font-family: 'Outfit', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
   font-size: 13.5px;
-  font-family: 'Lato', sans-serif;
+  font-weight: 600;
+  color: #111827;
+  cursor: pointer;
+}
+
+/* Actions */
+.addr-form-actions {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+.addr-add-btn {
+  background-color: #000000;
+  color: #ffffff;
+  border: none;
+  border-radius: 9999px;
+  padding: 13px 32px;
+  font-family: 'Outfit', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  font-size: 13.5px;
   font-weight: 600;
   cursor: pointer;
-  letter-spacing: 0.2px;
-  transition: background 0.2s;
+  transition: opacity 0.15s ease, transform 0.1s ease;
 }
 
 .addr-add-btn:hover {
-  background: #333;
+  opacity: 0.85;
+}
+
+.addr-add-btn:active {
+  transform: scale(0.98);
+}
+
+.addr-add-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.addr-cancel-btn {
+  background-color: transparent;
+  color: #6b7280;
+  border: 1px solid #d1d5db;
+  border-radius: 9999px;
+  padding: 12px 24px;
+  font-family: 'Outfit', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  font-size: 13.5px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.addr-cancel-btn:hover {
+  background-color: #f3f4f6;
+  color: #111827;
 }
 
 /* ── RESPONSIVE ───────────────────────────────────────────── */
 @media (max-width: 768px) {
-  .addr-profile-title {
-    text-align: center;
-    width: 100%;
-    margin-bottom: 16px;
-  }
-
-  .addr-user-section {
-    flex-direction: column;
-    align-items: center;
-    text-align: center;
-    gap: 12px;
-  }
-
-  .addr-user-text {
-    align-items: center;
-    text-align: center;
-  }
-
-  .addr-vip-badge {
-    margin: 4px auto 0;
-  }
-
-  .addr-tabs {
-    justify-content: center;
-  }
-}
-
-@media (max-width: 500px) {
   .addr-saved-grid {
     grid-template-columns: 1fr;
+    gap: 16px;
   }
 
-  .addr-root {
-    padding: 24px 16px 48px;
+  .addr-form-card {
+    padding: 24px 20px;
   }
 
-  .addr-profile-title {
-    font-size: 30px;
-    text-align: center;
+  .addr-section-title {
+    font-size: 24px;
   }
 }

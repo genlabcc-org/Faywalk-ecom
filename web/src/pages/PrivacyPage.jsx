@@ -2,6 +2,7 @@ import React, { lazy, Suspense } from 'react';
 import { useNavigate } from 'react-router-dom';
 import './Policy.css';
 import SiteHeader from '../components/SiteHeader';
+import TopBar from '../components/TopBar';
 
 const SiteFooter = lazy(() => import('../components/SiteFooter'));
 
@@ -22,6 +23,7 @@ export default function Privacy() {
 
   return (
     <div className="policy-root">
+      <TopBar />
       <SiteHeader activeLink="" onLinkClick={handleHeaderLinkClick} />
 
       <section className="policy-section">

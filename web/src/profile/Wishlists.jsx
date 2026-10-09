@@ -1,16 +1,12 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useStore } from "../hooks/useStore";
-import { getUserInitials } from "../utils/avatarUtils";
+import ProfileLayout from "./ProfileLayout";
 import "./Wishlists.css";
-import Navbar from "../components/SiteHeader";
-import Footer from "../components/SiteFooter";
 import { getOriginalImageUrl } from '../utils/imageUtils';
 
-const TABS = ["Profile", "Orders", "Addresses", "Wishlists", "Account"];
-
 export default function Wishlists() {
-  const [activeTab] = useState("Wishlists");
+
   const navigate = useNavigate();
 
   const user = useStore((s) => s.user);
@@ -28,19 +24,6 @@ export default function Wishlists() {
       return;
     }
   }, [user, sessionLoading]);
-
-  const handleTabClick = (tab) => {
-    if (tab === "Profile") navigate("/profile");
-    else if (tab === "Orders") navigate("/profile/orders");
-    else if (tab === "Addresses") navigate("/profile/addresses");
-    else if (tab === "Wishlists") return;
-    else if (tab === "Account") navigate("/profile/account");
-  };
-
-  const handleNavClick = (link) => {
-    if (link === "Home") navigate("/");
-    else navigate(`/${link.toLowerCase()}`);
-  };
 
   const handleViewProduct = (item) => {
     setSelectedProduct({
@@ -76,48 +59,9 @@ export default function Wishlists() {
   };
 
   return (
-    <>
-      <Navbar onLinkClick={handleNavClick} />
-      <div className="aw-root">
-        <h1 className="aw-profile-title">Profile</h1>
-
-        {/* User info */}
-        <div className="aw-user-section">
-          <div className="aw-avatar">
-            {getUserInitials(user?.user_metadata?.name || user?.email)}
-          </div>
-          <div className="aw-user-text">
-            <span className="aw-user-name">{user?.user_metadata?.name || "User"}</span>
-            <span className="aw-user-meta">
-              {user?.email}&nbsp;·&nbsp;Member since{" "}
-              {user
-                ? new Date(user.created_at).toLocaleDateString("en-IN", {
-                    month: "short",
-                    year: "numeric",
-                  })
-                : ""}
-            </span>
-            <span className="aw-vip-badge">{wishlistItems.length} wishlisted</span>
-          </div>
-        </div>
-
-        <hr className="aw-divider" />
-
-        {/* Tabs */}
-        <div className="aw-tabs">
-          {TABS.map((tab) => (
-            <button
-              key={tab}
-              className={`aw-tab${activeTab === tab ? " aw-tab--active" : ""}`}
-              onClick={() => handleTabClick(tab)}
-            >
-              {tab}
-            </button>
-          ))}
-        </div>
-
-        {/* Wishlist content */}
-        <div className="aw-card">
+    <ProfileLayout>
+      {/* Wishlist content */}
+      <div className="aw-card">
           <div className="aw-card-header">
             <span className="aw-card-title">My Wishlist</span>
             <span className="aw-item-count">{wishlistItems.length} items</span>
@@ -197,8 +141,6 @@ export default function Wishlists() {
             </div>
           )}
         </div>
-      </div>
-      <Footer />
-    </>
+    </ProfileLayout>
   );
 }

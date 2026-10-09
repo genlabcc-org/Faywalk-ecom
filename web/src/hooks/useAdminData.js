@@ -58,7 +58,7 @@ export function useAdminData() {
       )
       .on(
         'postgres_changes',
-        { event: '*', schema: 'public', table: 'profiles' },
+        { event: '*', schema: 'public', table: 'users' },
         (payload) => {
           console.log('Realtime Customer Change:', payload);
           const { eventType, new: newRecord, old: oldRecord } = payload;

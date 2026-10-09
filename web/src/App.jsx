@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { useParams } from "react-router-dom";
 import { useStore } from './hooks/useStore';
-import { BrowserRouter, Routes, Route, useLocation } from "react-router-dom";
+import { BrowserRouter, Routes, Route, useLocation, Navigate } from "react-router-dom";
 
 import SignupPage from "./pages/SignupPage";
 import LoginPage from "./pages/LoginPage";
@@ -11,13 +11,12 @@ import Orders from "./profile/Orders";
 import OrderTracking from "./profile/OrderTracking";
 import Addresses from "./profile/Addresses";
 import Wishlists from "./profile/Wishlists";
-import AccountPage from "./profile/AccountPage";
-import ShippingAddress from "./components/shippingAddress";
+import CheckoutPage from "./pages/CheckoutPage";
 import HomePage from "./pages/HomePage";
 import WishlistPage from "./pages/WishlistPage";
 import CartPage from "./pages/CartPage";
 import ProductPage from "./pages/ProductPage";
-import CategoryPage from "./pages/CategoryPage";
+import ProductDetailsPage from "./pages/ProductDetailsPage";
 
 import TermsPage from './pages/TermsPage';
 import PrivacyPage from './pages/PrivacyPage';
@@ -38,7 +37,7 @@ function ScrollToTop() {
   return null;
 }
 
-// Custom CategoryPage
+// Custom Category / Products Page
 function CategoryBySlug(){
   const { slug } = useParams();
   const categories = useStore(state => state.categories);
@@ -64,7 +63,7 @@ function CategoryBySlug(){
   }
 
   if (match) {
-    return <CategoryPage category={match.name} />;
+    return <ProductPage category={match.name} />;
   }
 
   const defaultNames = {
@@ -79,7 +78,7 @@ function CategoryBySlug(){
   };
 
   if (defaultNames[normalizedSlug]) {
-    return <CategoryPage category={defaultNames[normalizedSlug]} />;
+    return <ProductPage category={defaultNames[normalizedSlug]} />;
   }
 
   return (
@@ -106,16 +105,16 @@ function App() {
         />
         <Route
           path="/product"
-          element={<ProductPage />}
+          element={<ProductDetailsPage />}
         />
-        <Route path="/rings" element={<CategoryPage category="Rings" />} />
-        <Route path="/toe-rings" element={<CategoryPage category="Toe Rings" />} />
-        <Route path="/earrings" element={<CategoryPage category="Earrings" />} />
-        <Route path="/bracelets" element={<CategoryPage category="Bracelets" />} />
-        <Route path="/bangles" element={<CategoryPage category="Bangles" />} />
-        <Route path="/necklaces" element={<CategoryPage category="Necklaces" />} />
-        <Route path="/anklets" element={<CategoryPage category="Anklets" />} />
-        <Route path="/hip-accessories" element={<CategoryPage category="Hip Accessories" />} />
+        <Route path="/rings" element={<ProductPage category="Rings" />} />
+        <Route path="/toe-rings" element={<ProductPage category="Toe Rings" />} />
+        <Route path="/earrings" element={<ProductPage category="Earrings" />} />
+        <Route path="/bracelets" element={<ProductPage category="Bracelets" />} />
+        <Route path="/bangles" element={<ProductPage category="Bangles" />} />
+        <Route path="/necklaces" element={<ProductPage category="Necklaces" />} />
+        <Route path="/anklets" element={<ProductPage category="Anklets" />} />
+        <Route path="/hip-accessories" element={<ProductPage category="Hip Accessories" />} />
 
         <Route path="/category/:slug" element={<CategoryBySlug />} />
         <Route path="/:slug" element={<CategoryBySlug />} />
@@ -126,7 +125,7 @@ function App() {
         <Route path="/login" element={<LoginPage />} />
         <Route path="/signup" element={<SignupPage />} />
         <Route path="/otp-verify" element={<OtpVerifyPage />} />
-        <Route path="/shipping" element={<ShippingAddress />} />
+        <Route path="/checkout" element={<CheckoutPage />} />
         <Route path="/payment" element={<CartPage />} />
         <Route path="/profile" element={<Profile />} />
         <Route path="/profile/orders" element={<Orders />} />
@@ -134,7 +133,7 @@ function App() {
         <Route path="/track-order/:orderId" element={<OrderTracking />} />
         <Route path="/profile/addresses" element={<Addresses />} />
         <Route path="/profile/wishlists" element={<Wishlists />} />
-        <Route path="/profile/account" element={<AccountPage />} />
+        <Route path="/profile/account" element={<Navigate to="/profile" replace />} />
 
         <Route path="/terms" element={<TermsPage />} />
         <Route path="/privacy" element={<PrivacyPage />} />

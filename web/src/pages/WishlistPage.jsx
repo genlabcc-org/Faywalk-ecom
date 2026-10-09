@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import "./WishlistPage.css";
 import SiteHeader from "../components/SiteHeader";
+import TopBar from "../components/TopBar";
 import SiteFooter from "../components/SiteFooter";
 import { useStore } from "../hooks/useStore";
 import { getOriginalImageUrl } from '../utils/imageUtils';
@@ -89,6 +90,7 @@ export default function WishlistPage({ onBack }) {
 
   return (
     <div className="wishlist-page-wrapper">
+      <TopBar />
 
       {/* ── HEADER ──────────────────────────────────────────── */}
       <SiteHeader
