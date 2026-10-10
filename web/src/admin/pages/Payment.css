@@ -91,11 +91,11 @@
 }
 .pay__btn:hover { opacity: 0.85; }
 .pay__btn--dark {
-  background: #1a1a1a;
+  background: var(--admin-primary);
   color: #fff;
 }
 .pay__btn--save {
-  background: #1a1a1a;
+  background: var(--admin-primary);
   color: #fff;
   margin-left: auto;
   display: block;
@@ -150,7 +150,7 @@
   padding: 0;
 }
 .pay__toggle--on {
-  background: #22c55e;
+  background: var(--admin-primary);
 }
 .pay__toggle-thumb {
   position: absolute;
@@ -192,7 +192,7 @@
   font-size: 13px;
   color: #1a1a1a;
   background: #fafafa;
-  border: 1px solid #1a1a1a;
+  border: 1px solid #d1d5db;
   border-radius: 8px;
   padding: 9px 12px;
   outline: none;
@@ -202,7 +202,7 @@
 }
 .pay__input:focus,
 .pay__textarea:focus {
-  border-color: #aaa;
+  border-color: var(--admin-primary);
   background: #fff;
 }
 .pay__input::placeholder,
@@ -223,7 +223,7 @@
   font-size: 13px;
   color: #1a1a1a;
   background: #fafafa;
-  border: 1px solid #1a1a1a;
+  border: 1px solid #d1d5db;
   border-radius: 8px;
   padding: 9px 32px 9px 12px;
   outline: none;
@@ -232,7 +232,7 @@
   font-family: inherit;
   transition: border-color 0.15s;
 }
-.pay__select:focus { border-color: #aaa; background: #fff; }
+.pay__select:focus { border-color: var(--admin-primary); background: #fff; }
 .pay__select-arrow {
   position: absolute;
   right: 10px;

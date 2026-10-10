@@ -75,7 +75,7 @@
 }
 
 .scc-btn-dark {
-  background: #16161a;
+  background: var(--admin-primary);
   color: #fff;
 }
 
@@ -149,7 +149,7 @@
 
 .scc-input:focus,
 .scc-textarea:focus {
-  border-color: #111;
+  border-color: var(--admin-primary);
 }
 
 .scc-textarea {
@@ -365,7 +365,7 @@
 }
 
 .scc-toggle-on {
-  background: #16161a;
+  background: var(--admin-primary);
 }
 
 .scc-toggle-knob {

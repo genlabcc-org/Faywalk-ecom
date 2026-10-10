@@ -4,7 +4,7 @@
 
 .an {
   padding: 24px 28px 32px;
-  font-family: "Inter", "Segoe UI", sans-serif;
+  font-family: var(--admin-font);
   background: #ffffff;
   min-height: 100%;
   color: #1c1c1e;
@@ -67,9 +67,9 @@
 }
 
 .an__tab--active {
-  background: #1c1c1e;
+  background: var(--admin-primary);
   color: #fff;
-  border-color: #1c1c1e;
+  border-color: var(--admin-primary);
 }
 
 .an__periods {
@@ -111,9 +111,9 @@
 }
 
 .an__period--active {
-  background: #1c1c1e;
+  background: var(--admin-primary);
   color: #fff;
-  border-color: #1c1c1e;
+  border-color: var(--admin-primary);
 }
 
 .an__date-row {

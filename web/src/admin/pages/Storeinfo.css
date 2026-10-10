@@ -117,12 +117,12 @@
 }
 
 .si__btn--upload {
-  background: #1a1a1a;
+  background: var(--admin-primary);
   color: #fff;
-  border-color: #1a1a1a;
+  border-color: var(--admin-primary);
 }
 .si__btn--upload:hover:not(:disabled) {
-  background: #333;
+  background: var(--admin-primary-hover);
 }
 
 .si__btn--remove {
@@ -192,8 +192,8 @@
 
 .si__input:focus,
 .si__select:focus {
-  border-color: #a0a0a0;
-  box-shadow: 0 0 0 3px rgba(0, 0, 0, 0.05);
+  border-color: var(--admin-primary);
+  box-shadow: 0 0 0 3px var(--admin-primary-soft);
 }
 
 .si__input--error {
@@ -235,12 +235,12 @@
   border-radius: 8px;
   border: none;
   cursor: pointer;
-  background: #1a1a1a;
+  background: var(--admin-primary);
   color: #fff;
   transition: background 0.15s, transform 0.1s;
 }
 .si__save-btn:hover {
-  background: #333;
+  background: var(--admin-primary-hover);
 }
 .si__save-btn:active {
   transform: scale(0.98);

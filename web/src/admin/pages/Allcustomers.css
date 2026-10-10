@@ -17,7 +17,7 @@
   --ac-text-body:    #333333;
   --ac-text-muted:   #888888;
   --ac-text-faint:   #aaaaaa;
-  --ac-accent:       #111111;
+  --ac-accent:       var(--admin-primary);
   --ac-blue:         #2563eb;
   --ac-green-bg:     #dcfce7;
   --ac-green-text:   #16a34a;
@@ -35,7 +35,7 @@
   padding: 24px 28px;
   background: var(--ac-bg);
   min-height: 100%;
-  font-family: "Inter", "Segoe UI", sans-serif;
+  font-family: var(--admin-font);
 }
 
 /* ── Header ─────────────────────────────────────────────────────── */
@@ -85,7 +85,7 @@
 
 /* ── Add Customer Button ────────────────────────────────────────── */
 .ac__add-btn {
-  background: var(--ac-text-primary);
+  background: var(--ac-accent);
   color: #fff;
   border: none;
   border-radius: var(--ac-radius-btn);
@@ -220,7 +220,7 @@
   transition: border-color .15s;
   white-space: nowrap;
 }
-.ac__select:focus { border-color: #aaa; }
+.ac__select:focus { border-color: var(--admin-primary); }
 
 .ac__select-wrapper svg {
   position: absolute;
@@ -328,7 +328,7 @@
 .ac__checkbox {
   width: 15px;
   height: 15px;
-  accent-color: var(--ac-text-primary);
+  accent-color: var(--ac-accent);
   cursor: pointer;
   flex-shrink: 0;
 }
@@ -575,7 +575,7 @@
   width: 100%;
   font-family: inherit;
 }
-.ac__field-input:focus { border-color: #aaa; }
+.ac__field-input:focus { border-color: var(--admin-primary); }
 .ac__field-input--error { border-color: var(--ac-red-text); }
 .ac__field-input::placeholder { color: #bbb; }
 
@@ -606,7 +606,7 @@
 .ac__cancel-btn:hover { background: #f5f5f5; }
 
 .ac__submit-btn {
-  background: var(--ac-text-primary);
+  background: var(--ac-accent);
   color: #fff;
   border: none;
   border-radius: var(--ac-radius-btn);

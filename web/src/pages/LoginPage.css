@@ -224,6 +224,101 @@
   text-decoration: underline;
 }
 
+/* ── LOGIN TABS ── */
+.jewelry-tabs {
+  display: flex;
+  background: #f4f4f4;
+  padding: 4px;
+  border-radius: 6px;
+  margin-bottom: 24px;
+  gap: 4px;
+}
+
+.jewelry-tab-btn {
+  flex: 1;
+  padding: 9px 12px;
+  border: none;
+  background: transparent;
+  font-family: 'DM Sans', sans-serif;
+  font-size: 13.5px;
+  font-weight: 500;
+  color: #666;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.jewelry-tab-btn.active {
+  background: #ffffff;
+  color: #1a1a1a;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  font-weight: 600;
+}
+
+/* Phone input group */
+.jewelry-phone-group {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 20px;
+}
+
+.jewelry-phone-prefix {
+  height: 44px;
+  display: flex;
+  align-items: center;
+  padding: 0 12px;
+  background: #f7f7f7;
+  border: 1.5px solid #d0d0d0;
+  border-radius: 4px;
+  font-size: 14px;
+  font-weight: 500;
+  color: #333;
+  user-select: none;
+  flex-shrink: 0;
+}
+
+.jewelry-phone-input {
+  flex: 1;
+  margin-bottom: 0 !important;
+}
+
+.jewelry-phone-subtext {
+  font-size: 12px;
+  color: #666;
+  margin-bottom: 12px;
+}
+
+.jewelry-phone-actions {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: -10px;
+  margin-bottom: 20px;
+}
+
+.jewelry-link-btn {
+  background: none;
+  border: none;
+  color: #c0392b;
+  font-size: 12.5px;
+  font-weight: 500;
+  cursor: pointer;
+  padding: 0;
+  text-decoration: underline;
+  transition: color 0.15s;
+}
+
+.jewelry-link-btn:hover {
+  color: #a93226;
+}
+
+.jewelry-link-btn:disabled {
+  color: #999;
+  cursor: not-allowed;
+  text-decoration: none;
+}
+
 /* ── RESPONSIVE ── */
 @media (max-width: 700px) {
   .jewelry-page {
@@ -249,7 +344,7 @@
     top: 20px;
   }
 
-  .jewelry-logo img{
+  .jewelry-logo img {
     width: 180px;
   }
 }

@@ -83,7 +83,7 @@
 .ap-field input:focus,
 .ap-field select:focus,
 .ap-field textarea:focus {
-  border-color: #aaa;
+  border-color: var(--admin-primary);
 }
 .ap-field textarea {
   height: 90px;
@@ -245,7 +245,7 @@
 }
 
 .ap-filter-in input:focus {
-  border-color: #bbb;
+  border-color: var(--admin-primary);
 }
 
 .ap-filter-in button {
@@ -349,7 +349,7 @@
   transition: transform 0.2s;
 }
 .ap-toggle input:checked + .ap-slider {
-  background: #34C759;
+  background: var(--admin-primary);
 }
 .ap-toggle input:checked + .ap-slider:before {
   transform: translateX(20px);
@@ -383,7 +383,7 @@
   padding: 10px 22px;
   border: none;
   border-radius: 10px;
-  background: #111;
+  background: var(--admin-primary);
   font-size: 13.5px;
   font-weight: 600;
   color: #fff;
@@ -391,7 +391,7 @@
   transition: background 0.15s;
 }
 .ap-btn-publish:hover {
-  background: #333;
+  background: var(--admin-primary-hover);
 }
 
 /* ─── Filter Attributes ─── */
@@ -498,7 +498,7 @@
   outline: none;
 }
 .ap-fa-group-title-input:focus {
-  border-color: #aaa;
+  border-color: var(--admin-primary);
 }
 .ap-fa-group-title-input::placeholder {
   font-weight: 400;
@@ -537,12 +537,12 @@
   outline: none;
 }
 .ap-fa-option-input:focus {
-  border-color: #aaa;
+  border-color: var(--admin-primary);
 }
 .ap-fa-confirm-btn {
   height: 42px;
   padding: 0 18px;
-  background: #111;
+  background: var(--admin-primary);
   color: #fff;
   border: none;
   border-radius: 10px;
@@ -553,7 +553,7 @@
   transition: background 0.15s;
 }
 .ap-fa-confirm-btn:hover {
-  background: #333;
+  background: var(--admin-primary-hover);
 }
 .ap-fa-add-group-btn {
   display: block;

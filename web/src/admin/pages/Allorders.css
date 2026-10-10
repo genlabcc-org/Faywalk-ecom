@@ -85,7 +85,7 @@
 .ao__tab--active {
   color: #111;
   font-weight: 600;
-  border-bottom: 2px solid #111;
+  border-bottom: 2px solid var(--admin-primary);
 }
 
 .ao__tab+.ao__tab {
@@ -547,7 +547,7 @@
 .ao__checkbox {
   width: 15px;
   height: 15px;
-  accent-color: #4f46e5;
+  accent-color: var(--admin-primary);
   cursor: pointer;
 }
 
@@ -673,7 +673,7 @@
 .ao__retry-btn {
   margin-top: 8px;
   padding: 7px 18px;
-  background: #111;
+  background: var(--admin-primary);
   border: none;
   border-radius: 8px;
   font-size: 12.5px;
@@ -826,8 +826,8 @@
 }
 
 .ao__pg-num--active {
-  background: #101010;
-  border-color: #101010;
+  background: var(--admin-primary);
+  border-color: var(--admin-primary);
   color: #fff;
   font-weight: 700;
 }

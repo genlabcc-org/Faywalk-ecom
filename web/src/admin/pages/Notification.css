@@ -99,7 +99,7 @@
 }
 
 .notif__toggle--on {
-  background: #22c55e;
+  background: var(--admin-primary);
 }
 
 .notif__toggle-knob {
@@ -127,7 +127,7 @@
 }
 
 .notif__save-btn {
-  background: #1a1a1a;
+  background: var(--admin-primary);
   color: #fff;
   border: none;
   border-radius: 8px;
@@ -140,7 +140,7 @@
 }
 
 .notif__save-btn:hover {
-  background: #333;
+  background: var(--admin-primary-hover);
 }
 
 .notif__save-btn:active {

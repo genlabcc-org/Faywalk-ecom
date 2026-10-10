@@ -41,7 +41,7 @@
 }
 
 .subcat-add-btn {
-  background: #1c1c1e;
+  background: var(--admin-primary);
   color: #fff;
   border: none;
   border-radius: 8px;

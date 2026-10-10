@@ -39,7 +39,7 @@
   display: flex;
   align-items: center;
   gap: 8px;
-  background: #2d2d2d;
+  background: var(--admin-primary);
   color: #fff;
   border: none;
   padding: 10px 18px;
@@ -53,7 +53,7 @@
 }
 
 .pl-add-btn:hover {
-  background: #1a1a1a;
+  background: var(--admin-primary-hover);
 }
 
 
@@ -253,7 +253,7 @@
 }
 
 .pl-price-input:focus {
-  border-color: #6366f1;
+  border-color: var(--admin-primary);
 }
 
 .pl-price-clear-btn {
@@ -415,7 +415,7 @@
 .pl-checkbox-col input[type="checkbox"] {
   width: 16px;
   height: 16px;
-  accent-color: #2d2d2d;
+  accent-color: var(--admin-primary);
   cursor: pointer;
 }
 
@@ -767,13 +767,13 @@
 }
 
 .pl-page-btn--active {
-  background: #2d2d2d;
+  background: var(--admin-primary);
   color: #fff;
-  border-color: #2d2d2d;
+  border-color: var(--admin-primary);
 }
 
 .pl-page-btn--active:hover {
-  background: #1a1a1a;
+  background: var(--admin-primary-hover);
 }
 
 .pl-page-ellipsis {
@@ -822,7 +822,7 @@
 .pl-mobile-card__check input[type="checkbox"] {
   width: 16px;
   height: 16px;
-  accent-color: #2d2d2d;
+  accent-color: var(--admin-primary);
   cursor: pointer;
 }
 

@@ -44,7 +44,7 @@
 }
 
 .cmp-save-btn {
-  background: #111827;
+  background: var(--admin-primary);
   color: #fff;
   border: none;
   border-radius: 8px;
@@ -55,7 +55,7 @@
 }
 
 .cmp-save-btn:hover {
-  background: #1f2937;
+  background: var(--admin-primary-hover);
 }
 
 /* Card */
@@ -106,7 +106,7 @@
 .cmp-input:focus,
 .cmp-select:focus,
 .cmp-textarea:focus {
-  border-color: #9ca3af;
+  border-color: var(--admin-primary);
 }
 
 .cmp-textarea {
@@ -358,7 +358,7 @@
 }
 
 .cmp-toggle--on {
-  background: #22c55e;
+  background: var(--admin-primary);
   justify-content: flex-end;
 }
 

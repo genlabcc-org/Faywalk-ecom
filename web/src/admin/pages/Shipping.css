@@ -61,7 +61,7 @@
 
 /* Save button */
 .sh__save-btn {
-  background: #1a1a1a;
+  background: var(--admin-primary);
   color: #fff;
   border: none;
   border-radius: 8px;
@@ -73,7 +73,7 @@
 }
 
 .sh__save-btn:hover {
-  background: #333;
+  background: var(--admin-primary-hover);
 }
 
 /* Divider */
@@ -135,7 +135,7 @@
 }
 
 .sh__input {
-  border: 1px solid #1a1a1a;
+  border: 1px solid #d1d5db;
   border-radius: 8px;
   outline: none;
   width: 140px;
@@ -149,7 +149,7 @@
 }
 
 .sh__input:focus {
-  border-color: #000;
+  border-color: var(--admin-primary);
 }
 
 .sh__input--wide {
@@ -189,7 +189,7 @@
 }
 
 .sh__toggle input:checked+.sh__toggle-track {
-  background: #22c55e;
+  background: var(--admin-primary);
 }
 
 .sh__toggle-thumb {

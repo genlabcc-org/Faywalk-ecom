@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { Navigate } from "react-router-dom";
 import { authService } from "../services/authService";
+import "./AdminRoute.css";
 
 export default function AdminRoute({ children }) {
   const [isAdmin, setIsAdmin] = useState(false);
@@ -24,21 +25,14 @@ export default function AdminRoute({ children }) {
         setLoading(false);
       }
     };
-
     checkAdmin();
   }, []);
 
   if (loading) {
     return (
-      <div style={{ 
-        display: "flex", 
-        justifyContent: "center", 
-        alignItems: "center", 
-        height: "100vh",
-        fontSize: "16px",
-        color: "#666"
-      }}>
-        Loading...
+      <div className="admin-loader" role="status">
+        <span className="admin-loader__ring" aria-hidden="true" />
+        <span className="admin-loader__label">Loading admin panel…</span>
       </div>
     );
   }

@@ -1,6 +1,6 @@
 .od {
   padding: 24px 32px;
-  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  font-family: var(--admin-font);
   width: 100%;
   box-sizing: border-box;
   background: #f7f7f8;
@@ -266,7 +266,7 @@
 }
 
 .od__option-input:focus {
-  border-color: #aaa;
+  border-color: var(--admin-primary);
 }
 
 .od__option-input::placeholder {
@@ -274,7 +274,7 @@
 }
 
 .od__add-option-btn {
-  background: #111;
+  background: var(--admin-primary);
   color: #fff;
   border: none;
   border-radius: 7px;
@@ -288,7 +288,7 @@
 }
 
 .od__add-option-btn:hover {
-  background: #333;
+  background: var(--admin-primary-hover);
 }
 
 .od__option-hint {
@@ -433,7 +433,7 @@
 }
 
 .od__admin-notes:focus {
-  border-color: #bbb;
+  border-color: var(--admin-primary);
 }
 
 .od__admin-notes::placeholder {
@@ -468,7 +468,7 @@
 }
 
 .od__read-btn {
-  background: #111;
+  background: var(--admin-primary);
   color: #fff;
   border: none;
   border-radius: 8px;
@@ -480,7 +480,7 @@
 }
 
 .od__read-btn:hover {
-  background: #333;
+  background: var(--admin-primary-hover);
 }
 
 /* ═══════════════════════════════════════════════════

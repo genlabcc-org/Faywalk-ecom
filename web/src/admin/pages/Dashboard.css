@@ -9,6 +9,17 @@
 }
 
 /* ─────────────────────────────────────────────────────────────────────────────
+   ADMIN THEME TOKENS (match the storefront: navy brand colour, Outfit font)
+───────────────────────────────────────────────────────────────────────────── */
+
+:root {
+  --admin-primary: #002277;
+  --admin-primary-hover: #00195c;
+  --admin-primary-soft: rgba(0, 34, 119, 0.1);
+  --admin-font: 'Outfit', sans-serif;
+}
+
+/* ─────────────────────────────────────────────────────────────────────────────
    ROOT LAYOUT
 ───────────────────────────────────────────────────────────────────────────── */
 
@@ -16,7 +27,7 @@
   display: flex;
   flex-direction: column;
   min-height: 100vh;
-  font-family: "Inter", "Segoe UI", sans-serif;
+  font-family: var(--admin-font);
 }
 
 .db__body {
@@ -35,7 +46,7 @@
   left: 0;
   width: 100%;
   height: 52px;
-  background-color: #1c1c1e;
+  background-color: var(--admin-primary);
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -63,18 +74,18 @@
   display: flex;
   align-items: center;
   gap: 8px;
-  background-color: #2a2a2c;
+  background-color: rgba(255, 255, 255, 0.12);
   border: 1px solid rgba(255, 255, 255, 0.08);
   border-radius: 999px;
   padding: 0 16px;
   height: 34px;
   width: 340px;
   flex-shrink: 0;
-  color: #888;
+  color: rgba(255, 255, 255, 0.7);
 }
 
 .db__search-input::placeholder {
-  color: #666;
+  color: rgba(255, 255, 255, 0.6);
 }
 
 .db__navbar-actions {
@@ -90,7 +101,7 @@
   justify-content: center;
   background: transparent;
   border: none;
-  color: #aaa;
+  color: rgba(255, 255, 255, 0.8);
   width: 36px;
   height: 36px;
   border-radius: 8px;
@@ -100,7 +111,7 @@
 }
 
 .db__hamburger:hover {
-  background: rgba(255, 255, 255, 0.06);
+  background: rgba(255, 255, 255, 0.12);
   color: #fff;
 }
 
@@ -133,13 +144,13 @@
   cursor: pointer;
   white-space: nowrap;
   transition: background 0.15s ease, border-color 0.15s ease;
-  background-color: #4A4A4A;
-  border-color: #E3E3E3;
+  background-color: rgba(255, 255, 255, 0.1);
+  border-color: rgba(255, 255, 255, 0.3);
 }
 
 .db__add-btn:hover {
-  background: rgba(255, 255, 255, 0.06);
-  border-color: rgba(255, 255, 255, 0.28);
+  background: rgba(255, 255, 255, 0.18);
+  border-color: rgba(255, 255, 255, 0.45);
 }
 
 .db__icon-btn {
@@ -148,7 +159,7 @@
   justify-content: center;
   background: transparent;
   border: none;
-  color: #aaa;
+  color: rgba(255, 255, 255, 0.8);
   width: 34px;
   height: 34px;
   border-radius: 8px;
@@ -158,7 +169,7 @@
 }
 
 .db__icon-btn:hover {
-  background: rgba(255, 255, 255, 0.06);
+  background: rgba(255, 255, 255, 0.12);
   color: #fff;
 }
 
@@ -181,7 +192,7 @@
 }
 
 .db__profile-btn:hover {
-  background: rgba(255, 255, 255, 0.06);
+  background: rgba(255, 255, 255, 0.12);
   border-color: rgba(255, 255, 255, 0.28);
 }
 
@@ -259,7 +270,7 @@
 }
 
 .db__menu-item--active {
-  background-color: #1c1c1e;
+  background-color: var(--admin-primary);
   color: #ffffff;
 }
 
@@ -317,11 +328,11 @@
 
 .db__sub-item:hover {
   background-color: #e2e2e2;
-  color: #1c1c1e;
+  color: var(--admin-primary);
 }
 
 .db__sub-item--active {
-  color: #1c1c1e;
+  color: var(--admin-primary);
   font-weight: 600;
 }
 
@@ -433,7 +444,7 @@
 }
 
 .dc__page-title {
-  font-family: 'Inter', 'Segoe UI', sans-serif;
+  font-family: var(--admin-font);
   font-size: 36px;
   font-weight: 700;
   font-style: normal;
@@ -896,8 +907,8 @@
   display: flex;
   align-items: center;
   gap: 8px;
-  background: #2a2a2a;
-  border: 1px solid #3a3a3a;
+  background: rgba(255, 255, 255, 0.12);
+  border: 1px solid rgba(255, 255, 255, 0.2);
   border-radius: 20px;
   padding: 0 16px;
   height: 36px;
@@ -910,14 +921,14 @@
   background: transparent;
   border: none;
   outline: none;
-  color: #ccc;
+  color: #ffffff;
   font-size: 13.5px;
   width: 100%;
   font-family: inherit;
 }
 
 .db__navbar-search-input::placeholder {
-  color: #666;
+  color: rgba(255, 255, 255, 0.6);
 }
 
 /* Notification */

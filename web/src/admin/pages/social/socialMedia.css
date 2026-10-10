@@ -2,7 +2,7 @@
     max-width: 980px;
     margin: 0 auto;
     padding: 24px 16px 48px;
-    font-family: 'Inter', sans-serif;
+    font-family: var(--admin-font);
 }
 
 .sm-header {
@@ -64,8 +64,8 @@
 }
 
 .sm-input:focus {
-    border-color: #8b0030;
-    box-shadow: 0 0 0 3px rgba(139, 0, 48, .08);
+    border-color: var(--admin-primary);
+    box-shadow: 0 0 0 3px var(--admin-primary-soft);
 }
 
 .sm-input--error {
@@ -120,14 +120,14 @@
 
 .sm-btn--primary {
     align-self: flex-start;
-    background: #8b0030;
+    background: var(--admin-primary);
     border-color: #8b0030;
     color: #fff;
     font-weight: 600;
 }
 
 .sm-btn--primary:hover:not(:disabled) {
-    background: #70002b;
+    background: var(--admin-primary-hover);
 }
 
 .sm-btn--danger {

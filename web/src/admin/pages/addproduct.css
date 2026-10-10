@@ -52,7 +52,7 @@
 }
 
 .ap-header h1 {
-  font-family: 'Inter', sans-serif;
+  font-family: var(--admin-font);
   font-weight: 600;
   font-size: 40px;
   line-height: 48px;
@@ -114,7 +114,7 @@
 }
 
 .card-title {
-  font-family: 'Inter', sans-serif;
+  font-family: var(--admin-font);
   font-weight: 600;
   font-size: 20px;
   line-height: 32px;
@@ -161,7 +161,7 @@
 .field input:focus,
 .field textarea:focus,
 .field select:focus {
-  border-color: #888;
+  border-color: var(--admin-primary);
   background: #fff;
 }
 
@@ -439,7 +439,7 @@
 }
 
 .toggle input:checked+.slider {
-  background: #4cd964;
+  background: var(--admin-primary);
 }
 
 .toggle input:checked+.slider:before {
@@ -470,7 +470,7 @@
 }
 
 .btn-publish {
-  background: #111;
+  background: var(--admin-primary);
   border: none;
   border-radius: 7px;
   padding: 9px 20px;
@@ -486,7 +486,7 @@
 }
 
 .btn-publish:hover {
-  background: #333;
+  background: var(--admin-primary-hover);
 }
 
 .btn-draft:disabled,
@@ -645,7 +645,7 @@
 }
 
 .btn-ok {
-  background: #333;
+  background: var(--admin-primary);
   color: #fff;
   border: none;
   padding: 10px 32px;
@@ -656,7 +656,7 @@
 }
 
 .btn-ok:hover {
-  background: #555;
+  background: var(--admin-primary-hover);
 }
 
 /* ═══════════════════════════════════════════

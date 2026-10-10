@@ -74,12 +74,12 @@
 }
 
 .confirm-dialog-btn-dark {
-  background: #16161a;
+  background: var(--admin-primary);
   color: #fff;
 }
 
 .confirm-dialog-btn-dark:hover {
-  background: #2a2a2e;
+  background: var(--admin-primary-hover);
 }
 
 .confirm-dialog-btn-danger {

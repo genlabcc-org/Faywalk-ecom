@@ -1,0 +1,47 @@
+/* ── Admin Preloader ── */
+.admin-loader {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 14px;
+  height: 100vh;
+  font-family: var(--admin-font, 'Outfit', sans-serif);
+  /* Short delay so fast admin checks don't flash the loader */
+  animation: admin-loader-fade-in 0.3s ease 0.15s both;
+}
+
+.admin-loader__ring {
+  width: 34px;
+  height: 34px;
+  border: 3px solid var(--admin-primary-soft, rgba(0, 34, 119, 0.1));
+  border-top-color: var(--admin-primary, #002277);
+  border-radius: 50%;
+  animation: admin-loader-spin 0.8s cubic-bezier(0.5, 0.15, 0.5, 0.85) infinite;
+}
+
+.admin-loader__label {
+  font-size: 13px;
+  font-weight: 500;
+  letter-spacing: 0.04em;
+  color: var(--admin-primary, #002277);
+  opacity: 0.7;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .admin-loader__ring {
+    animation-duration: 1.6s;
+  }
+}
+
+@keyframes admin-loader-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@keyframes admin-loader-fade-in {
+  from {
+    opacity: 0;
+  }
+}

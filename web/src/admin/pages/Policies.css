@@ -79,9 +79,9 @@
 }
 
 .pol__textarea:focus {
-  border-color: #545454;
+  border-color: var(--admin-primary);
   background: #fff;
-  box-shadow: 0 0 0 3px rgba(84, 84, 84, 0.08);
+  box-shadow: 0 0 0 3px var(--admin-primary-soft);
 }
 
 /* Footer */
@@ -97,7 +97,7 @@
   align-items: center;
   gap: 6px;
   padding: 9px 20px;
-  background: #2c2c2c;
+  background: var(--admin-primary);
   color: #fff;
   border: none;
   border-radius: 8px;
@@ -111,7 +111,7 @@
 }
 
 .pol__save-btn:hover:not(:disabled) {
-  background: #1a1a1a;
+  background: var(--admin-primary-hover);
   box-shadow: 0 3px 10px rgba(0, 0, 0, 0.18);
   transform: translateY(-1px);
 }
