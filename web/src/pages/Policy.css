@@ -1,83 +1,129 @@
 /* ═══════════════════════════════════════════════════════════════
-   Policy.css – shared styles for Terms, Privacy & other policy pages
+   Policy.css – Brand theme styles for Terms, Privacy & Policies
 ═══════════════════════════════════════════════════════════════ */
 
 :root {
-  --maroon: #7b1d1d;
-  --maroon-dk: #5c1515;
-  --gold: #c8972a;
-  --text: #111;
-  --text-mid: #444;
-  --text-muted: #777;
-  --border: #e2ddd7;
-  --bg: #f0ede8;
-  --white: #ffffff;
-  --radius: 10px;
-  --serif: 'Georgia', 'Times New Roman', serif;
-  --sans: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  --policy-blue-primary: var(--blue-primary, #002277);
+  --policy-blue-dark: var(--blue-dark, #001f4d);
+  --policy-blue-hover: var(--blue-hover, #00185e);
+  --policy-blue-soft: #e2ecf9;
+  --policy-text-main: #0f172a;
+  --policy-text-mid: #334155;
+  --policy-text-muted: #64748b;
+  --policy-bg: #ffffff;
+  --policy-card-bg: #f2f5fa; /* Minimal soft blue shade */
+  --policy-contact-bg: #e6eef8;
+  --policy-radius: 14px;
+
+  /* Compatibility fallbacks */
+  --text: #0f172a;
+  --text-mid: #334155;
+  --text-muted: #64748b;
+  --border: transparent;
+  --bg: #ffffff;
+  --white: #f2f5fa;
+  --maroon: var(--policy-blue-primary);
+  --maroon-dk: var(--policy-blue-hover);
+  --gold: var(--policy-blue-primary);
 }
 
 .policy-root {
-  font-family: var(--sans);
-  color: var(--text);
-  background: var(--bg);
+  font-family: var(--font-body, 'Outfit', sans-serif);
+  color: var(--policy-text-main);
+  background: var(--policy-bg);
   width: 100%;
   min-height: 100vh;
+  display: flex;
+  flex-direction: column;
 }
 
 .policy-section {
   width: 100%;
-  padding: 40px 48px 64px;
+  padding: 48px 24px 80px;
   display: flex;
   justify-content: center;
+  box-sizing: border-box;
 }
 
 .policy-card {
   width: 100%;
-  max-width: 860px;
-  background: var(--white);
-  border-radius: var(--radius);
-  border: 1px solid var(--border);
-  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.05);
-  padding: 48px 56px;
+  max-width: 900px;
+  background: var(--policy-card-bg);
+  border-radius: var(--policy-radius);
+  border: none;
+  box-shadow: none;
+  padding: 56px 64px;
+  box-sizing: border-box;
+}
+
+/* Badge */
+.policy-badge {
+  display: inline-flex;
+  align-items: center;
+  font-family: var(--font-body, 'Outfit', sans-serif);
+  font-size: 11.5px;
+  font-weight: 600;
+  letter-spacing: 1.5px;
+  text-transform: uppercase;
+  color: var(--policy-blue-primary);
+  background: var(--policy-blue-soft);
+  border: none;
+  padding: 4px 14px;
+  border-radius: 999px;
+  margin-bottom: 12px;
 }
 
 .policy-h1 {
-  font-family: var(--serif);
-  font-size: 32px;
-  font-weight: 700;
-  color: var(--text);
-  margin-bottom: 8px;
+  font-family: var(--font-title, 'Outfit', sans-serif);
+  font-size: clamp(28px, 4vw, 36px);
+  font-weight: 600;
+  color: var(--policy-text-main);
+  margin: 0 0 8px;
   line-height: 1.25;
+  letter-spacing: -0.5px;
 }
 
 .policy-updated {
-  font-size: 13px;
-  color: var(--text-muted);
+  font-size: 13.5px;
+  color: var(--policy-text-muted);
   margin-bottom: 32px;
-  padding-bottom: 24px;
-  border-bottom: 1px solid var(--border);
+  padding-bottom: 20px;
+  border-bottom: 1px solid rgba(0, 34, 119, 0.08);
 }
 
 .policy-intro {
-  font-size: 14.5px;
+  font-size: 15px;
   line-height: 1.8;
-  color: var(--text-mid);
+  color: var(--policy-text-mid);
   margin-bottom: 28px;
 }
 
 .policy-h2 {
-  font-size: 18px;
-  font-weight: 700;
-  color: var(--maroon);
-  margin-top: 32px;
+  font-family: var(--font-title, 'Outfit', sans-serif);
+  font-size: 18.5px;
+  font-weight: 600;
+  color: var(--policy-blue-primary);
+  margin-top: 36px;
   margin-bottom: 12px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.policy-h2::before {
+  content: '';
+  display: inline-block;
+  width: 4px;
+  height: 18px;
+  background: var(--policy-blue-primary);
+  border-radius: 2px;
+  flex-shrink: 0;
 }
 
 .policy-p {
-  font-size: 14px;
+  font-size: 14.5px;
   line-height: 1.8;
-  color: var(--text-mid);
+  color: var(--policy-text-mid);
   margin-bottom: 14px;
 }
 
@@ -86,64 +132,70 @@
   display: flex;
   flex-direction: column;
   gap: 10px;
-  margin: 14px 0 20px;
+  margin: 14px 0 22px;
+  padding: 0;
 }
 
 .policy-list li {
   position: relative;
-  padding-left: 18px;
-  font-size: 14px;
+  padding-left: 22px;
+  font-size: 14.5px;
   line-height: 1.75;
-  color: var(--text-mid);
+  color: var(--policy-text-mid);
 }
 
 .policy-list li::before {
   content: '•';
   position: absolute;
-  left: 0;
-  color: var(--maroon);
+  left: 4px;
+  color: var(--policy-blue-primary);
   font-weight: 700;
+  font-size: 16px;
 }
 
 .policy-sub-list {
   list-style: none;
   display: flex;
   flex-direction: column;
-  gap: 6px;
-  margin: 8px 0 8px 18px;
+  gap: 7px;
+  margin: 10px 0 16px 20px;
+  padding: 0;
 }
 
 .policy-sub-list li {
   position: relative;
-  padding-left: 16px;
-  font-size: 13.5px;
+  padding-left: 18px;
+  font-size: 14px;
   line-height: 1.7;
-  color: var(--text-mid);
+  color: var(--policy-text-mid);
 }
 
 .policy-sub-list li::before {
   content: '–';
   position: absolute;
   left: 0;
-  color: var(--gold);
+  color: var(--policy-blue-primary);
+  font-weight: 600;
 }
 
 .policy-link {
-  color: var(--maroon);
+  color: var(--policy-blue-primary);
   text-decoration: underline;
+  text-underline-offset: 3px;
   font-weight: 500;
+  transition: color 0.15s ease;
 }
 
 .policy-link:hover {
-  color: var(--maroon-dk);
+  color: var(--policy-blue-hover);
 }
 
 .policy-contact-block {
-  margin-top: 32px;
-  padding: 20px 24px;
-  background: #f8f7f4;
-  border: 1px solid var(--border);
-  border-radius: 8px;
+  margin-top: 40px;
+  padding: 24px 28px;
+  background: var(--policy-contact-bg);
+  border: none;
+  border-radius: 10px;
 }
 
 .policy-contact-block .policy-h2 {
@@ -155,39 +207,45 @@
 ══════════════════════════════════════════════════════════════ */
 @media (max-width: 768px) {
   .policy-section {
-    padding: 24px 16px 40px;
+    padding: 28px 16px 48px;
   }
 
   .policy-card {
-    padding: 28px 22px;
+    padding: 32px 24px;
   }
 
   .policy-h1 {
-    font-size: 24px;
+    font-size: 26px;
   }
 
   .policy-h2 {
-    font-size: 16px;
-  }
-}
-
-@media (max-width: 480px) {
-  .policy-section {
-    padding: 16px 12px 32px;
-  }
-
-  .policy-card {
-    padding: 20px 16px;
-  }
-
-  .policy-h1 {
-    font-size: 21px;
+    font-size: 17px;
   }
 
   .policy-intro,
   .policy-p,
   .policy-list li,
   .policy-sub-list li {
-    font-size: 13px;
+    font-size: 14px;
+    line-height: 1.7;
+  }
+}
+
+@media (max-width: 480px) {
+  .policy-section {
+    padding: 20px 12px 36px;
+  }
+
+  .policy-card {
+    padding: 24px 18px;
+  }
+
+  .policy-h1 {
+    font-size: 23px;
+  }
+
+  .policy-badge {
+    font-size: 10.5px;
+    padding: 3px 10px;
   }
 }

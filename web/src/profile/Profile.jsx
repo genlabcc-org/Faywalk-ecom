@@ -5,6 +5,7 @@ import { useStore } from "../hooks/useStore";
 import { supabase } from "../lib/supabase";
 import "./Profile.css";
 import ProfileLayout from "./ProfileLayout";
+import LogoutModal from "../components/LogoutModal";
 
 const ACTIVE_STATUSES = ["Pending", "Confirmed", "Shipped"];
 
@@ -30,6 +31,8 @@ export default function Profile() {
   const [deleteConfirm, setDeleteConfirm] = useState("");
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [deleteError, setDeleteError] = useState("");
+  const [showLogoutModal, setShowLogoutModal] = useState(false);
+  const [loggingOut, setLoggingOut] = useState(false);
 
   useEffect(() => {
     if (sessionLoading) return;
@@ -127,12 +130,20 @@ export default function Profile() {
     setTempDetails((prev) => ({ ...prev, [field]: value }));
   };
 
-  const handleLogout = async () => {
+  const handleLogoutClick = () => {
+    setShowLogoutModal(true);
+  };
+
+  const handleConfirmLogout = async () => {
+    setLoggingOut(true);
     try {
       await authService.signOut();
+      setShowLogoutModal(false);
       navigate("/");
     } catch (err) {
       alert("Failed to log out: " + err.message);
+    } finally {
+      setLoggingOut(false);
     }
   };
 
@@ -236,7 +247,7 @@ export default function Profile() {
               Sign out of your Faywalk account on this device.
             </span>
           </div>
-          <button className="profile-logout-btn" onClick={handleLogout}>
+          <button className="profile-logout-btn" onClick={handleLogoutClick}>
             <svg
               width="15"
               height="15"
@@ -350,6 +361,13 @@ export default function Profile() {
           </div>
         </div>
       )}
+      {/* ── Logout Confirmation Modal ── */}
+      <LogoutModal
+        isOpen={showLogoutModal}
+        onClose={() => setShowLogoutModal(false)}
+        onConfirm={handleConfirmLogout}
+        loading={loggingOut}
+      />
     </ProfileLayout>
   );
 }

@@ -4,7 +4,7 @@
 .dp-page-root {
   min-height: 100vh;
   background-color: #ffffff;
-  font-family: 'Outfit', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  font-family: var(--font-body);
   color: #111827;
   display: flex;
   flex-direction: column;
@@ -197,7 +197,7 @@
 }
 
 .dp-price-text {
-  font-family: 'Outfit', sans-serif;
+  font-family: var(--font-body);
   font-size: 26px;
   font-weight: 700;
   color: #000000;
@@ -333,8 +333,8 @@
 
 .dp-size-pill-btn.active {
   background: #ffffff;
-  color: #111827;
-  border-color: #111827;
+  color: var(--blue-primary, #002277);
+  border-color: var(--blue-primary, #002277);
   font-weight: 600;
 }
 
@@ -350,9 +350,9 @@
 .dp-add-cart-btn {
   width: 100%;
   height: 48px;
-  border: 1.5px solid #111827;
+  border: 1.5px solid var(--blue-primary, #002277);
   background: #ffffff;
-  color: #111827;
+  color: var(--blue-primary, #002277);
   font-size: 13.5px;
   font-weight: 700;
   letter-spacing: 0.5px;
@@ -364,7 +364,7 @@
 }
 
 .dp-add-cart-btn:hover:not(:disabled) {
-  background: #f9fafb;
+  background: rgba(0, 34, 119, 0.06);
 }
 
 .dp-add-cart-btn:disabled {
@@ -376,7 +376,7 @@
   width: 100%;
   height: 48px;
   border: none;
-  background: #111827;
+  background: var(--blue-primary, #002277);
   color: #ffffff;
   font-size: 14px;
   font-weight: 700;
@@ -388,7 +388,7 @@
 }
 
 .dp-buy-now-btn:hover:not(:disabled) {
-  background: #000000;
+  background: var(--blue-hover, #00185e);
 }
 
 .dp-buy-now-btn:disabled {
@@ -404,7 +404,7 @@
 }
 
 .dp-contact-link-btn {
-  color: #2563eb;
+  color: var(--blue-primary, #002277);
   background: none;
   border: none;
   font-size: 13.5px;

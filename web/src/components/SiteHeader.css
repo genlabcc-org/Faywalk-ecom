@@ -206,7 +206,7 @@
   height: 26px;
   min-width: 26px;
   border-radius: 50%;
-  background: #002b66;
+  background: var(--blue-accent);
   color: #ffffff;
   font-size: 11px;
   font-weight: 700;
@@ -251,7 +251,7 @@
 
 .login-dropdown a:hover {
   background: #f8fafc;
-  color: #002b66;
+  color: var(--blue-accent);
 }
 
 .login-dropdown a span {
@@ -276,7 +276,7 @@
   width: 34px;
   height: 34px;
   border-radius: 50%;
-  background: #002b66;
+  background: var(--blue-accent);
   color: #ffffff;
   font-size: 13px;
   font-weight: 700;
@@ -358,7 +358,7 @@
 }
 
 .header-search-inner:focus-within {
-  border-color: #002b66;
+  border-color: var(--blue-accent);
   background: #ffffff;
   box-shadow: 0 0 0 3px rgba(0, 43, 102, 0.08);
 }
@@ -372,7 +372,7 @@
   background: none;
   border: none;
   outline: none;
-  font-family: 'Inter', sans-serif;
+  font-family: var(--font-body);
   font-size: 14.5px;
   color: #111827;
   padding: 4px 0;
@@ -403,7 +403,7 @@
 }
 
 .header-search-submit {
-  background: #002b66;
+  background: var(--blue-accent);
   color: #ffffff;
   border: none;
   border-radius: 9999px;
@@ -416,7 +416,7 @@
 }
 
 .header-search-submit:hover {
-  background: #001f4d;
+  background: var(--blue-dark);
 }
 
 /* ─── Burger Menu Button (Mobile) ─── */
@@ -495,7 +495,7 @@
   background: none;
   border: none;
   border-bottom: 1px solid #f3f4f6;
-  font-family: 'Inter', sans-serif;
+  font-family: var(--font-body);
   font-size: 16px;
   font-weight: 500;
   color: #111827;
@@ -542,7 +542,7 @@
 .mobile-extra-link {
   font-size: 15px;
   font-weight: 600;
-  color: #002b66;
+  color: var(--blue-accent);
   text-decoration: none;
   padding: 6px 8px;
 }

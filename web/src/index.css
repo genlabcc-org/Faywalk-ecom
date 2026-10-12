@@ -24,6 +24,7 @@
 }
 
 :root {
+  /* ── Global Font Tokens ── */
   --font-title: 'Niquitta Mirzani Sans', 'Outfit', sans-serif;
   --font-desc: 'Outfit', sans-serif;
   --font-body: 'Outfit', sans-serif;
@@ -41,6 +42,17 @@
   --desc-font-size: 24px;
   --desc-line-height: 100%;
   --desc-letter-spacing: 0%;
+
+  /* ── Global Blue Color Palette ── */
+  --blue-primary:   #002277;   /* Main brand blue  */
+  --blue-dark:      #001f4d;   /* Deeper dark blue */
+  --blue-darker:    #02144d;   /* Footer / splits  */
+  --blue-accent:    #002b66;   /* Header accent    */
+  --blue-mid:       #002080;   /* Cards / buttons  */
+  --blue-hover:     #00185e;   /* Hover states     */
+  --blue-deep:      #031b66;   /* Split hover      */
+  --blue-border:    #00227b;   /* Contact borders  */
+  --admin-primary:  #002277;   /* Admin panel      */
 }
 
 /* ── Hide Scrollbar Globally (Maintains Scroll Capability) ── */
@@ -69,6 +81,20 @@ body {
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   -webkit-tap-highlight-color: transparent;
+}
+
+/* ── Global Font Enforcement (All Elements) ── */
+*,
+*::before,
+*::after {
+  font-family: inherit;
+}
+
+input,
+button,
+select,
+textarea {
+  font-family: var(--font-body);
 }
 
 /* ── Global Title Styling (Entire Site) ── */

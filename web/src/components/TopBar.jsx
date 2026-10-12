@@ -1,12 +1,30 @@
-import React from "react";
+import React, { useEffect } from "react";
+import { Link } from "react-router-dom";
+import { useStore } from "../hooks/useStore";
 import "./TopBar.css";
 
-export default function TopBar({ text = "Diwali Sale - Everything Is Off By 50%" }) {
+export default function TopBar({ text: defaultPropText }) {
+  const topbarData = useStore((s) => s.topbarData);
+  const fetchTopBar = useStore((s) => s.fetchTopBar);
+
+  useEffect(() => {
+    fetchTopBar();
+  }, [fetchTopBar]);
+
+  // If DB says inactive, don't display
+  if (topbarData && topbarData.is_active === false) {
+    return null;
+  }
+
+  const displayText = topbarData?.text || defaultPropText || "Diwali Sale - Everything Is Off By 50%";
+
   return (
-    <div className="topbar">
+    <aside className="topbar" aria-label="Store announcement">
       <div className="topbar-content">
-        <span className="topbar-text">{text}</span>
+        <Link to="/products" className="topbar-link">
+          <span className="topbar-text">{displayText}</span>
+        </Link>
       </div>
-    </div>
+    </aside>
   );
 }

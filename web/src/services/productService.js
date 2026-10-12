@@ -21,7 +21,7 @@ export const productService = {
         return data.map(c => ({
           ...c,
           productCount: c.products?.[0]?.count ?? 0,
-          subcategories: (c.subcategories || []).filter(s => s.is_active !== false)
+          subcategories: c.subcategories || []
         }));
       }
     } catch (e) {
@@ -70,8 +70,23 @@ export const productService = {
   async getProducts() {
     const { data, error } = await supabase
       .from('products')
-      .select('product_id, name, price, compare_price, stock, sku, image_url, images, is_active, has_variants, category_id, subcategory_id, categories(name), subcategories(name), product_variants(variant_id, price, compare_price, stock, sku, color, size, images)')
+      .select('*, categories(name), subcategories(name), product_variants(variant_id, price, compare_price, stock, sku, color, size, images)')
       .order('created_at', { ascending: false });
+    if (error) throw error;
+    return data;
+  },
+
+  /**
+   * Retrieves a single product by product_id with all details.
+   * @param {string|number} productId
+   * @returns {Promise<any>}
+   */
+  async getProductById(productId) {
+    const { data, error } = await supabase
+      .from('products')
+      .select('*, categories(name), subcategories(name), product_variants(variant_id, price, compare_price, stock, sku, color, size, images)')
+      .eq('product_id', productId)
+      .single();
     if (error) throw error;
     return data;
   },
@@ -358,25 +373,40 @@ export const productService = {
    * @returns {Promise<any[]>}
    */
   async getProductsByCategoryName(categoryName) {
-    const { data: catData, error: catError } = await supabase
-      .from('categories')
-      .select('category_id')
-      .eq('name', categoryName)
-      .eq('is_active', true)
-      .maybeSingle();
+    const isAll = !categoryName ||
+      categoryName.toLowerCase() === 'all' ||
+      categoryName.toLowerCase() === 'all products' ||
+      categoryName.toLowerCase() === 'all-products' ||
+      categoryName.toLowerCase() === 'trending' ||
+      categoryName.toLowerCase() === 'trending now';
 
-    if (catError) throw catError;
-    if (!catData) return [];
+    let catData = null;
+    if (!isAll) {
+      const { data, error: catError } = await supabase
+        .from('categories')
+        .select('category_id')
+        .ilike('name', categoryName)
+        .eq('is_active', true)
+        .maybeSingle();
+
+      if (catError) throw catError;
+      if (!data) return [];
+      catData = data;
+    }
 
     let queryData = null;
     try {
-      const { data, error } = await supabase
+      let query = supabase
         .from('products')
         .select('product_id, name, price, compare_price, stock, image_url, images, sizes, has_variants, subcategory_id, subcategories(name), product_variants(price, compare_price, stock, images)')
-        .eq('category_id', catData.category_id)
         .eq('is_active', true)
         .order('created_at', { ascending: false });
 
+      if (catData) {
+        query = query.eq('category_id', catData.category_id);
+      }
+
+      const { data, error } = await query;
       if (!error && data) {
         queryData = data.map(p => ({
           ...p,
@@ -388,13 +418,17 @@ export const productService = {
     }
 
     if (!queryData) {
-      const { data, error } = await supabase
+      let query = supabase
         .from('products')
         .select('product_id, name, price, compare_price, stock, image_url, images, sizes, has_variants, subcategory_id, subcategories(name), product_variants(price, compare_price, stock, images)')
-        .eq('category_id', catData.category_id)
         .eq('is_active', true)
         .order('created_at', { ascending: false });
 
+      if (catData) {
+        query = query.eq('category_id', catData.category_id);
+      }
+
+      const { data, error } = await query;
       if (error) throw error;
 
       const subIds = (data || []).map(p => p.subcategory_id).filter(Boolean);

@@ -1,4 +1,5 @@
 import React, { useState, useRef, useEffect } from "react";
+import { useSearchParams } from "react-router-dom";
 import { productService } from "../../services/productService";
 import { useStore } from "../../hooks/useStore";
 import back from "../../assets/admin/back.png";
@@ -26,6 +27,39 @@ const COLOR_SWATCHES = [
   "#9CA3AF", // gray
   "#2DD4BF", // teal
 ];
+
+export const parseColors = (rawColors) => {
+  if (!rawColors) return [];
+  let parsed = rawColors;
+  if (typeof rawColors === "string") {
+    const trimmed = rawColors.trim();
+    if (!trimmed) return [];
+    if (trimmed.startsWith("[") && trimmed.endsWith("]")) {
+      try {
+        parsed = JSON.parse(trimmed);
+      } catch {
+        parsed = trimmed.slice(1, -1).split(",").map((s) => s.replace(/['"]/g, "").trim());
+      }
+    } else {
+      parsed = trimmed.split(",").map((s) => s.trim());
+    }
+  }
+  if (!Array.isArray(parsed)) return [];
+  return parsed
+    .map((c) => {
+      if (!c) return "";
+      if (typeof c === "string") return c.trim();
+      if (typeof c === "object") return (c.hex || c.color || c.name || "").trim();
+      return String(c).trim();
+    })
+    .filter(Boolean);
+};
+
+export const isColorSelected = (colors = [], swatchHex = "") => {
+  if (!Array.isArray(colors) || !swatchHex) return false;
+  const target = swatchHex.toLowerCase().trim();
+  return colors.some((c) => typeof c === "string" && c.toLowerCase().trim() === target);
+};
 
 const EMPTY_FORM = {
   name: "",
@@ -93,7 +127,29 @@ const compressImage = async (file, maxWidth = 1200, quality = 0.8) => {
 const generateSKU = () => `ANK-${Math.floor(100000 + Math.random() * 900000)}`;
 
 export default function AddProduct({ onBack, onPublish, onSaveDraft, onAddVariant, initialData }) {
-  const isEditing = !!initialData;
+  const [searchParams] = useSearchParams();
+  const urlProductId = searchParams.get("id");
+  const [fetchedProduct, setFetchedProduct] = useState(null);
+  const [loadingProduct, setLoadingProduct] = useState(false);
+
+  useEffect(() => {
+    if (!initialData && urlProductId) {
+      setLoadingProduct(true);
+      productService.getProductById(urlProductId)
+        .then((p) => {
+          if (p) setFetchedProduct(p);
+        })
+        .catch((err) => {
+          console.error("Failed to load product by URL id:", err);
+        })
+        .finally(() => {
+          setLoadingProduct(false);
+        });
+    }
+  }, [initialData, urlProductId]);
+
+  const activeData = initialData || fetchedProduct;
+  const isEditing = !!activeData || !!urlProductId;
 
   const [form, setForm] = useState(() =>
     initialData
@@ -110,12 +166,8 @@ export default function AddProduct({ onBack, onPublish, onSaveDraft, onAddVarian
         stock_alert: initialData.stock_alert || "",
         material: initialData.material || "",
         weight: initialData.weight || "",
-        sizes: initialData.sizes?.join(", ") || "",
-        colors: Array.isArray(initialData.colors)
-          ? initialData.colors
-          : (typeof initialData.colors === "string"
-            ? initialData.colors.split(",").map((s) => s.trim()).filter(Boolean)
-            : []),
+        sizes: Array.isArray(initialData.sizes) ? initialData.sizes.join(", ") : (initialData.sizes || ""),
+        colors: parseColors(initialData.colors),
         care: initialData.care || "",
       }
       : {
@@ -190,44 +242,40 @@ export default function AddProduct({ onBack, onPublish, onSaveDraft, onAddVarian
     return null;
   };
 
-  // Reset form when initialData changes
+  // Reset form when activeData changes
   useEffect(() => {
-    if (initialData) {
+    if (activeData) {
       setForm({
-        name: initialData.name || "",
-        description: initialData.description || "",
-        sku: initialData.sku || generateSKU(),
-        category_id: initialData.category_id || "",
-        subcategory_id: initialData.subcategory_id || "",
-        price: initialData.price || "",
-        compare_price: initialData.compare_price || "",
-        // discount_price: initialData.discount_price || "",
-        stock: initialData.stock || "",
-        stock_alert: initialData.stock_alert || "",
-        material: initialData.material || "",
-        weight: initialData.weight || "",
-        sizes: initialData.sizes?.join(", ") || "",
-        colors: Array.isArray(initialData.colors)
-          ? initialData.colors
-          : (typeof initialData.colors === "string"
-            ? initialData.colors.split(",").map((s) => s.trim()).filter(Boolean)
-            : []),
-        care: initialData.care || "",
+        name: activeData.name || "",
+        description: activeData.description || "",
+        sku: activeData.sku || generateSKU(),
+        category_id: activeData.category_id || "",
+        subcategory_id: activeData.subcategory_id || "",
+        price: activeData.price || "",
+        compare_price: activeData.compare_price || "",
+        // discount_price: activeData.discount_price || "",
+        stock: activeData.stock || "",
+        stock_alert: activeData.stock_alert || "",
+        material: activeData.material || "",
+        weight: activeData.weight || "",
+        sizes: Array.isArray(activeData.sizes) ? activeData.sizes.join(", ") : (activeData.sizes || ""),
+        colors: parseColors(activeData.colors),
+        care: activeData.care || "",
       });
       setImageList(
-        initialData.images?.map((url, i) => ({
+        activeData.images?.map((url, i) => ({
           id: `img-old-${i}-${url}`,
           url,
           file: null,
         })) || []
       );
-      setVisibility([initialData.is_active ?? false, initialData.is_featured ?? false]);
-    } else {
+      setVisibility([activeData.is_active ?? false, activeData.is_featured ?? false]);
+    } else if (!urlProductId) {
       setForm({ ...EMPTY_FORM, sku: generateSKU() });
       setImageList([]);
       setVisibility([false, false]);
     }
-  }, [initialData]);
+  }, [activeData, urlProductId]);
 
   const set = (k) => (e) => setForm((f) => ({ ...f, [k]: e.target.value }));
 
@@ -293,11 +341,14 @@ export default function AddProduct({ onBack, onPublish, onSaveDraft, onAddVarian
 
   const toggleColor = (hex) => {
     setForm((f) => {
-      const currentColors = Array.isArray(f.colors) ? f.colors : [];
-      const exists = currentColors.includes(hex);
+      const currentColors = parseColors(f.colors);
+      const target = hex.toLowerCase().trim();
+      const exists = currentColors.some((c) => c.toLowerCase().trim() === target);
       return {
         ...f,
-        colors: exists ? currentColors.filter((c) => c !== hex) : [...currentColors, hex],
+        colors: exists
+          ? currentColors.filter((c) => c.toLowerCase().trim() !== target)
+          : [...currentColors, hex],
       };
     });
   };
@@ -362,8 +413,8 @@ export default function AddProduct({ onBack, onPublish, onSaveDraft, onAddVarian
         stock_alert: parseInt(form.stock_alert) || null,
         material: form.material,
         weight: parseFloat(form.weight) || null,
-        sizes: form.sizes ? form.sizes.split(",").map((s) => s.trim()) : null,
-        colors: form.colors || [],
+        sizes: form.sizes ? form.sizes.split(",").map((s) => s.trim()).filter(Boolean) : null,
+        colors: parseColors(form.colors),
         care: form.care,
         image_url: urls[0] || null,
         images: urls,
@@ -373,7 +424,7 @@ export default function AddProduct({ onBack, onPublish, onSaveDraft, onAddVarian
 
       if (isEditing) {
         // Update existing product
-        const productId = initialData?.product_id || initialData?.id;
+        const productId = activeData?.product_id || activeData?.id || urlProductId;
         const data = await productService.updateProduct(productId, productData);
         useStore.getState().invalidateProductDetails(productId);
         return { data: data[0], error: null };
@@ -719,29 +770,57 @@ export default function AddProduct({ onBack, onPublish, onSaveDraft, onAddVarian
                   <line x1="4.5" y1="15.5" x2="15.5" y2="4.5" stroke="#EF4444" strokeWidth="1.5" strokeLinecap="round" />
                 </svg>
               </button>
-              {COLOR_SWATCHES.map((c) => (
-                <button
-                  key={c}
-                  type="button"
-                  className={`ap-color-swatch${(form.colors || []).includes(c) ? " ap-color-swatch--selected" : ""
-                    }${c === "#FFFFFF" ? " ap-color-swatch--white" : ""}`}
-                  style={{ backgroundColor: c }}
-                  onClick={() => toggleColor(c)}
-                  aria-label={`Toggle color ${c}`}
-                >
-                  {(form.colors || []).includes(c) && (
+              {COLOR_SWATCHES.map((c) => {
+                const selected = isColorSelected(form.colors, c);
+                const isWhite = c.toUpperCase() === "#FFFFFF";
+                return (
+                  <button
+                    key={c}
+                    type="button"
+                    className={`ap-color-swatch${selected ? " ap-color-swatch--selected" : ""}${isWhite ? " ap-color-swatch--white" : ""}`}
+                    style={{ backgroundColor: c }}
+                    onClick={() => toggleColor(c)}
+                    aria-label={`Toggle color ${c}`}
+                    title={c}
+                  >
+                    {selected && (
+                      <svg width="12" height="10" viewBox="0 0 12 10" fill="none">
+                        <path
+                          d="M1 5L4.2 8.2L11 1"
+                          stroke={isWhite ? "#111827" : "#fff"}
+                          strokeWidth="2"
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                        />
+                      </svg>
+                    )}
+                  </button>
+                );
+              })}
+              {/* Render any additional/custom colors already on the product */}
+              {(parseColors(form.colors) || [])
+                .filter((c) => !COLOR_SWATCHES.some((s) => s.toLowerCase() === c.toLowerCase()))
+                .map((c) => (
+                  <button
+                    key={c}
+                    type="button"
+                    className="ap-color-swatch ap-color-swatch--selected"
+                    style={{ backgroundColor: c }}
+                    onClick={() => toggleColor(c)}
+                    aria-label={`Toggle color ${c}`}
+                    title={c}
+                  >
                     <svg width="12" height="10" viewBox="0 0 12 10" fill="none">
                       <path
                         d="M1 5L4.2 8.2L11 1"
-                        stroke={c === "#FFFFFF" ? "#111827" : "#fff"}
+                        stroke="#fff"
                         strokeWidth="2"
                         strokeLinecap="round"
                         strokeLinejoin="round"
                       />
                     </svg>
-                  )}
-                </button>
-              ))}
+                  </button>
+                ))}
             </div>
           </div>
           <div className="field">

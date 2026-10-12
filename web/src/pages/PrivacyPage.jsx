@@ -28,6 +28,7 @@ export default function Privacy() {
 
       <section className="policy-section">
         <div className="policy-card">
+          <span className="policy-badge">Legal & Privacy</span>
           <h1 className="policy-h1">Privacy Policy</h1>
           <p className="policy-updated">Last Updated: July 30, 2026</p>
 

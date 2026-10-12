@@ -104,7 +104,7 @@
 
 .contactus-field input:focus,
 .contactus-field textarea:focus {
-  border-color: #00227b;
+  border-color: var(--blue-border);
   box-shadow: 0 0 0 3px rgba(0, 34, 123, 0.08);
 }
 
@@ -120,12 +120,12 @@
 }
 
 .contactus-submit-btn {
-  font-family: 'Outfit', sans-serif;
+  font-family: var(--font-body);
   font-weight: 600;
   font-size: 15px;
   letter-spacing: 0.02em;
   color: #ffffff;
-  background: #00227b;
+  background: var(--blue-border);
   border: none;
   border-radius: 6px;
   padding: 11px 46px;
@@ -134,7 +134,7 @@
 }
 
 .contactus-submit-btn:hover {
-  background: #00185e;
+  background: var(--blue-hover);
   transform: translateY(-1px);
   box-shadow: 0 4px 14px rgba(0, 34, 123, 0.25);
 }

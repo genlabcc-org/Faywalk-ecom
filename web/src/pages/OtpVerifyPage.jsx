@@ -62,7 +62,7 @@ export default function OtpVerifyPage() {
     try {
       await authService.verifyOtp(email, code, "email");
       showToast("Login successful!", "success");
-      setTimeout(() => navigate("/profile"), 1200);
+      setTimeout(() => navigate("/"), 1200);
     } catch (error) {
       showToast(error.message, "error");
       setLoading(false);

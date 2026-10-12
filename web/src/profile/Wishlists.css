@@ -212,40 +212,44 @@
 
 .aw-cart-btn {
   flex: 1;
-  background: var(--brand-red);
-  color: #fff;
-  border: none;
+  background: #ffffff;
+  color: var(--blue-primary, #002277);
+  border: none !important;
   border-radius: 4px;
   padding: 7px 10px;
   font-size: 11.5px;
   font-weight: 600;
   font-family: inherit;
   cursor: pointer;
-  transition: background 0.2s;
+  transition: all 0.2s;
+  box-shadow: none !important;
   white-space: nowrap;
 }
 
 .aw-cart-btn:hover {
-  background: var(--brand-red-dark);
+  background: var(--blue-primary, #002277);
+  color: #ffffff;
+  border-color: var(--blue-primary, #002277);
 }
 
 .aw-view-btn {
   background: transparent;
-  color: var(--brand-red);
-  border: 1px solid var(--brand-red);
+  color: var(--blue-primary, #002277);
+  border: 1px solid rgba(0, 34, 119, 0.25);
   border-radius: 4px;
   padding: 7px 10px;
   font-size: 11.5px;
   font-weight: 600;
   font-family: inherit;
+  box-shadow: none !important;
   cursor: pointer;
   transition: background 0.2s, color 0.2s;
   white-space: nowrap;
 }
 
 .aw-view-btn:hover {
-  background: var(--brand-red);
-  color: #fff;
+  background: var(--blue-primary, #002277);
+  color: #ffffff;
 }
 
 /* ── RESPONSIVE ───────────────────────────────────────────── */

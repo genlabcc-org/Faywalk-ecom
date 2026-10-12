@@ -1,0 +1,44 @@
+/* ── ProductFilter.css ──────────────────────────────────────────────── */
+
+.product-filter-sidebar {
+  display: flex;
+  flex-direction: column;
+  gap: 28px;
+}
+
+.product-filter-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding-bottom: 12px;
+  border-bottom: 1px solid #f1f5f9;
+}
+
+.product-filter-badge {
+  font-family: var(--font-body, 'Outfit', sans-serif);
+  font-size: 11.5px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: var(--blue-primary, #002277);
+  background: rgba(0, 34, 119, 0.06);
+  padding: 3px 8px;
+  border-radius: 4px;
+}
+
+.product-filter-clear-btn {
+  background: none;
+  border: none;
+  color: #64748b;
+  font-size: 12px;
+  font-weight: 500;
+  cursor: pointer;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  padding: 0;
+  transition: color 0.15s ease;
+}
+
+.product-filter-clear-btn:hover {
+  color: #ef4444;
+}

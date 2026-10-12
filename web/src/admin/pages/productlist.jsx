@@ -31,6 +31,15 @@ const getProductColors = (product) => {
     return product.colors.filter(Boolean);
   }
   if (typeof product.colors === "string") {
+    const trimmed = product.colors.trim();
+    if (trimmed.startsWith("[") && trimmed.endsWith("]")) {
+      try {
+        const parsed = JSON.parse(trimmed);
+        if (Array.isArray(parsed)) return parsed.filter(Boolean);
+      } catch {
+        // fallback to split
+      }
+    }
     return product.colors.split(",").map((c) => c.trim()).filter(Boolean);
   }
   return [];

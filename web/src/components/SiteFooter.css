@@ -152,7 +152,7 @@
 }
 
 .fw-subscribe-input:focus {
-  border-color: #02144d;
+  border-color: var(--blue-darker);
   background-color: #ffffff;
 }
 

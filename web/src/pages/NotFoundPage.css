@@ -1,0 +1,97 @@
+/* ── 404 Minimal Page Styling ── */
+
+.not-found-page {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+  background-color: #ffffff;
+}
+
+.not-found-main {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 100px 24px;
+  box-sizing: border-box;
+}
+
+.not-found-card {
+  max-width: 460px;
+  width: 100%;
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+/* 404 Minimal Number */
+.not-found-code {
+  font-family: var(--font-title, 'Outfit', sans-serif);
+  font-size: clamp(80px, 12vw, 120px);
+  font-weight: 300;
+  line-height: 1;
+  letter-spacing: -2px;
+  color: var(--blue-primary, #002277);
+  margin: 0 0 10px;
+  user-select: none;
+}
+
+/* Heading */
+.not-found-title {
+  font-family: var(--font-title, 'Outfit', sans-serif);
+  font-size: clamp(22px, 3vw, 28px);
+  font-weight: 500;
+  color: #111827;
+  margin: 0 0 12px;
+  letter-spacing: -0.3px;
+}
+
+/* Description */
+.not-found-desc {
+  font-family: var(--font-body, 'Outfit', sans-serif);
+  font-size: 15px;
+  line-height: 1.6;
+  color: #6b7280;
+  max-width: 380px;
+  margin: 0 0 24px;
+}
+
+/* Action Link */
+.not-found-actions {
+  display: flex;
+  justify-content: center;
+  width: 100%;
+}
+
+.not-found-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  font-family: var(--font-body, 'Outfit', sans-serif);
+  font-size: 14.5px;
+  font-weight: 500;
+  letter-spacing: 0.2px;
+  padding: 6px 0;
+  border: none;
+  background: none;
+  color: var(--blue-primary, #002277);
+  text-decoration: underline;
+  text-decoration-color: var(--blue-primary, #002277);
+  text-decoration-thickness: 1.5px;
+  text-underline-offset: 5px;
+  transition: color 0.2s ease, text-decoration-color 0.2s ease;
+  cursor: pointer;
+}
+
+.not-found-btn:hover {
+  color: var(--blue-darker, #02144d);
+  text-decoration-color: var(--blue-primary, #002277);
+}
+
+@media (max-width: 600px) {
+  .not-found-main {
+    padding: 70px 20px;
+  }
+}

@@ -6,6 +6,7 @@ import { cartService } from '../services/cartService';
 import { wishlistService } from '../services/wishlistService';
 import { authService } from '../services/authService';
 import { orderService } from '../services/orderService';
+import { topbarService } from '../services/topbarService';
 
 /** Strip currency symbols & commas so */
 const parsePrice = (v) => {
@@ -143,6 +144,10 @@ export const useStore = create((set, get) => ({
     }
   })(),
 
+  // --- TopBar Announcement ---
+  topbarData: null,
+  loadingTopbar: false,
+
   // --- Actions ---
 
   // Initialize Auth & Session
@@ -250,9 +255,25 @@ export const useStore = create((set, get) => ({
     }
   },
 
+  // Caching TopBar Announcement
+  fetchTopBar: async (force = false) => {
+    if (!force && get().topbarData !== null) return get().topbarData;
+    set({ loadingTopbar: true });
+    try {
+      const data = await topbarService.getTopBar();
+      set({ topbarData: data, loadingTopbar: false });
+      return data;
+    } catch (err) {
+      console.error('Error fetching topbar in store:', err);
+      set({ loadingTopbar: false });
+      return null;
+    }
+  },
+  setTopBarData: (data) => set({ topbarData: data }),
+
   // Caching Categories
-  fetchCategories: async () => {
-    if (get().categories.length > 0) return get().categories;
+  fetchCategories: async (force = false) => {
+    if (!force && get().categories.length > 0) return get().categories;
     set({ loadingCategories: true });
     try {
       const data = await productService.getCategories();

@@ -8,6 +8,7 @@ import Toast from "../components/Toast";
 import { SkeletonProductCard } from "../components/ui/Skeleton";
 import { productService } from "../services/productService";
 import { getNavPath } from "../services/categoryRoute";
+import ProductFilter from "../components/ProductFilter";
 import "./ProductPage.css";
 
 const DESKTOP_ITEMS_PER_PAGE = 9;
@@ -21,6 +22,7 @@ export default function ProductPage({ category = "Trending" }) {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const subcategoryParam = searchParams.get("sub") || "";
+  const searchQueryParam = searchParams.get("search") || "";
 
   // Viewport detection
   const [isMobile, setIsMobile] = useState(() =>
@@ -115,6 +117,14 @@ export default function ProductPage({ category = "Trending" }) {
     setCurrentPage(1);
   };
 
+  const handleClearFilters = () => {
+    setSelectedGenders([]);
+    setSelectedFabrics([]);
+    setSelectedSizes([]);
+    setSortBy("featured");
+    setCurrentPage(1);
+  };
+
   // Compute available sizes & dynamic counts
   const availableSizes = useMemo(() => {
     const base = ["80", "85", "90", "95", "100"];
@@ -151,6 +161,13 @@ export default function ProductPage({ category = "Trending" }) {
   // Filter & sort logic
   const filteredProducts = useMemo(() => {
     let result = products.filter(product => {
+      // Search query filter if present
+      if (searchQueryParam.trim()) {
+        const q = searchQueryParam.trim().toLowerCase();
+        const text = `${product.name || ""} ${product.desc || ""} ${product.subcategory || ""}`.toLowerCase();
+        if (!text.includes(q)) return false;
+      }
+
       // Subcategory filter if present in URL
       if (subcategoryParam.trim()) {
         const targetSub = subcategoryParam.trim().toLowerCase();
@@ -193,7 +210,7 @@ export default function ProductPage({ category = "Trending" }) {
     }
 
     return result;
-  }, [products, subcategoryParam, selectedGenders, selectedFabrics, selectedSizes, sortBy]);
+  }, [products, subcategoryParam, searchQueryParam, selectedGenders, selectedFabrics, selectedSizes, sortBy]);
 
   const totalPages = Math.max(1, Math.ceil(filteredProducts.length / itemsPerPage));
 
@@ -256,91 +273,19 @@ export default function ProductPage({ category = "Trending" }) {
 
       <div className="trending-main-container">
         {/* ─── Left Sidebar Filters ─── */}
-        <aside className="trending-sidebar">
-          {/* Price Filter */}
-          <div className="filter-group">
-            <h3 className="filter-heading">Price</h3>
-            <div className="filter-options">
-              <label className="custom-filter-checkbox">
-                <input
-                  type="checkbox"
-                  checked={sortBy === "price-low-high"}
-                  onChange={() => handlePriceSortToggle("price-low-high")}
-                />
-                <span className="checkbox-box"></span>
-                <span className="checkbox-text">Low to high</span>
-              </label>
-              <label className="custom-filter-checkbox">
-                <input
-                  type="checkbox"
-                  checked={sortBy === "price-high-low"}
-                  onChange={() => handlePriceSortToggle("price-high-low")}
-                />
-                <span className="checkbox-box"></span>
-                <span className="checkbox-text">High to low</span>
-              </label>
-            </div>
-          </div>
-
-          {/* Category Filter */}
-          <div className="filter-group">
-            <h3 className="filter-heading">Category</h3>
-            <div className="filter-options">
-              <label className="custom-filter-checkbox">
-                <input
-                  type="checkbox"
-                  checked={selectedGenders.includes("Male")}
-                  onChange={() => handleGenderToggle("Male")}
-                />
-                <span className="checkbox-box"></span>
-                <span className="checkbox-text">Male</span>
-              </label>
-              <label className="custom-filter-checkbox">
-                <input
-                  type="checkbox"
-                  checked={selectedGenders.includes("Female")}
-                  onChange={() => handleGenderToggle("Female")}
-                />
-                <span className="checkbox-box"></span>
-                <span className="checkbox-text">Female</span>
-              </label>
-            </div>
-          </div>
-
-          {/* Fabric Filter */}
-          <div className="filter-group">
-            <h3 className="filter-heading">Fabric</h3>
-            <div className="filter-options">
-              <label className="custom-filter-checkbox">
-                <input
-                  type="checkbox"
-                  checked={selectedFabrics.includes("Cotton")}
-                  onChange={() => handleFabricToggle("Cotton")}
-                />
-                <span className="checkbox-box"></span>
-                <span className="checkbox-text">Cotton({fabricCounts.Cotton})</span>
-              </label>
-            </div>
-          </div>
-
-          {/* Size Filter */}
-          <div className="filter-group">
-            <h3 className="filter-heading">Size</h3>
-            <div className="filter-options">
-              {availableSizes.map(size => (
-                <label key={size} className="custom-filter-checkbox">
-                  <input
-                    type="checkbox"
-                    checked={selectedSizes.includes(size)}
-                    onChange={() => handleSizeToggle(size)}
-                  />
-                  <span className="checkbox-box"></span>
-                  <span className="checkbox-text">{size}</span>
-                </label>
-              ))}
-            </div>
-          </div>
-        </aside>
+        <ProductFilter
+          sortBy={sortBy}
+          onSortChange={handlePriceSortToggle}
+          selectedGenders={selectedGenders}
+          onGenderToggle={handleGenderToggle}
+          selectedFabrics={selectedFabrics}
+          onFabricToggle={handleFabricToggle}
+          selectedSizes={selectedSizes}
+          onSizeToggle={handleSizeToggle}
+          availableSizes={availableSizes}
+          fabricCounts={fabricCounts}
+          onClearFilters={handleClearFilters}
+        />
 
         {/* ─── Right Products Main Panel ─── */}
         <main className="trending-content-panel">
@@ -348,9 +293,19 @@ export default function ProductPage({ category = "Trending" }) {
           <div className="trending-header-bar">
             <div className="trending-title-block">
               <h1 className="trending-headline">
-                {subcategoryParam ? subcategoryParam.toUpperCase() : (category ? category.toUpperCase() : "TRENDING NOW")}
+                {searchQueryParam
+                  ? `SEARCH: "${searchQueryParam.toUpperCase()}"`
+                  : subcategoryParam
+                  ? subcategoryParam.toUpperCase()
+                  : (category ? category.toUpperCase() : "ALL PRODUCTS")}
               </h1>
-              <p className="trending-subtitle">Check what came new to the store</p>
+              <p className="trending-subtitle">
+                {searchQueryParam
+                  ? `Showing results for "${searchQueryParam}"`
+                  : category?.toLowerCase() === "all products" || category?.toLowerCase() === "all"
+                  ? "Browse all products across our entire catalog"
+                  : "Check what came new to the store"}
+              </p>
             </div>
             <div className="trending-product-count">
               {filteredProducts.length} Products
@@ -408,7 +363,7 @@ export default function ProductPage({ category = "Trending" }) {
                           fill="none"
                           width="14"
                           height="14"
-                          stroke="#1e3a8a"
+                          stroke="currentColor"
                           strokeWidth="2.2"
                           strokeLinecap="round"
                           strokeLinejoin="round"

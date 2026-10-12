@@ -13,10 +13,10 @@
 ───────────────────────────────────────────────────────────────────────────── */
 
 :root {
-  --admin-primary: #002277;
-  --admin-primary-hover: #00195c;
+  --admin-primary: var(--blue-primary, #002277);
+  --admin-primary-hover: var(--blue-hover, #00185e);
   --admin-primary-soft: rgba(0, 34, 119, 0.1);
-  --admin-font: 'Outfit', sans-serif;
+  --admin-font: var(--font-body, 'Outfit', sans-serif);
 }
 
 /* ─────────────────────────────────────────────────────────────────────────────

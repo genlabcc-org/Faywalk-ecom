@@ -1,0 +1,132 @@
+/* ── Minimal Logout Confirmation Modal ────────────────────────────── */
+
+.logout-modal-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(15, 23, 42, 0.45);
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 99999999;
+  padding: 20px;
+  animation: logoutModalFadeIn 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.logout-modal-card {
+  background: #ffffff;
+  border-radius: 16px;
+  border: none !important;
+  outline: none !important;
+  padding: 24px 26px 22px;
+  width: 100%;
+  max-width: 360px;
+  box-shadow: 0 20px 40px -8px rgba(0, 0, 0, 0.14) !important;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  animation: logoutModalScaleIn 0.22s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.logout-modal-icon-wrap {
+  width: 46px;
+  height: 46px;
+  border-radius: 50%;
+  background: rgba(0, 34, 119, 0.08);
+  color: var(--blue-primary, #002277);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 14px;
+}
+
+.logout-modal-content {
+  margin-bottom: 22px;
+}
+
+.logout-modal-title {
+  font-family: var(--font-body, 'Outfit', 'Inter', sans-serif);
+  font-size: 18px;
+  font-weight: 600;
+  color: #111827;
+  margin: 0 0 6px;
+  letter-spacing: -0.01em;
+}
+
+.logout-modal-subtitle {
+  font-family: var(--font-body, 'Outfit', 'Inter', sans-serif);
+  font-size: 13.5px;
+  color: #64748b;
+  margin: 0;
+  line-height: 1.45;
+}
+
+.logout-modal-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+}
+
+.logout-modal-btn {
+  flex: 1;
+  padding: 10px 16px;
+  border-radius: 10px;
+  font-family: var(--font-body, 'Outfit', 'Inter', sans-serif);
+  font-size: 13.5px;
+  font-weight: 500;
+  cursor: pointer;
+  border: none !important;
+  outline: none !important;
+  transition: all 0.15s ease;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.logout-modal-btn-cancel {
+  background: #f1f5f9;
+  color: #475569;
+}
+
+.logout-modal-btn-cancel:hover {
+  background: #e2e8f0;
+  color: #1e293b;
+}
+
+.logout-modal-btn-confirm {
+  background: #ef4444;
+  color: #ffffff;
+  font-weight: 600;
+}
+
+.logout-modal-btn-confirm:hover {
+  background: #dc2626;
+}
+
+.logout-modal-btn:disabled {
+  opacity: 0.65;
+  cursor: not-allowed;
+}
+
+@keyframes logoutModalFadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes logoutModalScaleIn {
+  from {
+    opacity: 0;
+    transform: scale(0.95) translateY(4px);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+}

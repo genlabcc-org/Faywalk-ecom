@@ -31,7 +31,7 @@
 }
 
 body {
-  font-family: 'Inter', -apple-system, sans-serif;
+  font-family: var(--font-body);
   background: #fff;
   color: var(--text-primary);
 }
@@ -276,7 +276,7 @@ select {
 }
 
 .cart-empty-shop-btn {
-  background: #002277;
+  background: var(--blue-primary);
   color: #fff;
   padding: 12px 28px;
   border-radius: 6px;
@@ -342,8 +342,8 @@ select {
 }
 
 .cart-checkbox:checked {
-  background-color: #002277;
-  border-color: #002277;
+  background-color: var(--blue-primary);
+  border-color: var(--blue-primary);
 }
 
 .cart-checkbox:checked::after {
@@ -926,7 +926,7 @@ select {
 }
 
 .checkout-btn {
-  background: #002277;
+  background: var(--blue-primary);
   color: #ffffff;
   border: none;
   padding: 12px 16px;

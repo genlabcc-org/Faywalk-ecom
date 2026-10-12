@@ -575,29 +575,32 @@ const CreateMultipleProduct = ({
                         <line x1="4.5" y1="15.5" x2="15.5" y2="4.5" stroke="#EF4444" strokeWidth="1.5" strokeLinecap="round" />
                       </svg>
                     </button>
-                    {COLOR_SWATCHES.map((c) => (
-                      <button
-                        key={c}
-                        type="button"
-                        className={`cmp-color-swatch${v.color === c ? " cmp-color-swatch--selected" : ""
-                          }${c === "#FFFFFF" ? " cmp-color-swatch--white" : ""}`}
-                        style={{ backgroundColor: c }}
-                        onClick={() => updateVariant(v.id, "color", v.color === c ? null : c)}
-                        aria-label={`Select color ${c}`}
-                      >
-                        {v.color === c && (
-                          <svg width="12" height="10" viewBox="0 0 12 10" fill="none">
-                            <path
-                              d="M1 5L4.2 8.2L11 1"
-                              stroke={c === "#FFFFFF" ? "#111827" : "#fff"}
-                              strokeWidth="2"
-                              strokeLinecap="round"
-                              strokeLinejoin="round"
-                            />
-                          </svg>
-                        )}
-                      </button>
-                    ))}
+                    {COLOR_SWATCHES.map((c) => {
+                      const isSelected = (v.color || "").toLowerCase().trim() === c.toLowerCase().trim();
+                      const isWhite = c.toUpperCase() === "#FFFFFF";
+                      return (
+                        <button
+                          key={c}
+                          type="button"
+                          className={`cmp-color-swatch${isSelected ? " cmp-color-swatch--selected" : ""}${isWhite ? " cmp-color-swatch--white" : ""}`}
+                          style={{ backgroundColor: c }}
+                          onClick={() => updateVariant(v.id, "color", isSelected ? null : c)}
+                          aria-label={`Select color ${c}`}
+                        >
+                          {isSelected && (
+                            <svg width="12" height="10" viewBox="0 0 12 10" fill="none">
+                              <path
+                                d="M1 5L4.2 8.2L11 1"
+                                stroke={isWhite ? "#111827" : "#fff"}
+                                strokeWidth="2"
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                              />
+                            </svg>
+                          )}
+                        </button>
+                      );
+                    })}
                   </div>
                 </div>
 

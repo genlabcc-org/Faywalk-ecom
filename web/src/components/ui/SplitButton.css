@@ -34,7 +34,7 @@
 
 /* Left Section: Navy background with monospace text */
 .split-btn-text {
-  background-color: #02144d;
+  background-color: var(--blue-darker);
   color: #ffffff;
   font-family: ui-monospace, 'SFMono-Regular', Menlo, Monaco, Consolas, 'Liberation Mono', 'Courier New', monospace;
   font-size: 16px;
@@ -49,7 +49,7 @@
 }
 
 .split-btn:hover .split-btn-text {
-  background-color: #031b66;
+  background-color: var(--blue-deep);
 }
 
 /* Right Section: Vibrant Red icon block */

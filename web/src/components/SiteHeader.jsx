@@ -4,97 +4,45 @@ import { authService } from "../services/authService";
 import { useAdmin } from "../hooks/useAdmin";
 import { useStore } from "../hooks/useStore";
 import { getUserInitials } from "../utils/avatarUtils";
+import { getNavPath } from "../services/categoryRoute";
+import LogoutModal from "./LogoutModal";
 import "./SiteHeader.css";
 
-const NAV_ITEMS = [
-  {
-    name: "Male",
-    hasDropdown: true,
-    defaultSubs: [
-      "All Men's",
-      "Briefs",
-      "Trunks",
-      "Boxers",
-      "Vests",
-      "Thermals",
-      "Loungewear"
-    ],
-    path: "/category/male",
-  },
-  {
-    name: "Female",
-    hasDropdown: true,
-    defaultSubs: [
-      "All Women's",
-      "Bras",
-      "Panties",
-      "Camisoles & Slips",
-      "Shapewear",
-      "Sleepwear",
-      "Thermals"
-    ],
-    path: "/category/female",
-  },
-  {
-    name: "New arrivals",
-    hasDropdown: false,
-    path: "/category/new-arrivals",
-  },
-  {
-    name: "Best Sellers",
-    hasDropdown: false,
-    path: "/category/best-sellers",
-  },
-  {
-    name: "Trending Now",
-    hasDropdown: false,
-    path: "/category/trending-now",
-  },
-  {
-    name: "About",
-    hasDropdown: false,
-    path: "/#about",
-    isAnchor: true,
-  },
-  {
-    name: "Contact Us",
-    hasDropdown: false,
-    path: "/contact",
-  },
+// ── Static nav items always shown after DB categories ──
+const STATIC_NAV_ITEMS = [
+  { name: "All Products", hasDropdown: false, path: "/all-products" },
+  { name: "New Arrivals", hasDropdown: false, path: "/#new-arrivals", isAnchor: true },
+  { name: "Best Sellers", hasDropdown: false, path: "/#best-sellers", isAnchor: true },
+  { name: "About", hasDropdown: false, path: "/#about", isAnchor: true },
+  { name: "Contact Us", hasDropdown: false, path: "/contact" },
 ];
 
-// Helper to get real subcategories from DB or fall back to defaults
-const getSubcategories = (item, categories = []) => {
-  if (!item.hasDropdown) return [];
+// ── Build nav items from DB categories ──
+const buildCategoryNavItems = (categories = []) =>
+  categories
+    .filter((c) => c.is_active !== false)
+    .map((c) => {
+      const subs = (c.subcategories || [])
+        .map((s) => ({
+          name: s.name,
+          slug: s.slug || (s.name ? s.name.toLowerCase().replace(/\s+/g, "-") : ""),
+        }));
 
-  const matched = categories.find(
-    (c) => c.name?.toLowerCase() === item.name.toLowerCase() ||
-      c.slug?.toLowerCase() === item.name.toLowerCase()
-  );
-
-  const realSubs = (matched?.subcategories || [])
-    .map((s) => (typeof s === "string" ? s : s.name))
-    .filter(Boolean);
-
-  if (realSubs.length > 0) {
-    return [`All ${item.name}`, ...realSubs];
-  }
-
-  // Also check if any category has parent_id pointing to this category
-  if (matched?.category_id || matched?.id) {
-    const pId = matched.category_id || matched.id;
-    const children = categories.filter((c) => c.parent_id === pId);
-    if (children.length > 0) {
-      return [`All ${item.name}`, ...children.map((c) => c.name)];
-    }
-  }
-
-  return item.defaultSubs || [];
-};
+      return {
+        name: c.name,
+        slug: c.slug || (c.name ? c.name.toLowerCase().replace(/\s+/g, "-") : ""),
+        hasDropdown: subs.length > 0,
+        subcategories: subs,
+        path: getNavPath(c.name, categories),
+        fromDb: true,
+      };
+    });
 
 // ─── Account / Login Dropdown Component ───
 const LoginDropdown = () => {
   const [open, setOpen] = useState(false);
+  const [showLogoutModal, setShowLogoutModal] = useState(false);
+  const [loggingOut, setLoggingOut] = useState(false);
   const ref = useRef(null);
   const navigate = useNavigate();
 
@@ -109,98 +57,116 @@ const LoginDropdown = () => {
     return () => document.removeEventListener("mousedown", handler);
   }, []);
 
-  const handleLogout = async () => {
-    await authService.signOut();
+  const handleLogoutClick = () => {
     setOpen(false);
-    navigate("/");
+    setShowLogoutModal(true);
+  };
+
+  const handleConfirmLogout = async () => {
+    setLoggingOut(true);
+    try {
+      await authService.signOut();
+      setShowLogoutModal(false);
+      navigate("/");
+    } catch (err) {
+      console.error("Logout failed:", err);
+    } finally {
+      setLoggingOut(false);
+    }
   };
 
   const initials = getUserInitials(user?.user_metadata?.name || user?.email, "U");
 
   return (
-    <div className="login-wrapper" ref={ref}>
-      <button
-        type="button"
-        className="header-action-btn"
-        aria-label="Account"
-        onClick={(e) => {
-          e.preventDefault();
-          e.stopPropagation();
-          setOpen(!open);
-        }}
-      >
-        {user ? (
-          <div className="header-avatar-circle" title={user.user_metadata?.name || user.email}>
-            {initials}
-          </div>
-        ) : (
-          <svg
-            width="22"
-            height="22"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="1.8"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-          >
-            <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
-            <circle cx="12" cy="7" r="4" />
-          </svg>
-        )}
-      </button>
-
-      {open && (
-        <div className="login-dropdown">
+    <>
+      <div className="login-wrapper" ref={ref}>
+        <button
+          type="button"
+          className="header-action-btn"
+          aria-label="Account"
+          onClick={(e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            setOpen(!open);
+          }}
+        >
           {user ? (
-            <>
-              <div className="dropdown-user-header">
-                <div className="dropdown-avatar-circle">{initials}</div>
-                <div className="dropdown-user-info">
-                  <p className="dropdown-name">{user.user_metadata?.name || "User"}</p>
-                  <p className="dropdown-email">{user.email}</p>
-                </div>
-              </div>
-              <hr />
-              <Link to="/profile" onClick={() => setOpen(false)}>My Profile</Link>
-              <Link to="/profile/orders" onClick={() => setOpen(false)}>My Orders</Link>
-              {isAdmin && (
-                <>
-                  <hr />
-                  <Link to="/admin" onClick={() => setOpen(false)} className="admin_link">
-                    Admin Panel
-                  </Link>
-                </>
-              )}
-              <hr />
-              <button className="dropdown-logout" onClick={handleLogout}>
-                Logout
-              </button>
-            </>
+            <div className="header-avatar-circle" title={user.user_metadata?.name || user.email}>
+              {initials}
+            </div>
           ) : (
-            <>
-              <Link to="/account/login" onClick={() => setOpen(false)}>Login</Link>
-              <hr />
-              <Link to="/account/signup" onClick={() => setOpen(false)}>
-                New Customer? <span>Sign Up</span>
-              </Link>
-            </>
+            <svg
+              width="22"
+              height="22"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="1.8"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            >
+              <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
+              <circle cx="12" cy="7" r="4" />
+            </svg>
           )}
-        </div>
-      )}
-    </div>
+        </button>
+
+        {open && (
+          <div className="login-dropdown">
+            {user ? (
+              <>
+                <div className="dropdown-user-header">
+                  <div className="dropdown-avatar-circle">{initials}</div>
+                  <div className="dropdown-user-info">
+                    <p className="dropdown-name">{user.user_metadata?.name || "User"}</p>
+                    <p className="dropdown-email">{user.email}</p>
+                  </div>
+                </div>
+                <hr />
+                <Link to="/profile" onClick={() => setOpen(false)}>My Profile</Link>
+                <Link to="/profile/orders" onClick={() => setOpen(false)}>My Orders</Link>
+                {isAdmin && (
+                  <>
+                    <hr />
+                    <Link to="/admin" onClick={() => setOpen(false)} className="admin_link">
+                      Admin Panel
+                    </Link>
+                  </>
+                )}
+                <hr />
+                <button className="dropdown-logout" onClick={handleLogoutClick}>
+                  Logout
+                </button>
+              </>
+            ) : (
+              <>
+                <Link to="/account/login" onClick={() => setOpen(false)}>Login</Link>
+                <hr />
+                <Link to="/account/signup" onClick={() => setOpen(false)}>
+                  New Customer? <span>Sign Up</span>
+                </Link>
+              </>
+            )}
+          </div>
+        )}
+      </div>
+
+      <LogoutModal
+        isOpen={showLogoutModal}
+        onClose={() => setShowLogoutModal(false)}
+        onConfirm={handleConfirmLogout}
+        loading={loggingOut}
+      />
+    </>
   );
 };
 
 // ─── Desktop Nav Item Component ───
-const DesktopNavItem = ({ item, categories, onItemClick, onSubClick, isActive }) => {
+const DesktopNavItem = ({ item, onItemClick, onSubClick, isActive }) => {
   const [open, setOpen] = useState(false);
   const ref = useRef(null);
 
-  const subcategories = useMemo(
-    () => getSubcategories(item, categories),
-    [item, categories]
-  );
+  const subcategories = item.subcategories || [];
   const hasDropdown = item.hasDropdown && subcategories.length > 0;
 
   useEffect(() => {
@@ -215,13 +181,12 @@ const DesktopNavItem = ({ item, categories, onItemClick, onSubClick, isActive })
   }, [open]);
 
   const handleMainClick = (e) => {
-    e.preventDefault();
-    e.stopPropagation();
-    if (!hasDropdown) {
-      onItemClick(item);
-      return;
+    if (e) {
+      e.preventDefault();
+      e.stopPropagation();
     }
-    setOpen((prev) => !prev);
+    onItemClick(item);
+    setOpen(false);
   };
 
   const handleSubSelect = (sub, e) => {
@@ -237,6 +202,8 @@ const DesktopNavItem = ({ item, categories, onItemClick, onSubClick, isActive })
     <div
       className="nav-item-wrapper"
       ref={ref}
+      onMouseEnter={() => hasDropdown && setOpen(true)}
+      onMouseLeave={() => setOpen(false)}
     >
       <button
         type="button"
@@ -251,6 +218,10 @@ const DesktopNavItem = ({ item, categories, onItemClick, onSubClick, isActive })
             fill="none"
             width="14"
             height="14"
+            onClick={(e) => {
+              e.stopPropagation();
+              setOpen((prev) => !prev);
+            }}
           >
             <path
               d="M6 9l6 6 6-6"
@@ -265,14 +236,22 @@ const DesktopNavItem = ({ item, categories, onItemClick, onSubClick, isActive })
 
       {hasDropdown && open && (
         <div className="nav-popup">
+          {/* All [Category] shortcut */}
+          <button
+            type="button"
+            className="nav-popup-item nav-popup-item--all"
+            onClick={(e) => handleSubSelect(null, e)}
+          >
+            All {item.name}
+          </button>
           {subcategories.map((sub) => (
             <button
               type="button"
-              key={sub}
+              key={sub.slug || sub.name}
               className="nav-popup-item"
               onClick={(e) => handleSubSelect(sub, e)}
             >
-              {sub}
+              {sub.name}
             </button>
           ))}
         </div>
@@ -282,13 +261,10 @@ const DesktopNavItem = ({ item, categories, onItemClick, onSubClick, isActive })
 };
 
 // ─── Mobile Nav Item Component ───
-const MobileNavItem = ({ item, categories, onItemClick, onSubClick }) => {
+const MobileNavItem = ({ item, onItemClick, onSubClick }) => {
   const [expanded, setExpanded] = useState(false);
 
-  const subcategories = useMemo(
-    () => getSubcategories(item, categories),
-    [item, categories]
-  );
+  const subcategories = item.subcategories || [];
   const hasDropdown = item.hasDropdown && subcategories.length > 0;
 
   const handleMainClick = () => {
@@ -327,16 +303,23 @@ const MobileNavItem = ({ item, categories, onItemClick, onSubClick }) => {
 
       {hasDropdown && expanded && (
         <div className="mobile-nav-submenu">
+          {/* All [Category] shortcut */}
+          <button
+            className="mobile-nav-subitem mobile-nav-subitem--all"
+            onClick={() => { setExpanded(false); onSubClick(item, null); }}
+          >
+            All {item.name}
+          </button>
           {subcategories.map((sub) => (
             <button
-              key={sub}
+              key={sub.slug || sub.name}
               className="mobile-nav-subitem"
               onClick={() => {
                 setExpanded(false);
                 onSubClick(item, sub);
               }}
             >
-              {sub}
+              {sub.name}
             </button>
           ))}
         </div>
@@ -373,8 +356,27 @@ export default function SiteHeader({ activeLink = "", onLinkClick }) {
   }, []);
 
   useEffect(() => {
-    fetchCategories();
+    fetchCategories(true);
   }, [fetchCategories]);
+
+  const categoryNavItems = useMemo(
+    () => buildCategoryNavItems(categories),
+    [categories]
+  );
+
+  const navItems = useMemo(
+    () => [...categoryNavItems, ...STATIC_NAV_ITEMS],
+    [categoryNavItems]
+  );
+
+  const isItemActive = (item) => {
+    if (!activeLink) return false;
+    const a = activeLink.toLowerCase().trim();
+    const n = item.name.toLowerCase().trim();
+    if (a === n) return true;
+    if (item.slug && a === item.slug.toLowerCase().trim()) return true;
+    return false;
+  };
 
   // Lock body scroll when mobile menu is open
   useEffect(() => {
@@ -410,8 +412,10 @@ export default function SiteHeader({ activeLink = "", onLinkClick }) {
   const handleItemClick = (item) => {
     setMenuOpen(false);
     if (item.isAnchor) {
-      const targetId = item.name.toLowerCase().includes("contact") ? "contact" : "about";
-      const el = document.getElementById(targetId) || document.getElementById(`${targetId}-us`);
+      const anchor = item.path.includes("#")
+        ? item.path.split("#")[1]
+        : item.name.toLowerCase().replace(/\s+/g, "-");
+      const el = document.getElementById(anchor);
       if (el) {
         el.scrollIntoView({ behavior: "smooth" });
       } else {
@@ -419,23 +423,32 @@ export default function SiteHeader({ activeLink = "", onLinkClick }) {
       }
       return;
     }
+    if (item.fromDb && onLinkClick) {
+      onLinkClick(item.name);
+      return;
+    }
     navigate(item.path);
   };
 
   const handleSubClick = (item, sub) => {
     setMenuOpen(false);
-    const isAll = sub.toLowerCase().startsWith("all ");
+    if (!sub) {
+      navigate(item.path);
+      return;
+    }
+    const subName = typeof sub === "object" ? (sub.name || sub.slug) : sub;
+    const isAll = typeof subName === "string" ? subName.toLowerCase().startsWith("all ") : false;
     if (isAll) {
       navigate(item.path);
     } else {
-      navigate(`${item.path}?sub=${encodeURIComponent(sub)}`);
+      navigate(`${item.path}?sub=${encodeURIComponent(subName)}`);
     }
   };
 
   const handleSearchSubmit = (e) => {
     if (e) e.preventDefault();
     if (searchQuery.trim()) {
-      navigate(`/category/all?search=${encodeURIComponent(searchQuery.trim())}`);
+      navigate(`/all-products?search=${encodeURIComponent(searchQuery.trim())}`);
       setSearchOpen(false);
       setSearchQuery("");
     }
@@ -479,14 +492,13 @@ export default function SiteHeader({ activeLink = "", onLinkClick }) {
 
           {/* Center: Desktop Navigation Links */}
           <nav className="desktop-nav">
-            {NAV_ITEMS.map((item) => (
+            {navItems.map((item) => (
               <DesktopNavItem
                 key={item.name}
                 item={item}
-                categories={categories}
                 onItemClick={handleItemClick}
                 onSubClick={handleSubClick}
-                isActive={activeLink.toLowerCase() === item.name.toLowerCase()}
+                isActive={isItemActive(item)}
               />
             ))}
           </nav>
@@ -619,11 +631,10 @@ export default function SiteHeader({ activeLink = "", onLinkClick }) {
       {/* ─── Mobile Drawer Menu ─── */}
       <div className={`mobile-menu ${menuOpen ? "open" : ""}`}>
         <nav className="mobile-nav-links">
-          {NAV_ITEMS.map((item) => (
+          {navItems.map((item) => (
             <MobileNavItem
               key={item.name}
               item={item}
-              categories={categories}
               onItemClick={handleItemClick}
               onSubClick={handleSubClick}
             />

@@ -208,13 +208,15 @@ export default function WishlistPage({ onBack }) {
                       style={{
                         marginTop: "8px",
                         padding: "6px 14px",
-                        backgroundColor: "#111827",
-                        color: "#fff",
+                        backgroundColor: "#ffffff",
+                        color: "var(--blue-primary, #002277)",
                         border: "none",
                         borderRadius: "4px",
                         fontSize: "0.85rem",
+                        fontWeight: "600",
                         cursor: "pointer",
-                        width: "fit-content"
+                        width: "fit-content",
+                        boxShadow: "none"
                       }}
                     >
                       Add to Cart

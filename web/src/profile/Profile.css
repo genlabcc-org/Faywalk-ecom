@@ -28,7 +28,7 @@
 }
 
 .profile-edit-btn {
-  background-color: #002277;
+  background-color: var(--blue-primary);
   color: #ffffff;
   border: none;
   border-radius: 6px;
@@ -36,7 +36,7 @@
   font-size: 13px;
   font-weight: 600;
   cursor: pointer;
-  font-family: 'Outfit', sans-serif;
+  font-family: var(--font-body);
   transition: background-color 0.15s ease;
 }
 
@@ -45,7 +45,7 @@
 }
 
 .profile-save-btn {
-  background-color: #002277;
+  background-color: var(--blue-primary);
   color: #ffffff;
   border: none;
   border-radius: 6px;
@@ -53,7 +53,7 @@
   font-size: 13px;
   font-weight: 600;
   cursor: pointer;
-  font-family: 'Outfit', sans-serif;
+  font-family: var(--font-body);
   transition: background-color 0.15s ease;
 }
 
@@ -63,14 +63,14 @@
 
 .profile-cancel-btn {
   background-color: transparent;
-  color: #002277;
-  border: 1px solid #002277;
+  color: var(--blue-primary);
+  border: 1px solid var(--blue-primary);
   border-radius: 6px;
   padding: 7px 18px;
   font-size: 13px;
   font-weight: 600;
   cursor: pointer;
-  font-family: 'Outfit', sans-serif;
+  font-family: var(--font-body);
   transition: all 0.15s ease;
 }
 
@@ -95,7 +95,7 @@
   font-size: 15px;
   font-weight: 600;
   color: #111827;
-  font-family: 'Outfit', sans-serif;
+  font-family: var(--font-body);
 }
 
 .profile-detail-value {
@@ -103,7 +103,7 @@
   font-weight: 600;
   color: #111827;
   text-align: right;
-  font-family: 'Outfit', sans-serif;
+  font-family: var(--font-body);
 }
 
 .profile-detail-input {
@@ -111,7 +111,7 @@
   border-radius: 6px;
   padding: 6px 12px;
   font-size: 14px;
-  font-family: 'Outfit', sans-serif;
+  font-family: var(--font-body);
   font-weight: 500;
   color: #111827;
   width: 240px;
@@ -122,7 +122,7 @@
 }
 
 .profile-detail-input:focus {
-  border-color: #002277;
+  border-color: var(--blue-primary);
   box-shadow: 0 0 0 2px rgba(0, 34, 119, 0.15);
 }
 

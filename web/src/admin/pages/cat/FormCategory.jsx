@@ -4,6 +4,7 @@ import "./FormCategory.css";
 import { useSearchParams } from "react-router-dom";
 import { productService } from "../../../services/productService";
 import { compressImage } from '../../../utils/imageCompression';
+import { useStore } from "../../../hooks/useStore";
 
 
 const ChangeRemoveActions = ({ onChange, onRemove }) => (
@@ -52,12 +53,12 @@ const SuccessToast = ({ message, onClose }) => (
 const CreateSubCategory = ({ parentCategory, categories = [], onBack, onDiscard, onSave }) => {
 
   const [name, setName] = useState("");
-  const [description, setDescription] = useState("");
-  const [showOnStore, setShowOnStore] = useState(false);
+  const [showOnStore, setShowOnStore] = useState(true);
   const [searchParams] = useSearchParams();
   const parentId = searchParams.get("parentId");
   const subcategoryId = searchParams.get("subcategoryId");
   const isEditMode = !!subcategoryId;
+  const [currentParentId, setCurrentParentId] = useState(parentId || parentCategory?.id || null);
 
   const [coverImage, setCoverImage] = useState(null); // { file, url, dims }
   const [loadingExisting, setLoadingExisting] = useState(isEditMode);
@@ -82,17 +83,40 @@ const CreateSubCategory = ({ parentCategory, categories = [], onBack, onDiscard,
   );
 
   useEffect(() => {
+    if (matchedParent?.name && !parentCategoryName) {
+      setParentCategoryName(matchedParent.name);
+    }
+  }, [matchedParent, parentCategoryName]);
+
+  useEffect(() => {
     if (!subcategoryId) return;
-    const loadingExisting = async () => {
+    const loadExistingSubcategory = async () => {
       try {
-        const rows = await productService.getSubCategories(parentId);
-        const existing = rows.find((s) => s.subcategory_id === subcategoryId);
+        let existing = null;
+        if (parentId) {
+          const rows = await productService.getSubCategories(parentId);
+          existing = rows.find((s) => String(s.subcategory_id) === String(subcategoryId));
+        }
+        if (!existing) {
+          const allRows = await productService.getSubCategories();
+          existing = allRows.find((s) => String(s.subcategory_id) === String(subcategoryId));
+        }
         if (existing) {
           setName(existing.name || "");
-          setDescription(existing.description || "");
-          setShowOnStore(!!existing.is_active);
+          setShowOnStore(existing.is_active !== false);
           if (existing.image_url) {
             setCoverImage({ url: existing.image_url, name: "current-image", file: null });
+          }
+          if (existing.parent_id) {
+            setCurrentParentId(existing.parent_id);
+            if (!parentCategoryName) {
+              const foundParent = categories.find(
+                (c) => String(c.category_id ?? c.id) === String(existing.parent_id)
+              );
+              if (foundParent) {
+                setParentCategoryName(foundParent.name);
+              }
+            }
           }
         }
       } catch (error) {
@@ -101,8 +125,8 @@ const CreateSubCategory = ({ parentCategory, categories = [], onBack, onDiscard,
         setLoadingExisting(false);
       }
     };
-    loadingExisting();
-  }, [subcategoryId, parentId]);
+    loadExistingSubcategory();
+  }, [subcategoryId, parentId, categories, parentCategoryName]);
 
   const handleFileSelect = (e, setter) => {
     const file = e.target.files?.[0];
@@ -147,9 +171,6 @@ const CreateSubCategory = ({ parentCategory, categories = [], onBack, onDiscard,
     setShowConfirm(true);
   };
 
-  const slugify = (str) =>
-    (str || "").toLowerCase().trim().replace(/\s+/g, "-").replace(/[^a-z0-9-]/g, "");
-
   // This is the actual save logic, now triggered from ConfirmDialog's
   // onConfirm instead of directly from the Save button.
 
@@ -162,24 +183,33 @@ const CreateSubCategory = ({ parentCategory, categories = [], onBack, onDiscard,
 
       if (coverImage?.file) {
         const compressedFile = await compressImage(coverImage.file);
-        const safeName = compressedFile.file.name.replace(/\s+/g, '-');
+        const safeName = (compressedFile?.name || coverImage.file?.name || `subcat-${Date.now()}`).replace(/\s+/g, '-');
         const filePath = `subcategories/${Date.now()}-${safeName}`;
-        await productService.uploadSubcategoryImage(filePath, coverImage.file);
+        await productService.uploadSubcategoryImage(filePath, compressedFile);
         imageUrl = productService.getSubcategoryImagePublicUrl(filePath);
       }
 
+      const resolvedParentId = currentParentId || parentId || parentCategory?.id;
+
       const payload = {
-        parent_id: parentId || parentCategory?.id,
         name,
-        slug: slugify(name),
-        description: description || null,
         image_url: imageUrl,
         is_active: showOnStore,
       };
 
+      if (resolvedParentId) {
+        payload.parent_id = resolvedParentId;
+      }
+
       const saved = isEditMode
         ? await productService.updateSubcategory(subcategoryId, payload)
         : await productService.createSubcategory(payload);
+
+      try {
+        await useStore.getState().fetchCategories(true);
+      } catch (err) {
+        console.warn("Failed to refresh categories store:", err);
+      }
 
       setIsSaving(false);
       setShowConfirm(false);
@@ -248,7 +278,7 @@ const CreateSubCategory = ({ parentCategory, categories = [], onBack, onDiscard,
               <button className="scc-back-btn" onClick={onBack} aria-label="Go back">
                 ←
               </button>
-              <h1 className="scc-title">Create Sub Category</h1>
+              <h1 className="scc-title">{isEditMode ? "Edit Sub Category" : "Create Sub Category"}</h1>
             </div>
             <div className="scc-topbar-actions">
               <button className="scc-btn scc-btn-outline" onClick={onDiscard}>
@@ -299,17 +329,6 @@ const CreateSubCategory = ({ parentCategory, categories = [], onBack, onDiscard,
                   </div>
                 )}
 
-                <label className="scc-field-label scc-field-label-optional" htmlFor="scc-desc">
-                  Description <span className="scc-optional-tag">optional</span>
-                </label>
-                <textarea
-                  id="scc-desc"
-                  className="scc-textarea"
-                  rows={4}
-                  value={description}
-                  onChange={(e) => setDescription(e.target.value)}
-                  placeholder="Enter Description"
-                />
               </section>
 
               {/* Sub Category Cover Image */}

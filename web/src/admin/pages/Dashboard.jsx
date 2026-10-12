@@ -45,6 +45,7 @@ import AdminAccount from "./Adminaccount";
 import DangerZone from "./Dangerzone";
 import Notification from "./Notification";
 import Invoices from "./Invoices";
+import TopBarSettings from "./TopBarSettings";
 
 // ── Icons ───────────────────────────────────────────────────────
 const StatIcon = ({ type }) => {
@@ -115,6 +116,7 @@ const menuItems = [
       { label: "Add Banner", path: "/admin/banners/add" },
     ]
   },
+  { id: "topbar", label: "TopBar Text", path: "/admin/topbar" },
   { id: "analytics", label: "Analytics", path: "/admin/analytics" },
   {
     id: "settings", label: "Settings", path: "/admin/account", children: [
@@ -146,6 +148,13 @@ const sidebarIcons = {
   ),
   customer: <img src={customerIcon} alt="customer" className="db__menu-icon-img" />,
   banner: <img src={bannerIcon} alt="banner" className="db__menu-icon-img" />,
+  topbar: (
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <rect x="2" y="4" width="20" height="6" rx="2" />
+      <path d="M4 15h16" />
+      <path d="M8 19h8" />
+    </svg>
+  ),
   analytics: <img src={analyticsIcon} alt="analytics" className="db__menu-icon-img" />,
   settings: <img src={settingsIcon} alt="settings" className="db__menu-icon-img" />,
 };
@@ -154,7 +163,7 @@ const HIDE_ADD_PRODUCT_PATHS = [
   "/admin/categories", "/admin/categories/add", "/admin/products/add",
   "/admin/orders", "/admin/orders/detail", "/admin/invoices",
   "/admin/customers", "/admin/customers/detail",
-  "/admin/banners", "/admin/banners/add", "/admin/analytics",
+  "/admin/banners", "/admin/banners/add", "/admin/topbar", "/admin/analytics",
   "/admin/store", "/admin/contact", "/admin/shipping", "/admin/payment",
   "/admin/account", "/admin/notification", "/admin/policies", "/admin/danger"
 ];
@@ -819,7 +828,8 @@ const Dashboard = () => {
 
   function EditMultipleProductWrapper({ categories, subcategoriesCache, fetchSubcategoriesForParent, onSave, navigate }) {
     const location = useLocation();
-    const editingProductId = location.state?.editingProductId;
+    const [searchParams] = useSearchParams();
+    const editingProductId = location.state?.editingProductId || searchParams.get("id");
 
     if (!editingProductId) {
       return <Navigate to="/admin/products" replace />;
@@ -852,12 +862,21 @@ const Dashboard = () => {
     navigate("/admin/orders");
   };
 
-  const handleEditProduct = (product) => {
+  const handleEditProduct = async (product) => {
+    const prodId = product.id || product.product_id;
     if (product.has_variants) {
-      navigate("/admin/products/edit-multiple", { state: { editingProductId: product.id } });
+      navigate(`/admin/products/edit-multiple?id=${prodId}`, { state: { editingProductId: prodId } });
     } else {
       setEditingProduct(product);
-      navigate("/admin/products/add");
+      navigate(`/admin/products/add?id=${prodId}`);
+      try {
+        const fullProduct = await productService.getProductById(prodId);
+        if (fullProduct) {
+          setEditingProduct(normalizeProductRow(fullProduct));
+        }
+      } catch (err) {
+        console.warn("Could not fetch full product details for edit:", err);
+      }
     }
   };
 
@@ -1363,6 +1382,9 @@ const Dashboard = () => {
             {/* Banners */}
             <Route path="/banners" element={<BannerList banners={banners} onAddBanner={goToAddBanner} onEditBanner={handleEditBanner} onDeleteBanner={handleDeleteBanner} />} />
             <Route path="/banners/add" element={<AddBanner initialData={editingBanner} onBack={() => navigate("/admin/banners")} onPublish={handlePublishBanner} />} />
+
+            {/* TopBar Announcement */}
+            <Route path="/topbar" element={<TopBarSettings />} />
 
             {/* Settings */}
             <Route path="/store" element={<StoreInfo />} />

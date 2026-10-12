@@ -33,7 +33,7 @@ export default function LoginPage() {
     try {
       await authService.signInWithGoogleFirebase();
       showToast("Google login successful!", "success");
-      setTimeout(() => navigate("/profile"), 1000);
+      setTimeout(() => navigate("/"), 1000);
     } catch (error) {
       console.error("Google login error:", error);
       if (error?.code === "auth/popup-closed-by-user") {
@@ -117,7 +117,7 @@ export default function LoginPage() {
     try {
       await authService.verifyPhoneOtpFirebase(confirmationResult, phoneOtp);
       showToast("Phone login successful!", "success");
-      setTimeout(() => navigate("/profile"), 1000);
+      setTimeout(() => navigate("/"), 1000);
     } catch (err) {
       console.error("Phone OTP verify error:", err);
       showToast(err.message || "Invalid OTP code. Please check and retry.", "error");

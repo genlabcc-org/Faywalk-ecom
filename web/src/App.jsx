@@ -21,6 +21,7 @@ import ProductDetailsPage from "./pages/ProductDetailsPage";
 import TermsPage from './pages/TermsPage';
 import PrivacyPage from './pages/PrivacyPage';
 import ContactPage from './pages/ContactPage';
+import NotFoundPage from './pages/NotFoundPage';
 
 import AdminRoute from "./components/AdminRoute";
 import Dashboard from "./admin/pages/Dashboard";
@@ -28,12 +29,23 @@ import Dashboard from "./admin/pages/Dashboard";
 import { getNavPath } from "./services/categoryRoute";
 
 
-// Scrolls to top on every route change
+// Scrolls to top on every route change, or scrolls to hash element if specified
 function ScrollToTop() {
-  const { pathname } = useLocation();
+  const { pathname, hash } = useLocation();
   useEffect(() => {
-    window.scrollTo(0, 0);
-  }, [pathname]);
+    if (hash) {
+      const id = hash.replace('#', '');
+      const timer = setTimeout(() => {
+        const el = document.getElementById(id);
+        if (el) {
+          el.scrollIntoView({ behavior: 'smooth' });
+        }
+      }, 150);
+      return () => clearTimeout(timer);
+    } else {
+      window.scrollTo(0, 0);
+    }
+  }, [pathname, hash]);
   return null;
 }
 
@@ -51,6 +63,16 @@ function CategoryBySlug(){
 
   const rawSlug = decodeURIComponent(slug || '');
   const normalizedSlug = rawSlug.toLowerCase().trim().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '');
+
+  if (normalizedSlug === 'new-arrivals') {
+    return <Navigate to="/#new-arrivals" replace />;
+  }
+  if (normalizedSlug === 'best-sellers') {
+    return <Navigate to="/#best-sellers" replace />;
+  }
+  if (normalizedSlug === 'all' || normalizedSlug === 'all-products' || normalizedSlug === 'products') {
+    return <ProductPage category="All Products" />;
+  }
 
   const match = categories.find(
     c => c.slug === slug ||
@@ -81,11 +103,7 @@ function CategoryBySlug(){
     return <ProductPage category={defaultNames[normalizedSlug]} />;
   }
 
-  return (
-    <div style={{ padding: '80px 20px', textAlign: 'center' }}>
-      <h2>Page not found</h2>
-    </div>
-  );
+  return <NotFoundPage />;
 }
 
 function App() {
@@ -107,6 +125,9 @@ function App() {
           path="/product"
           element={<ProductDetailsPage />}
         />
+        <Route path="/all-products" element={<ProductPage category="All Products" />} />
+        <Route path="/products" element={<ProductPage category="All Products" />} />
+        <Route path="/category/all" element={<ProductPage category="All Products" />} />
         <Route path="/rings" element={<ProductPage category="Rings" />} />
         <Route path="/toe-rings" element={<ProductPage category="Toe Rings" />} />
         <Route path="/earrings" element={<ProductPage category="Earrings" />} />
@@ -149,6 +170,9 @@ function App() {
             <Dashboard />
           </AdminRoute>
         } />
+
+        {/* Catch-all 404 Page */}
+        <Route path="*" element={<NotFoundPage />} />
       </Routes>
     </BrowserRouter>
   );

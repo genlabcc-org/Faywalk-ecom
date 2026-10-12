@@ -1,5 +1,5 @@
 .topbar {
-  background-color: #002277; /* Deep vibrant navy blue matching the reference screenshot */
+  background-color: var(--blue-primary); /* Deep vibrant navy blue */
   color: #ffffff;
   padding: 8px 16px;
   width: 100%;
@@ -17,12 +17,26 @@
 }
 
 .topbar-text {
-  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  font-family: var(--font-body);
   font-size: 13.5px;
   font-weight: 600;
   letter-spacing: 0.25px;
   color: #ffffff;
   line-height: 1.4;
+}
+
+.topbar-link {
+  color: inherit;
+  text-decoration: none;
+  display: inline-flex;
+  align-items: center;
+  cursor: pointer;
+  transition: opacity 0.2s ease, text-decoration 0.2s ease;
+}
+
+.topbar-link:hover {
+  text-decoration: underline;
+  opacity: 0.95;
 }
 
 @media (max-width: 768px) {
