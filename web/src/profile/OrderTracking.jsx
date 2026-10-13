@@ -5,6 +5,7 @@ import { orderService } from "../services/orderService";
 import { useStore } from "../hooks/useStore";
 import Navbar from "../components/SiteHeader";
 import Footer from "../components/SiteFooter";
+import { getColorName } from "../utils/colorUtils";
 import "./OrderTracking.css";
 
 export default function OrderTracking() {
@@ -411,7 +412,7 @@ export default function OrderTracking() {
             </div>
           ) : !order ? (
             <div className="track-not-found-card">
-              <svg width="56" height="56" viewBox="0 0 24 24" fill="none" stroke="#C42049" strokeWidth="1.5">
+              <svg width="56" height="56" viewBox="0 0 24 24" fill="none" stroke="var(--blue-primary, #002277)" strokeWidth="1.5">
                 <circle cx="12" cy="12" r="10" />
                 <line x1="12" y1="8" x2="12" y2="12" />
                 <line x1="12" y1="16" x2="12.01" y2="16" />
@@ -462,10 +463,9 @@ export default function OrderTracking() {
                     const isDeliveryCancelled = statusStr === "Cancelled";
                     const isNDR = statusStr.toUpperCase().startsWith("NDR");
 
-                    const boxBg = isDeliveryCancelled ? "#fef2f2" : isNDR ? "#fffbeb" : "#f8fafc";
-                    const boxBorder = isDeliveryCancelled ? "#fecaca" : isNDR ? "#fde68a" : "#e2e8f0";
-                    const textColor = isDeliveryCancelled ? "#991b1b" : isNDR ? "#92400e" : "#334155";
-                    const statusColor = isDeliveryCancelled ? "#dc2626" : isNDR ? "#d97706" : "#0f766e";
+                    const boxBg = isDeliveryCancelled ? "#fef2f2" : isNDR ? "#fffbeb" : "#f8f9fa";
+                    const textColor = isDeliveryCancelled ? "#991b1b" : isNDR ? "#92400e" : "#1e293b";
+                    const statusColor = isDeliveryCancelled ? "#dc2626" : isNDR ? "#d97706" : "var(--blue-primary, #002277)";
 
                     return (
                       <div
@@ -473,8 +473,8 @@ export default function OrderTracking() {
                           marginTop: "16px",
                           padding: "14px 18px",
                           background: boxBg,
-                          border: `1px solid ${boxBorder}`,
-                          borderRadius: "8px",
+                          border: "none",
+                          borderRadius: "10px",
                           display: "flex",
                           justifyContent: "space-between",
                           alignItems: "center",
@@ -641,7 +641,7 @@ export default function OrderTracking() {
                               className="track-img-placeholder"
                               style={{ display: item.image_url ? "none" : "flex" }}
                             >
-                              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#C42049" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
+                              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="var(--blue-primary, #002277)" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
                                 <path d="M6 3h12l4 6-10 13L2 9z" />
                                 <path d="M11 3 8 9l4 13 4-13-3-6" />
                                 <path d="M2 9h20" />
@@ -662,7 +662,32 @@ export default function OrderTracking() {
                               {(item.size || item.color) && (
                                 <span>
                                   {item.size && ` · Size: ${item.size}`}
-                                  {item.color && ` · Color: ${item.color}`}
+                                  {item.color && (
+                                    <>
+                                      {' · Color: '}
+                                      <span
+                                        style={{
+                                          display: 'inline-flex',
+                                          alignItems: 'center',
+                                          gap: '5px',
+                                          verticalAlign: 'middle',
+                                        }}
+                                      >
+                                        <span
+                                          style={{
+                                            display: 'inline-block',
+                                            width: '10px',
+                                            height: '10px',
+                                            borderRadius: '50%',
+                                            backgroundColor: item.color,
+                                            border: '1px solid rgba(0,0,0,0.15)',
+                                            flexShrink: 0,
+                                          }}
+                                        />
+                                        <span>{getColorName(item.color)}</span>
+                                      </span>
+                                    </>
+                                  )}
                                 </span>
                               )}
                             </div>

@@ -1,8 +1,9 @@
-/* ── ORDER HISTORY CARD ───────────────────────────────────── */
+/* ── ORDER HISTORY CONTAINER ────────────────────────────────── */
 .ao-card {
-  background-color: #f8f9fa;
+  background-color: #ffffff;
+  border: none;
   border-radius: 16px;
-  padding: 32px 36px;
+  padding: 24px 28px;
   box-sizing: border-box;
 }
 
@@ -10,25 +11,27 @@
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 24px;
+  padding-bottom: 18px;
+  margin-bottom: 20px;
+  border-bottom: 1px solid #f3f4f6;
 }
 
 .ao-card-title {
   font-family: 'Outfit', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-  font-size: 26px;
+  font-size: 22px;
   font-weight: 700;
   color: #111827;
-  letter-spacing: -0.3px;
+  letter-spacing: -0.01em;
   margin: 0;
 }
 
 .ao-order-count {
   font-family: 'Outfit', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-  font-size: 13px;
+  font-size: 12px;
   font-weight: 600;
-  color: #4b5563;
-  background-color: #e5e7eb;
-  padding: 4px 14px;
+  color: var(--blue-primary, #002277);
+  background-color: #eff6ff;
+  padding: 3px 12px;
   border-radius: 9999px;
 }
 
@@ -38,26 +41,26 @@
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  padding: 48px 24px;
+  padding: 56px 24px;
   text-align: center;
 }
 
 .ao-empty-icon-wrap {
-  width: 72px;
-  height: 72px;
+  width: 60px;
+  height: 60px;
   border-radius: 50%;
-  background-color: #ffffff;
+  background-color: #f3f4f6;
+  border: none;
   display: flex;
   align-items: center;
   justify-content: center;
   margin-bottom: 16px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
 }
 
 .ao-empty-title {
   font-family: 'Outfit', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
   font-size: 17px;
-  font-weight: 700;
+  font-weight: 600;
   color: #111827;
   margin: 0 0 6px 0;
 }
@@ -70,20 +73,21 @@
 }
 
 .ao-empty-btn {
-  background-color: #000000;
+  background-color: var(--blue-primary, #002277);
   color: #ffffff;
   border: none;
-  border-radius: 9999px;
-  padding: 11px 28px;
+  border-radius: 8px;
+  padding: 10px 24px;
   font-family: 'Outfit', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-  font-size: 13.5px;
+  font-size: 13px;
   font-weight: 600;
   cursor: pointer;
-  transition: opacity 0.15s ease;
+  transition: opacity 0.15s ease, background-color 0.15s ease;
 }
 
 .ao-empty-btn:hover {
-  opacity: 0.85;
+  opacity: 0.9;
+  background-color: #001a5e;
 }
 
 /* ── ORDER ITEMS LIST ─────────────────────────────────────── */
@@ -93,23 +97,23 @@
   gap: 14px;
 }
 
+/* Minimal Order Block - Soft minimal bg color, NO border lines */
 .ao-order-block {
-  background-color: #ffffff;
-  border: 1px solid #eef0f3;
-  border-radius: 14px;
+  background-color: #f8f9fa;
+  border: none;
+  border-radius: 12px;
   padding: 18px 22px;
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: 14px;
   cursor: pointer;
-  transition: all 0.15s ease;
   box-sizing: border-box;
+  transition: background-color 0.15s ease;
 }
 
+/* Minimal hover - gentle background shift only, no transform, no borders */
 .ao-order-block:hover {
-  border-color: #cbd5e1;
-  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.04);
-  transform: translateY(-1px);
+  background-color: #f1f3f5;
 }
 
 /* Top line */
@@ -150,7 +154,7 @@
 .ao-order-price {
   font-family: 'Outfit', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
   font-weight: 700;
-  color: #111827;
+  color: var(--blue-primary, #002277);
   font-size: 15px;
   flex-shrink: 0;
 }
@@ -159,15 +163,15 @@
 .ao-order-items-row {
   display: flex;
   align-items: center;
-  gap: 14px;
+  gap: 12px;
   width: 100%;
 }
 
 .ao-order-thumbs {
   display: flex;
   align-items: center;
+  gap: 8px;
   flex-shrink: 0;
-  position: relative;
 }
 
 .ao-order-thumb-wrap {
@@ -175,9 +179,8 @@
   height: 44px;
   border-radius: 8px;
   overflow: hidden;
-  border: 2px solid #ffffff;
-  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.1);
-  background: #f4f4f5;
+  border: none;
+  background: #ffffff;
   flex-shrink: 0;
 }
 
@@ -192,14 +195,13 @@
   min-width: 0;
   font-family: 'Outfit', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
   font-size: 13.5px;
-  font-weight: 500;
   color: #374151;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
-/* Shipment tracking box */
+/* Shipment tracking box - Clean card inside minimal block, NO borders */
 .ao-shipment-bar {
   display: flex;
   align-items: center;
@@ -207,32 +209,30 @@
   border-radius: 8px;
   padding: 8px 14px;
   font-family: 'Outfit', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-  font-size: 12.5px;
+  font-size: 12px;
   flex-wrap: wrap;
   gap: 8px;
+  border: none;
+  background-color: #ffffff;
 }
 
 .ao-shipment-bar--active {
-  background-color: #f8fafc;
-  border: 1px solid #e2e8f0;
+  background-color: #ffffff;
   color: #475569;
 }
 
 .ao-shipment-bar--delivered {
   background-color: #f0fdf4;
-  border: 1px solid #bbf7d0;
   color: #166534;
 }
 
 .ao-shipment-bar--cancelled {
   background-color: #fef2f2;
-  border: 1px solid #fecaca;
   color: #991b1b;
 }
 
 .ao-shipment-bar--ndr {
   background-color: #fffbeb;
-  border: 1px solid #fde68a;
   color: #92400e;
 }
 
@@ -244,15 +244,16 @@
 }
 
 .ao-shipment-dot {
-  opacity: 0.5;
+  opacity: 0.4;
 }
 
 .ao-shipment-badge {
   display: inline-block;
   padding: 2px 8px;
-  border-radius: 9999px;
+  border-radius: 4px;
   font-size: 11px;
   font-weight: 600;
+  border: none;
 }
 
 .ao-shipment-badge--active {
@@ -263,7 +264,6 @@
 .ao-shipment-badge--delivered {
   background-color: #dcfce7;
   color: #15803d;
-  border: 1px solid #bbf7d0;
 }
 
 .ao-shipment-badge--cancelled {
@@ -277,11 +277,10 @@
 }
 
 .ao-shipment-track-link {
-  color: var(--blue-primary);
+  color: var(--blue-primary, #002277);
   font-weight: 600;
   text-decoration: none;
   font-size: 12px;
-  transition: opacity 0.15s ease;
 }
 
 .ao-shipment-track-link:hover {
@@ -295,36 +294,33 @@
   align-items: center;
   gap: 12px;
   width: 100%;
-  padding-top: 4px;
 }
 
-/* Status Badges */
+/* Status Badges - Borderless, soft pastel pills */
 .ao-status-badge {
   font-family: 'Outfit', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
   font-size: 12px;
   font-weight: 600;
-  padding: 4px 12px;
-  border-radius: 9999px;
-  letter-spacing: 0.1px;
+  padding: 4px 10px;
+  border-radius: 6px;
+  border: none;
 }
 
 .ao-status-badge--delivered {
   background-color: #dcfce7;
   color: #15803d;
-  border: 1px solid #bbf7d0;
 }
 
 .ao-status-badge--shipped {
-  background-color: #e0e7ff;
-  color: #3730a3;
-  border: 1px solid #c7d2fe;
+  background-color: #dbeafe;
+  color: var(--blue-primary, #002277);
 }
 
 .ao-status-badge--pending,
-.ao-status-badge--confirmed {
+.ao-status-badge--confirmed,
+.ao-status-badge--order-placed {
   background-color: #fef3c7;
   color: #b45309;
-  border: 1px solid #fde68a;
 }
 
 .ao-status-badge--cancelled,
@@ -332,17 +328,15 @@
 .ao-status-badge--return {
   background-color: #fee2e2;
   color: #dc2626;
-  border: 1px solid #fecaca;
 }
 
 .ao-status-badge--refund-completed,
 .ao-status-badge--refund\ completed {
-  background-color: #ecfdf5;
+  background-color: #d1fae5;
   color: #047857;
-  border: 1px solid #a7f3d0;
 }
 
-/* Action buttons */
+/* Action buttons - Clean and minimal */
 .ao-order-actions {
   display: flex;
   align-items: center;
@@ -354,22 +348,22 @@
   align-items: center;
   gap: 5px;
   background-color: #ffffff;
-  color: #1f2937;
-  border: 1px solid #d1d5db;
-  border-radius: 9999px;
+  color: #374151;
+  border: none;
+  border-radius: 6px;
   padding: 6px 14px;
   font-family: 'Outfit', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
   font-size: 12.5px;
-  font-weight: 600;
+  font-weight: 500;
   cursor: pointer;
   height: 32px;
   box-sizing: border-box;
-  transition: background-color 0.15s ease, border-color 0.15s ease;
+  transition: background-color 0.15s ease, color 0.15s ease;
 }
 
 .ao-invoice-btn:hover {
-  background-color: #f3f4f6;
-  border-color: #9ca3af;
+  background-color: #e5e7eb;
+  color: #111827;
 }
 
 .ao-btn-icon {
@@ -385,13 +379,13 @@
   align-items: center;
   justify-content: center;
   background-color: #fee2e2;
-  color: #ef4444;
+  color: #dc2626;
   border: none;
-  border-radius: 9999px;
+  border-radius: 6px;
   padding: 6px 14px;
   font-family: 'Outfit', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
   font-size: 12.5px;
-  font-weight: 600;
+  font-weight: 500;
   cursor: pointer;
   height: 32px;
   box-sizing: border-box;
@@ -399,7 +393,7 @@
 }
 
 .ao-cancel-btn:hover:not(:disabled) {
-  background-color: #fecaca;
+  background-color: #fca5a5;
 }
 
 .ao-cancel-btn:disabled {
@@ -407,25 +401,27 @@
   cursor: not-allowed;
 }
 
+/* Track Button - Primary Theme Blue */
 .ao-track-btn {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  background-color: var(--blue-primary);
+  background-color: var(--blue-primary, #002277);
   color: #ffffff;
   border: none;
-  border-radius: 9999px;
+  border-radius: 6px;
   padding: 6px 16px;
-  font-family: var(--font-body);
+  font-family: 'Outfit', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
   font-size: 12.5px;
   font-weight: 600;
   cursor: pointer;
   height: 32px;
   box-sizing: border-box;
-  transition: background-color 0.15s ease;
+  transition: opacity 0.15s ease, background-color 0.15s ease;
 }
 
 .ao-track-btn:hover {
+  opacity: 0.9;
   background-color: #001a5e;
 }
 
@@ -437,66 +433,67 @@
 }
 
 .ao-show-more-btn {
-  background-color: #000000;
+  background-color: var(--blue-primary, #002277);
   color: #ffffff;
   border: none;
-  border-radius: 9999px;
-  padding: 12px 32px;
+  border-radius: 8px;
+  padding: 10px 28px;
   font-family: 'Outfit', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-  font-size: 13.5px;
+  font-size: 13px;
   font-weight: 600;
   cursor: pointer;
-  transition: opacity 0.15s ease;
+  transition: opacity 0.15s ease, background-color 0.15s ease;
 }
 
 .ao-show-more-btn:hover {
-  opacity: 0.85;
+  opacity: 0.9;
+  background-color: #001a5e;
 }
 
 /* ── INVOICE MODAL ────────────────────────────────────────── */
 .inv__modal-overlay {
   position: fixed;
   inset: 0;
-  background: rgba(0, 0, 0, 0.55);
+  background: rgba(0, 0, 0, 0.45);
   display: flex;
   align-items: center;
   justify-content: center;
   z-index: 1000;
   padding: 16px;
-  backdrop-filter: blur(2px);
 }
 
 .inv__modal-content {
   background: #ffffff;
-  border-radius: 16px;
-  max-width: 540px;
+  border-radius: 12px;
+  max-width: 520px;
   width: 100%;
   max-height: 90vh;
   display: flex;
   flex-direction: column;
   overflow: hidden;
-  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.2);
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.12);
+  border: none;
 }
 
 .inv__modal-header {
   display: flex;
   justify-content: space-between;
   align-items: flex-start;
-  padding: 20px 24px;
-  border-bottom: 1px solid #e5e7eb;
+  padding: 18px 22px;
+  border-bottom: 1px solid #f3f4f6;
 }
 
 .inv__modal-title {
   font-family: 'Outfit', sans-serif;
-  font-size: 18px;
-  font-weight: 700;
+  font-size: 17px;
+  font-weight: 600;
   color: #111827;
   margin: 0;
 }
 
 .inv__modal-subtitle {
   font-family: 'Outfit', sans-serif;
-  font-size: 12.5px;
+  font-size: 12px;
   color: #6b7280;
   margin: 4px 0 0 0;
 }
@@ -504,7 +501,7 @@
 .inv__modal-close {
   background: transparent;
   border: none;
-  font-size: 18px;
+  font-size: 16px;
   color: #9ca3af;
   cursor: pointer;
   padding: 4px;
@@ -516,7 +513,7 @@
 }
 
 .inv__modal-body {
-  padding: 20px 24px;
+  padding: 20px 22px;
   overflow-y: auto;
   flex: 1;
 }
@@ -524,21 +521,22 @@
 .inv__modal-footer {
   display: flex;
   justify-content: flex-end;
-  gap: 12px;
-  padding: 16px 24px;
-  border-top: 1px solid #e5e7eb;
+  gap: 10px;
+  padding: 14px 22px;
+  border-top: 1px solid #f3f4f6;
 }
 
 .inv__modal-close-btn {
   background: #f3f4f6;
-  border: 1px solid #d1d5db;
-  border-radius: 8px;
-  padding: 8px 18px;
+  border: none;
+  border-radius: 6px;
+  padding: 8px 16px;
   font-family: 'Outfit', sans-serif;
-  font-size: 13px;
+  font-size: 12.5px;
   font-weight: 500;
   color: #374151;
   cursor: pointer;
+  transition: background-color 0.15s ease;
 }
 
 .inv__modal-close-btn:hover {
@@ -546,43 +544,44 @@
 }
 
 .inv__modal-print-btn {
-  background: var(--blue-primary);
+  background: var(--blue-primary, #002277);
   color: #ffffff;
   border: none;
-  border-radius: 8px;
-  padding: 8px 20px;
-  font-family: var(--font-body);
-  font-size: 13px;
+  border-radius: 6px;
+  padding: 8px 18px;
+  font-family: 'Outfit', sans-serif;
+  font-size: 12.5px;
   font-weight: 600;
   cursor: pointer;
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  transition: background-color 0.15s ease;
+  transition: opacity 0.15s ease, background-color 0.15s ease;
 }
 
 .inv__modal-print-btn:hover {
-  background: #001a5e;
+  opacity: 0.9;
+  background-color: #001a5e;
 }
 
 /* ── RESPONSIVE ───────────────────────────────────────────── */
 @media (max-width: 768px) {
   .ao-card {
-    padding: 24px 18px;
+    padding: 18px 16px;
   }
 
   .ao-card-title {
-    font-size: 22px;
+    font-size: 19px;
   }
 
   .ao-order-block {
-    padding: 16px 14px;
+    padding: 14px 16px;
   }
 
   .ao-order-bottom {
     flex-direction: column;
     align-items: flex-start;
-    gap: 12px;
+    gap: 10px;
   }
 
   .ao-order-actions {

@@ -1,10 +1,12 @@
 import { supabase } from '../lib/supabase';
+import { getColorName } from '../utils/colorUtils';
 
-const ADMIN_EMAIL = 'jeyareshd@gmail.com';
+const ADMIN_EMAIL = 'faywalkvibee@gmail.com';
+const BREVO_KEY = import.meta.env.VITE_BREVO_API_KEY || '';
 
 export const emailService = {
   /**
-   * Sends a minimal, professional order notification email in ONE single container box to jeyareshd@gmail.com.
+   * Sends a minimal, professional order notification email to faywalkvibee@gmail.com via Brevo.
    * @param {Object} orderData
    * @returns {Promise<boolean>}
    */
@@ -25,8 +27,8 @@ export const emailService = {
       } = orderData;
 
       // Format shipping address line
-      const formattedAddress = typeof address === 'string' 
-        ? address 
+      const formattedAddress = typeof address === 'string'
+        ? address
         : [
             address.name || customerName,
             address.mobile ? `Phone: ${address.mobile}` : null,
@@ -47,26 +49,28 @@ export const emailService = {
         .filter((val, i, self) => self.indexOf(val) === i)
         .join(', ');
 
-      // Format minimal item breakdown without SKU and line total (since SKU and Grand Total have dedicated rows)
+      // Format minimal item breakdown with friendly color names
       const itemsListFormatted = items.map((item, idx) => {
         const name = item.product_name || item.name || 'Product';
         const qty = item.quantity || item.qty || 1;
         const price = item.price || 0;
+        const colorLabel = item.color ? getColorName(item.color) : null;
         const specs = [
           item.size ? `Size: ${item.size}` : null,
-          item.color ? `Color: ${item.color}` : null
+          colorLabel ? `Color: ${colorLabel}` : null
         ].filter(Boolean).join(' | ');
 
-        return `[${idx + 1}] ${name}${specs ? ` (${specs})` : ''}\n    • Quantity: ${qty}\n    • Unit Price: ₹${price.toLocaleString('en-IN')}`;
+        return `[${idx + 1}] ${name}${specs ? ` (${specs})` : ''}\n    • Quantity: ${qty}\n    • Unit Price: ₹${Number(price).toLocaleString('en-IN')}`;
       }).join('\n\n');
 
-      const subject = `[Faywalk] Order Notification #${orderId}`;
+      const subject = `🛍️ [Faywalk] New Order #${orderId} (${paymentMethod}) - ₹${Number(totalPrice).toLocaleString('en-IN')}`;
 
-      // 1. Try sending via Supabase Edge Function if available
+      // 1. Try sending via Supabase Edge Function (send-order-email)
       try {
-        const { error: fnError } = await supabase.functions.invoke('send-order-email', {
+        const { data: fnData, error: fnError } = await supabase.functions.invoke('send-order-email', {
           body: {
             adminEmail: ADMIN_EMAIL,
+            brevoApiKey: BREVO_KEY,
             orderId,
             customerName,
             customerEmail,
@@ -83,15 +87,128 @@ export const emailService = {
             shippingFee,
           },
         });
-        if (!fnError) {
-          console.log('Order notification email sent via Supabase Edge Function.');
+
+        if (!fnError && fnData?.success) {
+          console.log(`[emailService] Order notification sent via Edge Function (${fnData.provider || 'brevo'}).`);
           return true;
         }
+        if (fnError) {
+          console.warn('[emailService] Edge function invoke error:', fnError);
+        }
       } catch (e) {
-        // Fall through to HTTP dispatch fallback
+        console.warn('[emailService] Edge function attempt failed:', e);
       }
 
-      // 2. Minimal, professional email template dispatch via FormSubmit (Single Unified Box Table)
+      // 2. Direct Brevo API Call fallback
+      if (BREVO_KEY) {
+        try {
+          const itemsRowsHtml = items.map((it, idx) => {
+            const name = it.product_name || it.name || 'Product';
+            const qty = it.quantity || it.qty || 1;
+            const price = Number(it.price) || 0;
+            const lineTotal = price * qty;
+            const colorLabel = it.color ? getColorName(it.color) : null;
+            const variant = [
+              it.size ? `Size: ${it.size}` : null,
+              colorLabel ? `Color: ${colorLabel}` : null,
+            ].filter(Boolean).join(' · ');
+
+            return `
+              <tr style="border-bottom: 1px solid #f1f3f5;">
+                <td style="padding: 10px 8px; font-size: 13px; color: #111827; font-weight: 600;">
+                  <div>${idx + 1}. ${name}</div>
+                  ${variant ? `<div style="font-size: 11.5px; color: #6b7280; font-weight: 400; margin-top: 2px;">${variant}</div>` : ''}
+                </td>
+                <td style="padding: 10px 8px; font-size: 13px; color: #4b5563; text-align: center;">${qty}</td>
+                <td style="padding: 10px 8px; font-size: 13px; color: #4b5563; text-align: right;">₹${price.toLocaleString('en-IN')}</td>
+                <td style="padding: 10px 8px; font-size: 13px; color: #002277; font-weight: 700; text-align: right;">₹${lineTotal.toLocaleString('en-IN')}</td>
+              </tr>
+            `;
+          }).join('');
+
+          const htmlContent = `
+            <!DOCTYPE html>
+            <html>
+            <body style="margin: 0; padding: 20px; background-color: #f8f9fa; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; color: #111827;">
+              <div style="max-width: 600px; margin: 0 auto; background-color: #ffffff; border-radius: 12px; overflow: hidden; box-shadow: 0 2px 8px rgba(0,0,0,0.04);">
+                <div style="background-color: #002277; padding: 22px; text-align: center; color: #ffffff;">
+                  <h1 style="margin: 0; font-size: 22px;">FAYWALK</h1>
+                  <p style="margin: 4px 0 0; font-size: 13px; opacity: 0.9;">New Order #${orderId}</p>
+                </div>
+                <div style="padding: 24px;">
+                  <div style="background-color: #eff6ff; padding: 12px 16px; border-radius: 8px; margin-bottom: 18px; font-size: 13px; color: #1e40af;">
+                    <strong>Total: ₹${Number(totalPrice).toLocaleString('en-IN')}</strong> · Payment: <strong>${paymentMethod}</strong>
+                  </div>
+                  <div style="background-color: #f8f9fa; padding: 14px; border-radius: 8px; margin-bottom: 18px; font-size: 13px;">
+                    <div style="font-weight: 700; margin-bottom: 6px;">Customer Information:</div>
+                    <div><strong>Name:</strong> ${customerName}</div>
+                    <div><strong>Phone:</strong> ${customerPhone}</div>
+                    <div><strong>Email:</strong> ${customerEmail}</div>
+                    <div style="margin-top: 6px;"><strong>Delivery Address:</strong> ${formattedAddress}</div>
+                  </div>
+                  <table style="width: 100%; border-collapse: collapse; margin-bottom: 18px;">
+                    <thead>
+                      <tr style="background-color: #f1f3f5; border-bottom: 2px solid #e5e7eb;">
+                        <th style="padding: 8px; font-size: 12px; text-align: left;">Item</th>
+                        <th style="padding: 8px; font-size: 12px; text-align: center;">Qty</th>
+                        <th style="padding: 8px; font-size: 12px; text-align: right;">Price</th>
+                        <th style="padding: 8px; font-size: 12px; text-align: right;">Total</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      ${itemsRowsHtml}
+                    </tbody>
+                  </table>
+                  <div style="text-align: right; font-size: 14px; font-weight: 700; color: #002277; padding-top: 10px; border-top: 1px solid #e5e7eb;">
+                    Grand Total: ₹${Number(totalPrice).toLocaleString('en-IN')}
+                  </div>
+                </div>
+              </div>
+            </body>
+            </html>
+          `;
+
+          const brevoRes = await fetch('https://api.brevo.com/v3/smtp/email', {
+            method: 'POST',
+            headers: {
+              'api-key': BREVO_KEY,
+              'Content-Type': 'application/json',
+              'Accept': 'application/json',
+            },
+            body: JSON.stringify({
+              sender: {
+                name: 'Faywalk',
+                email: 'faywalkvibee@gmail.com',
+              },
+              to: [
+                {
+                  email: ADMIN_EMAIL,
+                  name: 'Faywalk Admin',
+                },
+              ],
+              replyTo: {
+                email: customerEmail && customerEmail !== 'N/A' ? customerEmail : 'faywalkvibee@gmail.com',
+                name: customerName,
+              },
+              subject,
+              htmlContent,
+            }),
+          });
+
+          if (brevoRes.ok) {
+            console.log(`[emailService] Order email sent directly via Brevo for #${orderId}`);
+            return true;
+          } else {
+            const brevoErr = await brevoRes.json().catch(() => ({}));
+            console.warn('[emailService] Direct Brevo response error:', brevoErr);
+          }
+        } catch (err) {
+          console.warn('[emailService] Direct Brevo attempt error:', err);
+        }
+      }
+
+      // 3. Fallback to FormSubmit
+      console.log(`[emailService] Using FormSubmit fallback for order #${orderId}...`);
       const formSubmitPayload = {
         _subject: subject,
         _template: 'table',
@@ -105,10 +222,10 @@ export const emailService = {
         'SKU': skuList || 'N/A',
         'Category': categoryList || 'N/A',
         'Order Breakdown': itemsListFormatted || 'N/A',
-        'Subtotal': `₹${subtotal.toLocaleString('en-IN')}`,
-        'Discount': discount > 0 ? `-₹${discount.toLocaleString('en-IN')}` : '₹0',
-        'Shipping': shippingFee > 0 ? `₹${shippingFee.toLocaleString('en-IN')}` : 'Free',
-        'Total Amount': `₹${totalPrice.toLocaleString('en-IN')}`,
+        'Subtotal': `₹${Number(subtotal).toLocaleString('en-IN')}`,
+        'Discount': discount > 0 ? `-₹${Number(discount).toLocaleString('en-IN')}` : '₹0',
+        'Shipping': shippingFee > 0 ? `₹${Number(shippingFee).toLocaleString('en-IN')}` : 'Free',
+        'Total Amount': `₹${Number(totalPrice).toLocaleString('en-IN')}`,
       };
 
       const response = await fetch(`https://formsubmit.co/ajax/${ADMIN_EMAIL}`, {
@@ -121,14 +238,11 @@ export const emailService = {
       });
 
       if (response.ok) {
-        console.log('Minimal order notification email dispatched to', ADMIN_EMAIL);
+        console.log('[emailService] FormSubmit fallback email dispatched to', ADMIN_EMAIL);
         return true;
-      } else {
-        const errText = await response.text();
-        console.warn('FormSubmit email response not OK:', errText);
       }
     } catch (err) {
-      console.error('Failed to send order notification email:', err);
+      console.error('[emailService] Failed to send order notification email:', err);
     }
     return false;
   },

@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { orderService } from "../../services/orderService";
 import { supabase } from "../../lib/supabase";
 import { useStore } from "../../hooks/useStore";
+import { getColorName } from "../../utils/colorUtils";
 import "./Customerdetails.css";
 
 const RingProductImage = () => (
@@ -411,9 +412,34 @@ const CustomerDetails = ({ customer, onBack }) => {
                                 <span style={{ fontSize: '10px', color: '#8b0030', fontWeight: 'normal', flexShrink: 0 }}>(View)</span>
                               )}
                             </div>
-                            <div style={{ fontSize: '11px', color: '#888', marginTop: '2px' }}>
-                              Qty: {item.quantity} 
-                              {(item.size || item.color) && ` · Size: ${item.size || 'N/A'} · Color: ${item.color || 'N/A'}`}
+                            <div style={{ fontSize: '11px', color: '#888', marginTop: '2px', display: 'flex', alignItems: 'center', gap: '5px', flexWrap: 'wrap' }}>
+                              <span>Qty: {item.quantity}</span>
+                              {item.size && (
+                                <>
+                                  <span>·</span>
+                                  <span>Size: {item.size}</span>
+                                </>
+                              )}
+                              {item.color && (
+                                <>
+                                  <span>·</span>
+                                  <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+                                    Color:
+                                    <span
+                                      style={{
+                                        display: 'inline-block',
+                                        width: '9px',
+                                        height: '9px',
+                                        borderRadius: '50%',
+                                        backgroundColor: item.color,
+                                        border: '1px solid rgba(0,0,0,0.15)',
+                                        flexShrink: 0
+                                      }}
+                                    />
+                                    <span>{getColorName(item.color)}</span>
+                                  </span>
+                                </>
+                              )}
                             </div>
                           </div>
                           <div style={{ fontSize: '12.5px', fontWeight: '600', color: 'var(--cd-text-primary)', textAlign: 'right' }}>

@@ -238,10 +238,6 @@ export default function Orders() {
                           <div
                             key={imgIdx}
                             className="ao-order-thumb-wrap"
-                            style={{
-                              marginLeft: imgIdx > 0 ? '-14px' : '0',
-                              zIndex: 3 - imgIdx,
-                            }}
                           >
                             <img
                               src={image}

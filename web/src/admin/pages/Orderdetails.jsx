@@ -8,6 +8,7 @@ import { icarryService } from "../../services/icarryService";
 import { useStore } from "../../hooks/useStore";
 import Toast from "../../components/Toast";
 import ThermalInvoice from "../components/ThermalInvoice";
+import { getColorName } from "../../utils/colorUtils";
 import "./Orderdetails.css";
 
 const STATUS_CONFIG = {
@@ -612,9 +613,36 @@ const OrderDetails = ({ order, onBack }) => {
                       </span>
                     )}
                   </div>
-                  <div className="od__item-sku" style={{ color: '#888', fontSize: '12.5px', marginTop: '4px' }}>
-                    Order Ref: #{o.id?.slice(-8) || o.id} &nbsp;·&nbsp; Qty: {item.quantity || 1}
-                    {(item.size || item.color) && ` · Size: ${item.size || 'N/A'} · Color: ${item.color || 'N/A'}`}
+                  <div className="od__item-sku" style={{ color: '#888', fontSize: '12.5px', marginTop: '4px', display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap' }}>
+                    <span>Order Ref: #{o.id?.slice(-8) || o.id}</span>
+                    <span>·</span>
+                    <span>Qty: {item.quantity || 1}</span>
+                    {item.size && (
+                      <>
+                        <span>·</span>
+                        <span>Size: {item.size}</span>
+                      </>
+                    )}
+                    {item.color && (
+                      <>
+                        <span>·</span>
+                        <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+                          Color:
+                          <span
+                            style={{
+                              display: 'inline-block',
+                              width: '10px',
+                              height: '10px',
+                              borderRadius: '50%',
+                              backgroundColor: item.color,
+                              border: '1px solid rgba(0,0,0,0.15)',
+                              flexShrink: 0
+                            }}
+                          />
+                          <span>{getColorName(item.color)}</span>
+                        </span>
+                      </>
+                    )}
                   </div>
                 </div>
                 <div className="od__item-price" style={{ fontWeight: '600' }}>
@@ -761,11 +789,11 @@ const OrderDetails = ({ order, onBack }) => {
                   onClick={handlePrintLabel}
                   disabled={loadingLabel}
                   style={{
-                    backgroundColor: '#fff',
-                    color: '#1c1c1e',
-                    border: '1px solid #d4d4d8',
-                    borderRadius: '6px',
-                    padding: '7px 14px',
+                    backgroundColor: '#eff6ff',
+                    color: 'var(--admin-primary, #002277)',
+                    border: 'none',
+                    borderRadius: '8px',
+                    padding: '8px 16px',
                     fontSize: '12.5px',
                     fontWeight: '600',
                     cursor: loadingLabel ? 'not-allowed' : 'pointer',
@@ -883,13 +911,13 @@ const OrderDetails = ({ order, onBack }) => {
             onClick={handleSaveNote}
             disabled={savingNote}
             style={{
-              backgroundColor: '#1c1c1e',
+              backgroundColor: 'var(--admin-primary, #002277)',
               color: '#fff',
               border: 'none',
               borderRadius: '8px',
-              padding: '8px 18px',
+              padding: '9px 20px',
               cursor: savingNote ? 'not-allowed' : 'pointer',
-              fontWeight: '500',
+              fontWeight: '600',
               fontSize: '13px',
               opacity: savingNote ? 0.7 : 1,
               transition: 'opacity 0.2s'
@@ -902,13 +930,13 @@ const OrderDetails = ({ order, onBack }) => {
 
       {/* Footer Actions */}
       <div className="od__footer" style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px', marginTop: '20px' }}>
-        <button className="od__cancel-btn" onClick={onBack} style={{ background: '#f5f5f7', border: '1px solid #e5e5e5', borderRadius: '8px', padding: '10px 20px', cursor: 'pointer' }}>Close</button>
+        <button className="od__cancel-btn" onClick={onBack} style={{ background: '#f8f9fa', border: 'none', borderRadius: '8px', padding: '10px 20px', cursor: 'pointer', fontWeight: '600', color: '#374151' }}>Close</button>
         <button
           onClick={() => setShowInvoiceModal(true)}
           style={{
-            backgroundColor: '#fff',
-            color: '#1c1c1e',
-            border: '1px solid #d4d4d8',
+            backgroundColor: '#eff6ff',
+            color: 'var(--admin-primary, #002277)',
+            border: 'none',
             borderRadius: '8px',
             padding: '10px 18px',
             cursor: 'pointer',
@@ -925,9 +953,9 @@ const OrderDetails = ({ order, onBack }) => {
           onClick={handlePrintInvoice}
           disabled={printing}
           style={{
-            backgroundColor: invoicePrinted ? '#f4f4f5' : '#1c1c1e',
-            color: invoicePrinted ? '#18181b' : '#fff',
-            border: invoicePrinted ? '1px solid #d4d4d8' : 'none',
+            backgroundColor: invoicePrinted ? '#eff6ff' : 'var(--admin-primary, #002277)',
+            color: invoicePrinted ? 'var(--admin-primary, #002277)' : '#fff',
+            border: 'none',
             borderRadius: '8px',
             padding: '10px 20px',
             cursor: printing ? 'not-allowed' : 'pointer',
