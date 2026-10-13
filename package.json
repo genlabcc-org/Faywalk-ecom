@@ -14,5 +14,8 @@
     "supabase:functions:serve": "npm run supabase:functions:serve:dev",
     "supabase:functions:serve:dev": "supabase functions serve --no-verify-jwt --env-file supabase/functions/.env.development.local",
     "supabase:functions:serve:prod": "supabase functions serve --no-verify-jwt --env-file supabase/functions/.env.production.local"
+  },
+  "dependencies": {
+    "razorpay": "^2.9.8"
   }
 }

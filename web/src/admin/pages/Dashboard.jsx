@@ -46,6 +46,7 @@ import DangerZone from "./Dangerzone";
 import Notification from "./Notification";
 import Invoices from "./Invoices";
 import TopBarSettings from "./TopBarSettings";
+import CouponManagement from "./CouponManagement";
 
 // ── Icons ───────────────────────────────────────────────────────
 const StatIcon = ({ type }) => {
@@ -117,6 +118,8 @@ const menuItems = [
     ]
   },
   { id: "topbar", label: "TopBar Text", path: "/admin/topbar" },
+  { id: "coupons", label: "Coupons", path: "/admin/coupons" },
+  { id: "shipping", label: "Shipping Rates", path: "/admin/shipping" },
   { id: "analytics", label: "Analytics", path: "/admin/analytics" },
   {
     id: "settings", label: "Settings", path: "/admin/account", children: [
@@ -155,6 +158,20 @@ const sidebarIcons = {
       <path d="M8 19h8" />
     </svg>
   ),
+  coupons: (
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z" />
+      <line x1="7" y1="7" x2="7.01" y2="7" />
+    </svg>
+  ),
+  shipping: (
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <rect x="1" y="3" width="15" height="13" />
+      <polygon points="16 8 20 8 23 11 23 16 16 16 16 8" />
+      <circle cx="5.5" cy="18.5" r="2.5" />
+      <circle cx="18.5" cy="18.5" r="2.5" />
+    </svg>
+  ),
   analytics: <img src={analyticsIcon} alt="analytics" className="db__menu-icon-img" />,
   settings: <img src={settingsIcon} alt="settings" className="db__menu-icon-img" />,
 };
@@ -163,7 +180,7 @@ const HIDE_ADD_PRODUCT_PATHS = [
   "/admin/categories", "/admin/categories/add", "/admin/products/add",
   "/admin/orders", "/admin/orders/detail", "/admin/invoices",
   "/admin/customers", "/admin/customers/detail",
-  "/admin/banners", "/admin/banners/add", "/admin/topbar", "/admin/analytics",
+  "/admin/banners", "/admin/banners/add", "/admin/topbar", "/admin/coupons", "/admin/analytics",
   "/admin/store", "/admin/contact", "/admin/shipping", "/admin/payment",
   "/admin/account", "/admin/notification", "/admin/policies", "/admin/danger"
 ];
@@ -1230,7 +1247,7 @@ const Dashboard = () => {
                         </div>
                       )}
                       {item.children.map((child) => {
-                        const isChildDisabled = item.id === "settings" && child.path !== "/admin/account";
+                        const isChildDisabled = item.id === "settings" && child.path !== "/admin/account" && child.path !== "/admin/shipping";
                         return isChildDisabled ? (
                           <div
                             key={child.path}
@@ -1385,6 +1402,9 @@ const Dashboard = () => {
 
             {/* TopBar Announcement */}
             <Route path="/topbar" element={<TopBarSettings />} />
+
+            {/* Coupons Management */}
+            <Route path="/coupons" element={<CouponManagement />} />
 
             {/* Settings */}
             <Route path="/store" element={<StoreInfo />} />

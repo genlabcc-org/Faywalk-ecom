@@ -276,7 +276,7 @@ export class RazorpayService {
     const shipping = await this.computeShippingFee(input.userId, input.addressId, subtotal - discountAmount);
     // GST is already included in product price — do not add extra
     const grandTotal = Math.max(0, subtotal - discountAmount) + shipping;
-  
+
     const mainItem = resolvedItemDetails[0];
     const itemName = resolvedItemDetails.length > 1
       ? `${mainItem?.name} + ${resolvedItemDetails.length - 1} other(s)`

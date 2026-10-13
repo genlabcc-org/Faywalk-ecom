@@ -7,6 +7,7 @@ import { useStore } from "../hooks/useStore";
 import { supabase } from "../lib/supabase";
 import { icarryService } from "../services/icarryService";
 import { shippingService, normState } from "../services/shippingService";
+import { couponService } from "../services/couponService";
 import "./CheckoutPage.css";
 import Navbar from "../components/SiteHeader";
 import TopBar from "../components/TopBar";
@@ -311,18 +312,37 @@ export default function CheckoutPage() {
       ? `PIN ${form.pinCode} belongs to ${pinState}, not ${form.state}`
       : "";
 
-  const handleApplyDiscount = () => {
+  const handleApplyDiscount = async () => {
     const code = discountInput.trim().toUpperCase();
-    if (code === "WELCOME10") {
-      setAppliedDiscount({ code, pct: 10 });
-      showToast("Discount code WELCOME10 applied! 10% Off", "success");
-    } else if (code === "FESTIVE20") {
-      setAppliedDiscount({ code, pct: 20 });
-      showToast("Discount code FESTIVE20 applied! 20% Off", "success");
-    } else if (code === "") {
+    if (!code) {
       showToast("Please enter a discount code.", "warning");
-    } else {
-      showToast("Invalid discount code.", "error");
+      return;
+    }
+
+    try {
+      const res = await couponService.validateCoupon(code, subtotal, checkoutItems, categories);
+      if (res.valid) {
+        setAppliedDiscount({
+          code: res.code,
+          discountAmount: res.discountAmount,
+          pct: res.pct || 0,
+          type: res.type,
+          description: res.coupon?.description || "",
+          categoryName: res.categoryName || null,
+        });
+        showToast(
+          res.categoryName
+            ? `Coupon ${res.code} applied for "${res.categoryName}" items!`
+            : `Coupon ${res.code} applied successfully!`,
+          "success"
+        );
+      } else {
+        setAppliedDiscount(null);
+        showToast(res.error || res.message || "Invalid coupon code.", "error");
+      }
+    } catch (err) {
+      setAppliedDiscount(null);
+      showToast(err.message || "Failed to validate coupon.", "error");
     }
   };
 
@@ -339,7 +359,9 @@ export default function CheckoutPage() {
     : checkoutItems.reduce((sum, item) => sum + (Number(item.price) || 0) * (Number(item.qty) || 1), 0);
 
   const discountAmount = appliedDiscount
-    ? Math.round((subtotal * appliedDiscount.pct) / 100)
+    ? (typeof appliedDiscount.discountAmount === "number"
+      ? appliedDiscount.discountAmount
+      : Math.round((subtotal * (appliedDiscount.pct || 0)) / 100))
     : 0;
 
   const isAddressServiceable =
@@ -490,6 +512,7 @@ export default function CheckoutPage() {
               : mainItem.name,
             quantity: checkoutItems.reduce((sum, item) => sum + (item.qty || 1), 0),
             total_price: grandTotal,
+            shipping_fee: shippingFee || 0,
             payment: "COD",
             type: "Regular",
             status: "Order Placed",
@@ -503,7 +526,7 @@ export default function CheckoutPage() {
 
         const orderItemsToInsert = checkoutItems.map(item => ({
           order_id: generatedOrderId,
-          product_id: item.productId || item.id || null,
+          product_id: item.productId || item.product_id || item.id || null,
           product_name: item.name,
           quantity: item.qty || 1,
           price: parsePrice(item.price),
@@ -581,7 +604,14 @@ export default function CheckoutPage() {
         });
 
         if (invokeError || !orderData) {
-          throw new Error(invokeError?.message || "Failed to initiate Razorpay order.");
+          let detailedErr = invokeError?.message;
+          if (invokeError?.context && typeof invokeError.context.json === 'function') {
+            try {
+              const errBody = await invokeError.context.json();
+              if (errBody?.error) detailedErr = errBody.error;
+            } catch (_) { }
+          }
+          throw new Error(detailedErr || "Failed to initiate Razorpay order.");
         }
 
         const { data: profile } = await supabase
@@ -1062,7 +1092,10 @@ export default function CheckoutPage() {
 
                   {appliedDiscount && (
                     <div className="checkout-billing-line discount-highlight">
-                      <span className="billing-key">Discount ({appliedDiscount.code})</span>
+                      <span className="billing-key">
+                        Discount ({appliedDiscount.code}
+                        {appliedDiscount.categoryName ? ` • ${appliedDiscount.categoryName}` : ""})
+                      </span>
                       <span className="billing-val">-₹{discountAmount.toFixed(2)}</span>
                     </div>
                   )}
