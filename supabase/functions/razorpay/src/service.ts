@@ -180,6 +180,7 @@ export class RazorpayService {
       amount: amountInPaise,
       currency: "INR",
       productName,
+      keyId: this.client.getKeyId(),
     };
   }
 

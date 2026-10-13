@@ -620,8 +620,10 @@ export default function CheckoutPage() {
           .eq("id", userId)
           .single();
 
+        const razorpayKey = orderData?.keyId || import.meta.env.VITE_RAZORPAY_KEY_ID || "rzp_test_Tmwrt8SaZ3YBtC";
+
         const options = {
-          key: import.meta.env.VITE_RAZORPAY_KEY_ID,
+          key: razorpayKey,
           amount: orderData.amount,
           currency: orderData.currency,
           name: "Faywalk",
