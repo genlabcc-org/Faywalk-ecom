@@ -531,7 +531,7 @@ const ProductList = ({ onAddProduct, onEditProduct, onDeleteProduct, products = 
                 </th>
                 <th className="pl-product-col">PRODUCT</th>
                 <th className="pl-category-col">CATEGORY</th>
-                <th className="pl-subcategory-col">SUBCATEGORY</th>
+                <th className="pl-subcategory-col">TYPE</th>
                 <th className="pl-price-col">PRICE</th>
                 <th className="pl-stock-col">STOCK</th>
                 <th className="pl-status-col">STATUS</th>
@@ -580,15 +580,15 @@ const ProductList = ({ onAddProduct, onEditProduct, onDeleteProduct, products = 
                           />
                           <div className="pl-product-details">
                             <span className="pl-product-name"></span>
-                              {product.name}
-                              {product.has_variants && product.variants?.length > 0 && (
-                                <button
-                                  className="pl-variant-toggle"
-                                  onClick={() => toggleExpand(product.id)}
-                                >
-                                  {product.variants.length} variants {expandedRows.includes(product.id) ? "▲" : "▼"}
-                                </button>
-                              )}
+                            {product.name}
+                            {product.has_variants && product.variants?.length > 0 && (
+                              <button
+                                className="pl-variant-toggle"
+                                onClick={() => toggleExpand(product.id)}
+                              >
+                                {product.variants.length} variants {expandedRows.includes(product.id) ? "▲" : "▼"}
+                              </button>
+                            )}
 
                             <span className="pl-product-sku">SKU: {product.sku}</span>
                             {getProductColors(product).length > 0 && (

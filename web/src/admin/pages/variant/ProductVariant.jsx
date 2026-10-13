@@ -755,16 +755,6 @@ const CreateMultipleProduct = ({
           </div>
           <Toggle checked={showOnStore} onChange={setShowOnStore} />
         </div>
-
-        <div className="cmp-visibility-row">
-          <div>
-            <div className="cmp-visibility-title">Featured product</div>
-            <div className="cmp-visibility-desc">
-              Show in featured collections on home page
-            </div>
-          </div>
-          <Toggle checked={featuredProduct} onChange={setFeaturedProduct} />
-        </div>
       </div>
 
       {/* Bottom Footer Actions */}

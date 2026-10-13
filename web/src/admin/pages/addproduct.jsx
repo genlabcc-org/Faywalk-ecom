@@ -192,6 +192,8 @@ export default function AddProduct({ onBack, onPublish, onSaveDraft, onAddVarian
   const [loadingSubcategories, setLoadingSubcategories] = useState(false);
   const [errors, setErrors] = useState({});
   const sanitizeInteger = (value) => value.replace(/[^0-9]/g, "");
+  const [sizeList, setSizeList] = useState([]);
+  const [sizeInput, setSizeInput] = useState("");
   const [visibility, setVisibility] = useState([
     initialData?.is_active ?? false,
     initialData?.is_featured ?? false,
@@ -257,11 +259,40 @@ export default function AddProduct({ onBack, onPublish, onSaveDraft, onAddVarian
         stock: activeData.stock || "",
         stock_alert: activeData.stock_alert || "",
         material: activeData.material || "",
+        product_material: activeData.product_material || activeData.material || "",
         weight: activeData.weight || "",
         sizes: Array.isArray(activeData.sizes) ? activeData.sizes.join(", ") : (activeData.sizes || ""),
         colors: parseColors(activeData.colors),
         care: activeData.care || "",
       });
+
+      if (Array.isArray(activeData.product_variants) && activeData.product_variants.length > 0) {
+        setSizeList(
+          activeData.product_variants.map((v, i) => ({
+            id: v.variant_id ? `var-${v.variant_id}` : `size-${i}-${Date.now()}`,
+            size: v.size || "",
+            stock: v.stock !== undefined && v.stock !== null ? String(v.stock) : "",
+            stock_alert: v.stock_alert !== undefined && v.stock_alert !== null ? String(v.stock_alert) : "",
+          }))
+        );
+      } else if (activeData.sizes) {
+        const raw = Array.isArray(activeData.sizes)
+          ? activeData.sizes
+          : typeof activeData.sizes === "string"
+            ? activeData.sizes.split(",").map((s) => s.trim()).filter(Boolean)
+            : [];
+        setSizeList(
+          raw.map((s, i) => ({
+            id: `size-${i}-${Date.now()}`,
+            size: typeof s === "object" ? (s.size || "") : String(s),
+            stock: typeof s === "object" ? String(s.stock ?? "") : (activeData.stock !== undefined && activeData.stock !== null ? String(activeData.stock) : ""),
+            stock_alert: typeof s === "object" ? String(s.stock_alert ?? "") : (activeData.stock_alert !== undefined && activeData.stock_alert !== null ? String(activeData.stock_alert) : ""),
+          }))
+        );
+      } else {
+        setSizeList([]);
+      }
+
       setImageList(
         activeData.images?.map((url, i) => ({
           id: `img-old-${i}-${url}`,
@@ -272,6 +303,7 @@ export default function AddProduct({ onBack, onPublish, onSaveDraft, onAddVarian
       setVisibility([activeData.is_active ?? false, activeData.is_featured ?? false]);
     } else if (!urlProductId) {
       setForm({ ...EMPTY_FORM, sku: generateSKU() });
+      setSizeList([]);
       setImageList([]);
       setVisibility([false, false]);
     }
@@ -360,6 +392,31 @@ export default function AddProduct({ onBack, onPublish, onSaveDraft, onAddVarian
     }));
   };
 
+  // ── Dynamic Size Management ──────────────────────────────────
+  const handleAddSize = () => {
+    const trimmed = sizeInput.trim();
+    setSizeList((prev) => [
+      ...prev,
+      {
+        id: `size-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
+        size: trimmed,
+        stock: "",
+        stock_alert: "",
+      },
+    ]);
+    setSizeInput("");
+  };
+
+  const handleRemoveSize = (id) => {
+    setSizeList((prev) => prev.filter((item) => item.id !== id));
+  };
+
+  const handleUpdateSize = (id, field, value) => {
+    setSizeList((prev) =>
+      prev.map((item) => (item.id === id ? { ...item, [field]: value } : item))
+    );
+  };
+
   // ── Upload All Images to Supabase ────────────────────────────
   const uploadAllImages = async () => {
     if (imageList.length === 0) return { urls: [], error: null };
@@ -400,6 +457,18 @@ export default function AddProduct({ onBack, onPublish, onSaveDraft, onAddVarian
         return { error: uploadError };
       }
 
+      const validSizes = sizeList.map((s) => s.size.trim()).filter(Boolean);
+      const totalStockFromSizes = sizeList.reduce(
+        (sum, item) => sum + (parseInt(item.stock) || 0),
+        0
+      );
+      const hasSizeStock = sizeList.some(
+        (item) => item.stock !== "" && !isNaN(parseInt(item.stock))
+      );
+      const firstAlert = sizeList.find(
+        (item) => item.stock_alert !== "" && !isNaN(parseInt(item.stock_alert))
+      )?.stock_alert;
+
       const productData = {
         name: form.name,
         description: form.description,
@@ -409,11 +478,11 @@ export default function AddProduct({ onBack, onPublish, onSaveDraft, onAddVarian
         price: parseFloat(form.price) || 0,
         compare_price: parseFloat(form.compare_price) || null,
         // discount_price: parseFloat(form.discount_price) || null,
-        stock: parseInt(form.stock) || 0,
-        stock_alert: parseInt(form.stock_alert) || null,
-        material: form.material,
+        stock: hasSizeStock ? totalStockFromSizes : parseInt(form.stock) || 0,
+        stock_alert: firstAlert !== undefined ? parseInt(firstAlert) : parseInt(form.stock_alert) || null,
+        material: form.product_material || form.material || "",
         weight: parseFloat(form.weight) || null,
-        sizes: form.sizes ? form.sizes.split(",").map((s) => s.trim()).filter(Boolean) : null,
+        sizes: validSizes.length > 0 ? validSizes : form.sizes ? form.sizes.split(",").map((s) => s.trim()).filter(Boolean) : null,
         colors: parseColors(form.colors),
         care: form.care,
         image_url: urls[0] || null,
@@ -528,7 +597,7 @@ export default function AddProduct({ onBack, onPublish, onSaveDraft, onAddVarian
             onChange={set("description")}
           />
         </div>
-        <div className="grid3-wrap">
+        <div className="row-2">
           <div className="field">
             <label>SKU</label>
             <input
@@ -552,8 +621,15 @@ export default function AddProduct({ onBack, onPublish, onSaveDraft, onAddVarian
               ))}
             </select>
           </div>
+        </div>
+      </div>
+
+      {/* ── Product Details ── */}
+      <div className="card">
+        <div className="card-title">Product Details</div>
+        <div className="grid3-wrap">
           <div className="field">
-            <label>Subcategory <span className="scc-optional-tag">optional</span></label>
+            <label>Type <span className="scc-optional-tag">optional</span></label>
             {!form.category_id ? (
               <select disabled>
                 <option>Select a category first</option>
@@ -573,7 +649,223 @@ export default function AddProduct({ onBack, onPublish, onSaveDraft, onAddVarian
               <div className="auto-hint">No subcategories — listed under category directly.</div>
             )}
           </div>
+          <div className="field">
+            <label>Product Material</label>
+            <input
+              type="text"
+              placeholder="Enter Product Material"
+              value={form.product_material || form.material || ""}
+              onChange={(e) => {
+                const val = e.target.value;
+                setForm((f) => ({ ...f, product_material: val, material: val }));
+              }}
+            />
+          </div>
+          <div className="field">
+            <label>Weight</label>
+            <input
+              type="text"
+              placeholder="Eg: 200g"
+              value={form.weight}
+              onChange={set("weight")}
+            />
+          </div>
         </div>
+
+        <div className="field">
+          <label>Colors</label>
+          <div className="ap-color-grid">
+            <button
+              type="button"
+              className={`ap-color-swatch ap-color-swatch--none${!(form.colors && form.colors.length) ? " ap-color-swatch--selected" : ""
+                }`}
+              onClick={clearColors}
+              aria-label="No color (None)"
+              title="No color (None)"
+            >
+              <svg width="14" height="14" viewBox="0 0 20 20" fill="none">
+                <circle cx="10" cy="10" r="8" stroke="#9CA3AF" strokeWidth="1.5" strokeDasharray="2 2" />
+                <line x1="4.5" y1="15.5" x2="15.5" y2="4.5" stroke="#EF4444" strokeWidth="1.5" strokeLinecap="round" />
+              </svg>
+            </button>
+            {COLOR_SWATCHES.map((c) => {
+              const selected = isColorSelected(form.colors, c);
+              const isWhite = c.toUpperCase() === "#FFFFFF";
+              return (
+                <button
+                  key={c}
+                  type="button"
+                  className={`ap-color-swatch${selected ? " ap-color-swatch--selected" : ""}${isWhite ? " ap-color-swatch--white" : ""
+                    }`}
+                  style={{ backgroundColor: c }}
+                  onClick={() => toggleColor(c)}
+                  aria-label={`Toggle color ${c}`}
+                  title={c}
+                >
+                  {selected && (
+                    <svg width="12" height="10" viewBox="0 0 12 10" fill="none">
+                      <path
+                        d="M1 5L4.2 8.2L11 1"
+                        stroke={isWhite ? "#111827" : "#fff"}
+                        strokeWidth="2"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                      />
+                    </svg>
+                  )}
+                </button>
+              );
+            })}
+            {/* Render any additional/custom colors already on the product */}
+            {(parseColors(form.colors) || [])
+              .filter((c) => !COLOR_SWATCHES.some((s) => s.toLowerCase() === c.toLowerCase()))
+              .map((c) => (
+                <button
+                  key={c}
+                  type="button"
+                  className="ap-color-swatch ap-color-swatch--selected"
+                  style={{ backgroundColor: c }}
+                  onClick={() => toggleColor(c)}
+                  aria-label={`Toggle color ${c}`}
+                  title={c}
+                >
+                  <svg width="12" height="10" viewBox="0 0 12 10" fill="none">
+                    <path
+                      d="M1 5L4.2 8.2L11 1"
+                      stroke="#fff"
+                      strokeWidth="2"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                    />
+                  </svg>
+                </button>
+              ))}
+          </div>
+        </div>
+
+        {/* ── Add Sizes row ── */}
+        <div className="row-2 ap-size-add-row">
+          <div className="field">
+            <label>Size</label>
+            <input
+              type="text"
+              placeholder="Enter size (Eg:38, 40, 50..etc)"
+              value={sizeInput}
+              onChange={(e) => setSizeInput(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === "Enter") {
+                  e.preventDefault();
+                  handleAddSize();
+                }
+              }}
+            />
+          </div>
+          <div className="field ap-size-btn-field">
+            <button
+              type="button"
+              className="ap-add-sizes-btn"
+              onClick={handleAddSize}
+            >
+              Add Sizes +
+            </button>
+          </div>
+        </div>
+
+        {/* ── Dynamic Size Sections ── */}
+        {sizeList.length > 0 && (
+          <div className="ap-sizes-container">
+            <div className="ap-sizes-header">
+              <span className="ap-sizes-heading">Product Sizes</span>
+              <span className="ap-sizes-badge">
+                {sizeList.length} {sizeList.length === 1 ? "size section" : "size sections"}
+              </span>
+            </div>
+
+            <div className="ap-sizes-list">
+              {sizeList.map((item, index) => (
+                <div key={item.id} className="ap-size-item-section">
+                  <div className="ap-size-item-top">
+                    <span className="ap-size-item-index">
+                      Section #{index + 1} {item.size ? `• ${item.size}` : ""}
+                    </span>
+                    <button
+                      type="button"
+                      className="ap-size-item-del-top"
+                      onClick={() => handleRemoveSize(item.id)}
+                      title="Delete size section"
+                      aria-label="Delete size section"
+                    >
+                      <svg width="14" height="14" viewBox="0 0 16 16" fill="none">
+                        <path
+                          d="M2.5 4.5h11M6 4.5V3a1 1 0 0 1 1-1h2a1 1 0 0 1 1 1v1.5M12.5 4.5l-.6 8.4a1.5 1.5 0 0 1-1.5 1.4H5.6a1.5 1.5 0 0 1-1.5-1.4l-.6-8.4"
+                          stroke="currentColor"
+                          strokeWidth="1.4"
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                        />
+                      </svg>
+                      Delete
+                    </button>
+                  </div>
+
+                  <div className="ap-size-fields-grid">
+                    <div className="field">
+                      <label>Sizes</label>
+                      <input
+                        type="text"
+                        placeholder="Eg: S, M, L"
+                        value={item.size}
+                        onChange={(e) => handleUpdateSize(item.id, "size", e.target.value)}
+                      />
+                    </div>
+                    <div className="field">
+                      <label>Stock</label>
+                      <input
+                        type="text"
+                        inputMode="numeric"
+                        pattern="[0-9]*"
+                        placeholder="Eg: 10"
+                        value={item.stock}
+                        onChange={(e) => handleUpdateSize(item.id, "stock", sanitizeInteger(e.target.value))}
+                      />
+                    </div>
+                    <div className="field">
+                      <label>Low Stock Alert</label>
+                      <input
+                        type="text"
+                        inputMode="numeric"
+                        pattern="[0-9]*"
+                        placeholder="Eg: 2"
+                        value={item.stock_alert}
+                        onChange={(e) => handleUpdateSize(item.id, "stock_alert", sanitizeInteger(e.target.value))}
+                      />
+                    </div>
+                    <div className="field ap-size-action-field">
+                      <label>Action</label>
+                      <button
+                        type="button"
+                        className="ap-size-del-btn"
+                        onClick={() => handleRemoveSize(item.id)}
+                        title="Delete size"
+                        aria-label="Delete size"
+                      >
+                        <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+                          <path
+                            d="M2.5 4.5h11M6 4.5V3a1 1 0 0 1 1-1h2a1 1 0 0 1 1 1v1.5M12.5 4.5l-.6 8.4a1.5 1.5 0 0 1-1.5 1.4H5.6a1.5 1.5 0 0 1-1.5-1.4l-.6-8.4"
+                            stroke="currentColor"
+                            strokeWidth="1.4"
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                          />
+                        </svg>
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
       </div>
 
       {/* ── Product Images ── */}
@@ -660,8 +952,6 @@ export default function AddProduct({ onBack, onPublish, onSaveDraft, onAddVarian
         </div>
       </div>
 
-
-
       {/* ── Price & Stock ── */}
       <div className="card">
         <div className="card-title">Price &amp; Stock</div>
@@ -691,147 +981,6 @@ export default function AddProduct({ onBack, onPublish, onSaveDraft, onAddVarian
               onChange={handleComparePriceChange}
             />
           </div>
-          {/* <div className="field">
-            <label>Discount Price (₹)</label>
-            <input
-              placeholder="Eg: 2000"
-              value={form.discount_price}
-              onChange={set("discount_price")}
-            />
-          </div> */}
-        </div>
-
-        <div className="row-2">
-          <div className="field">
-            <label>Stock Quantity</label>
-            <input
-              placeholder="Eg: 3"
-              value={form.stock}
-              onChange={set("stock")}
-            />
-          </div>
-          <div className="field">
-            <label>Minimum Stock Alert</label>
-            <input
-              placeholder="Eg: 3"
-              value={form.stock_alert}
-              onChange={set("stock_alert")}
-            />
-          </div>
-          <div />
-        </div>
-      </div>
-
-      {/* ── Product Details ── */}
-      <div className="card">
-        <div className="card-title">Product Details</div>
-
-        <div className="grid3-wrap">
-          <div className="field">
-            <label>Material</label>
-            <input
-              placeholder="Eg: Cotton"
-              value={form.material}
-              onChange={set("material")}
-            />
-          </div>
-          <div className="field">
-            <label>Weight</label>
-            <input
-              placeholder="Eg: 200g"
-              value={form.weight}
-              onChange={set("weight")}
-            />
-          </div>
-          <div className="field">
-            <label>Size / Dimensions</label>
-            <input
-              placeholder="Eg: 30x20cm"
-              value={form.sizes}
-              onChange={set("sizes")}
-            />
-          </div>
-        </div>
-
-        <div className="grid3-wrap">
-          <div className="field">
-            <label>Colors</label>
-            <div className="ap-color-grid">
-              <button
-                type="button"
-                className={`ap-color-swatch ap-color-swatch--none${!(form.colors && form.colors.length) ? " ap-color-swatch--selected" : ""
-                  }`}
-                onClick={clearColors}
-                aria-label="No color (None)"
-                title="No color (None)"
-              >
-                <svg width="14" height="14" viewBox="0 0 20 20" fill="none">
-                  <circle cx="10" cy="10" r="8" stroke="#9CA3AF" strokeWidth="1.5" strokeDasharray="2 2" />
-                  <line x1="4.5" y1="15.5" x2="15.5" y2="4.5" stroke="#EF4444" strokeWidth="1.5" strokeLinecap="round" />
-                </svg>
-              </button>
-              {COLOR_SWATCHES.map((c) => {
-                const selected = isColorSelected(form.colors, c);
-                const isWhite = c.toUpperCase() === "#FFFFFF";
-                return (
-                  <button
-                    key={c}
-                    type="button"
-                    className={`ap-color-swatch${selected ? " ap-color-swatch--selected" : ""}${isWhite ? " ap-color-swatch--white" : ""}`}
-                    style={{ backgroundColor: c }}
-                    onClick={() => toggleColor(c)}
-                    aria-label={`Toggle color ${c}`}
-                    title={c}
-                  >
-                    {selected && (
-                      <svg width="12" height="10" viewBox="0 0 12 10" fill="none">
-                        <path
-                          d="M1 5L4.2 8.2L11 1"
-                          stroke={isWhite ? "#111827" : "#fff"}
-                          strokeWidth="2"
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                        />
-                      </svg>
-                    )}
-                  </button>
-                );
-              })}
-              {/* Render any additional/custom colors already on the product */}
-              {(parseColors(form.colors) || [])
-                .filter((c) => !COLOR_SWATCHES.some((s) => s.toLowerCase() === c.toLowerCase()))
-                .map((c) => (
-                  <button
-                    key={c}
-                    type="button"
-                    className="ap-color-swatch ap-color-swatch--selected"
-                    style={{ backgroundColor: c }}
-                    onClick={() => toggleColor(c)}
-                    aria-label={`Toggle color ${c}`}
-                    title={c}
-                  >
-                    <svg width="12" height="10" viewBox="0 0 12 10" fill="none">
-                      <path
-                        d="M1 5L4.2 8.2L11 1"
-                        stroke="#fff"
-                        strokeWidth="2"
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                      />
-                    </svg>
-                  </button>
-                ))}
-            </div>
-          </div>
-          <div className="field">
-            <label>Care Instructions</label>
-            <input
-              placeholder="Eg: Avoid water"
-              value={form.care}
-              onChange={set("care")}
-            />
-          </div>
-          <div />
         </div>
       </div>
 
@@ -851,22 +1000,6 @@ export default function AddProduct({ onBack, onPublish, onSaveDraft, onAddVarian
               type="checkbox"
               checked={visibility[0]}
               onChange={() => toggleVis(0)}
-            />
-            <span className="slider" />
-          </label>
-        </div>
-        <div className="toggle-row">
-          <div>
-            <div className="toggle-label">Featured Product</div>
-            <div className="toggle-sub">
-              Show in featured collections on home page
-            </div>
-          </div>
-          <label className="toggle">
-            <input
-              type="checkbox"
-              checked={visibility[1]}
-              onChange={() => toggleVis(1)}
             />
             <span className="slider" />
           </label>
