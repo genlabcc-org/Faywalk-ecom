@@ -4,6 +4,7 @@ import { orderService } from "../../services/orderService";
 import { supabase } from "../../lib/supabase";
 import { useStore } from "../../hooks/useStore";
 import { getColorName } from "../../utils/colorUtils";
+import AdminModal from "../components/AdminModal";
 import "./Customerdetails.css";
 
 const RingProductImage = () => (
@@ -39,10 +40,13 @@ const StatusBadge = ({ status }) => {
 const CustomerDetails = ({ customer, onBack }) => {
   const [showDisableConfirm, setShowDisableConfirm] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm]   = useState(false);
+  const [isDisabling, setIsDisabling] = useState(false);
+  const [isDeleting, setIsDeleting]   = useState(false);
   const [addresses, setAddresses] = useState([]);
   const [addressesLoading, setAddressesLoading] = useState(false);
   const [orders, setOrders] = useState([]);
   const [ordersLoading, setOrdersLoading] = useState(false);
+
 
   const setSelectedProduct = useStore(state => state.setSelectedProduct);
   const navigate = useNavigate();
@@ -168,6 +172,37 @@ const CustomerDetails = ({ customer, onBack }) => {
     }
     return "No phone set";
   }, [c, addresses, orders]);
+
+  const handleConfirmDisable = async () => {
+    try {
+      setIsDisabling(true);
+      if (c.id && c.id !== "UNKNOWN") {
+        await supabase.from("users").update({ status: "Disabled" }).eq("id", c.id);
+      }
+      setShowDisableConfirm(false);
+    } catch (err) {
+      console.error("Error disabling user:", err);
+      setShowDisableConfirm(false);
+    } finally {
+      setIsDisabling(false);
+    }
+  };
+
+  const handleConfirmDelete = async () => {
+    try {
+      setIsDeleting(true);
+      if (c.id && c.id !== "UNKNOWN") {
+        await supabase.from("users").delete().eq("id", c.id);
+      }
+      setShowDeleteConfirm(false);
+      if (onBack) onBack();
+    } catch (err) {
+      console.error("Error deleting user:", err);
+      setShowDeleteConfirm(false);
+    } finally {
+      setIsDeleting(false);
+    }
+  };
 
   return (
     <div className="cd">
@@ -515,32 +550,56 @@ const CustomerDetails = ({ customer, onBack }) => {
       </div>
 
       {/* ── Disable Confirm Modal ── */}
-      {showDisableConfirm && (
-        <div className="cd__modal-overlay" onClick={() => setShowDisableConfirm(false)}>
-          <div className="cd__modal" onClick={(e) => e.stopPropagation()}>
-            <div className="cd__modal-title">Disable Account?</div>
-            <div className="cd__modal-body">This will prevent the customer from logging in or placing orders. You can re-enable at any time.</div>
-            <div className="cd__modal-btns">
-              <button className="cd__btn cd__btn--cancel" onClick={() => setShowDisableConfirm(false)}>Cancel</button>
-              <button className="cd__btn cd__btn--disable" onClick={() => setShowDisableConfirm(false)}>Disable</button>
-            </div>
-          </div>
-        </div>
-      )}
+      <AdminModal
+        isOpen={showDisableConfirm}
+        onClose={() => !isDisabling && setShowDisableConfirm(false)}
+        title="Disable Account?"
+        maxWidth={440}
+        footer={
+          <>
+            <button className="cd__btn cd__btn--cancel" onClick={() => setShowDisableConfirm(false)} disabled={isDisabling}>Cancel</button>
+            <button className="cd__btn cd__btn--disable admin-btn-with-spinner" onClick={handleConfirmDisable} disabled={isDisabling}>
+              {isDisabling ? (
+                <>
+                  <span className="admin-btn-spinner" /> Disabling...
+                </>
+              ) : (
+                "Disable"
+              )}
+            </button>
+          </>
+        }
+      >
+        <p style={{ margin: 0, color: "#64748b", fontSize: "14px", lineHeight: 1.5 }}>
+          This will prevent the customer from logging in or placing orders. You can re-enable at any time.
+        </p>
+      </AdminModal>
 
       {/* ── Delete Confirm Modal ── */}
-      {showDeleteConfirm && (
-        <div className="cd__modal-overlay" onClick={() => setShowDeleteConfirm(false)}>
-          <div className="cd__modal" onClick={(e) => e.stopPropagation()}>
-            <div className="cd__modal-title">Delete Account Permanently?</div>
-            <div className="cd__modal-body">This action cannot be undone. All customer data will be permanently removed.</div>
-            <div className="cd__modal-btns">
-              <button className="cd__btn cd__btn--cancel" onClick={() => setShowDeleteConfirm(false)}>Cancel</button>
-              <button className="cd__btn cd__btn--delete" onClick={() => setShowDeleteConfirm(false)}>Delete</button>
-            </div>
-          </div>
-        </div>
-      )}
+      <AdminModal
+        isOpen={showDeleteConfirm}
+        onClose={() => !isDeleting && setShowDeleteConfirm(false)}
+        title="Delete Account Permanently?"
+        maxWidth={440}
+        footer={
+          <>
+            <button className="cd__btn cd__btn--cancel" onClick={() => setShowDeleteConfirm(false)} disabled={isDeleting}>Cancel</button>
+            <button className="cd__btn cd__btn--delete admin-btn-with-spinner" onClick={handleConfirmDelete} disabled={isDeleting}>
+              {isDeleting ? (
+                <>
+                  <span className="admin-btn-spinner" /> Deleting...
+                </>
+              ) : (
+                "Delete"
+              )}
+            </button>
+          </>
+        }
+      >
+        <p style={{ margin: 0, color: "#64748b", fontSize: "14px", lineHeight: 1.5 }}>
+          This action cannot be undone. All customer data will be permanently removed.
+        </p>
+      </AdminModal>
     </div>
   );
 };

@@ -328,47 +328,52 @@
 /* ── Table wrapper ── */
 .pl-table-wrapper {
   background: #fff;
-  border-radius: 12px;
-  border: 1px solid #e8e8e8;
+  border: none;
+  border-radius: 0;
+  box-shadow: none;
   overflow-x: auto;
   -webkit-overflow-scrolling: touch;
 }
 
 .pl-table {
   width: 100%;
-  border-collapse: collapse;
-  font-size: 13px;
+  border-collapse: separate;
+  border-spacing: 0;
+  font-size: 13.5px;
   min-width: 640px;
 }
 
 .pl-table thead th {
   text-align: left;
-  padding: 14px 16px;
-  font-size: 11px;
+  padding: 14px 20px;
+  font-size: 13.5px;
   font-weight: 600;
-  color: #888;
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
-  border-bottom: 1px solid #f0f0f0;
-  background: #fafafa;
+  color: #1E293B;
+  background: #F0F4FA;
   white-space: nowrap;
 }
 
+.pl-table thead th:first-child {
+  border-top-left-radius: 8px;
+  border-bottom-left-radius: 8px;
+}
+
+.pl-table thead th:last-child {
+  border-top-right-radius: 8px;
+  border-bottom-right-radius: 8px;
+}
+
 .pl-table tbody tr {
-  border-bottom: 1px solid #f5f5f5;
+  border-bottom: 1px solid #F1F5F9;
   transition: background 0.15s;
 }
 
 .pl-table tbody tr:hover {
-  background: #fafafa;
-}
-
-.pl-table tbody tr:last-child {
-  border-bottom: none;
+  background: #F8FAFD;
 }
 
 .pl-table tbody td {
-  padding: 14px 16px;
+  padding: 16px 20px;
   vertical-align: middle;
 }
 
@@ -450,19 +455,21 @@
 }
 
 .pl-product-name {
-  font-size: 13px;
-  font-weight: 600;
-  color: #1a1a1a;
-  line-height: 1.3;
+  font-family: inherit;
+  font-size: 13.5px;
+  font-weight: 500;
+  color: #1E293B;
+  line-height: 1.4;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-  max-width: 180px;
+  max-width: 220px;
 }
 
 .pl-product-sku {
-  font-size: 11px;
-  color: #999;
+  font-family: inherit;
+  font-size: 12px;
+  color: #64748B;
   font-weight: 400;
 }
 
@@ -473,49 +480,57 @@
 
 .pl-category-badge {
   display: inline-block;
-  font-size: 11px;
-  font-weight: 500;
-  padding: 4px 10px;
-  border-radius: 6px;
+  font-family: inherit;
+  font-size: 12px;
+  font-weight: 600;
+  padding: 4px 12px;
+  border-radius: 9999px;
+  letter-spacing: 0.2px;
   background: #f0e6ff;
   color: #7c3aed;
   white-space: nowrap;
 }
 
 .pl-subcategory-badge {
+  font-family: inherit;
   font-size: 12px;
-  font-weight: 500;
-  padding: 4px 10px;
-  border-radius: 20px;
+  font-weight: 600;
+  padding: 4px 12px;
+  border-radius: 9999px;
+  letter-spacing: 0.2px;
   background: #f0fdf4;
   color: #16a34a;
   white-space: nowrap;
 }
 
 .pl-subcategory-none {
-  color: #ccc;
-  font-size: 13px;
+  color: #94a3b8;
+  font-size: 13.5px;
 }
 
 /* ── Price ── */
 .pl-price-col {
   width: 100px;
+  font-family: inherit;
   font-weight: 600;
-  color: #1a1a1a;
-  font-size: 13px;
+  color: #0F172A;
+  font-size: 13.5px;
   white-space: nowrap;
 }
 
 .pl-price-compare {
   text-decoration: line-through;
-  color: #999;
+  color: #94a3b8;
   font-size: 12px;
+  font-weight: 400;
   margin-right: 6px;
 }
 
 .pl-price-final {
+  font-family: inherit;
   font-weight: 600;
-  color: #1c1c1e;
+  color: #0F172A;
+  font-size: 13.5px;
 }
 
 /* ── Stock ── */
@@ -525,12 +540,14 @@
 
 .pl-stock-low {
   display: inline-block;
+  font-family: inherit;
   background: #fff8e6;
   color: #d97706;
-  font-size: 11px;
-  font-weight: 500;
-  padding: 4px 10px;
-  border-radius: 6px;
+  font-size: 12px;
+  font-weight: 600;
+  padding: 4px 12px;
+  border-radius: 9999px;
+  letter-spacing: 0.2px;
   white-space: nowrap;
 }
 
@@ -541,10 +558,12 @@
 
 .pl-status-badge {
   display: inline-block;
-  font-size: 11px;
-  font-weight: 500;
-  padding: 4px 10px;
-  border-radius: 6px;
+  font-family: inherit;
+  font-size: 12px;
+  font-weight: 600;
+  padding: 4px 12px;
+  border-radius: 9999px;
+  letter-spacing: 0.2px;
   background: #dcfce7;
   color: #16a34a;
   white-space: nowrap;

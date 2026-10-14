@@ -377,10 +377,15 @@ const AddBanner = ({ onBack, onPublish, initialData }) => {
       {/* Footer Actions */}
       <div className="ab__footer">
         <button className="ab__btn ab__btn--discard" onClick={handleDiscard} disabled={isSubmitting}>Discard</button>
-        <button className="ab__btn ab__btn--publish" onClick={handlePublish} disabled={isSubmitting}>
-          {isSubmitting
-            ? (isEditing ? "Updating..." : "Uploading...")
-            : (isEditing ? "Update Banner" : "Publish Banner")}
+        <button className="ab__btn ab__btn--publish admin-btn-with-spinner" onClick={handlePublish} disabled={isSubmitting}>
+          {isSubmitting ? (
+            <>
+              <span className="admin-btn-spinner" />
+              {isEditing ? "Updating..." : "Uploading..."}
+            </>
+          ) : (
+            isEditing ? "Update Banner" : "Publish Banner"
+          )}
         </button>
       </div>
     </div>

@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import { supabase } from "../../lib/supabase";
 import Toast from "../../components/Toast";
+import AdminModal from "../components/AdminModal";
 import "./Dangerzone.css";
 
 const downloadCSV = (filename, headers, rows) => {
@@ -29,6 +30,7 @@ const downloadCSV = (filename, headers, rows) => {
 
 const DangerZone = () => {
   const [confirmModal, setConfirmModal] = useState(null);
+  const [isConfirming, setIsConfirming] = useState(false);
   const [exporting, setExporting] = useState(null);
   const [toast, setToast] = useState({ message: "", type: "info" });
 
@@ -262,10 +264,15 @@ const DangerZone = () => {
     setConfirmModal(action);
   };
 
-  const handleConfirm = () => {
-    // Handle confirmed irreversible action
-    showToast("This action requires master key confirmation.", "warning");
-    setConfirmModal(null);
+  const handleConfirm = async () => {
+    try {
+      setIsConfirming(true);
+      await new Promise((r) => setTimeout(r, 600));
+      showToast("This action requires master key confirmation.", "warning");
+    } finally {
+      setIsConfirming(false);
+      setConfirmModal(null);
+    }
   };
 
   return (
@@ -288,31 +295,49 @@ const DangerZone = () => {
         <div className="dz__row">
           <span className="dz__row-label">Export All Orders</span>
           <button
-            className="dz__csv-btn"
+            className="dz__csv-btn admin-btn-with-spinner"
             onClick={handleExportOrders}
             disabled={exporting !== null}
           >
-            {exporting === "orders" ? "Generating CSV..." : "Download CSV"}
+            {exporting === "orders" ? (
+              <>
+                <span className="admin-btn-spinner admin-btn-spinner--dark" /> Generating CSV...
+              </>
+            ) : (
+              "Download CSV"
+            )}
           </button>
         </div>
         <div className="dz__row">
           <span className="dz__row-label">Export all customers</span>
           <button
-            className="dz__csv-btn"
+            className="dz__csv-btn admin-btn-with-spinner"
             onClick={handleExportCustomers}
             disabled={exporting !== null}
           >
-            {exporting === "customers" ? "Generating CSV..." : "Download CSV"}
+            {exporting === "customers" ? (
+              <>
+                <span className="admin-btn-spinner admin-btn-spinner--dark" /> Generating CSV...
+              </>
+            ) : (
+              "Download CSV"
+            )}
           </button>
         </div>
         <div className="dz__row">
           <span className="dz__row-label">Export all products</span>
           <button
-            className="dz__csv-btn"
+            className="dz__csv-btn admin-btn-with-spinner"
             onClick={handleExportProducts}
             disabled={exporting !== null}
           >
-            {exporting === "products" ? "Generating CSV..." : "Download CSV"}
+            {exporting === "products" ? (
+              <>
+                <span className="admin-btn-spinner admin-btn-spinner--dark" /> Generating CSV...
+              </>
+            ) : (
+              "Download CSV"
+            )}
           </button>
         </div>
         <div className="dz__row dz__row--last">
@@ -371,22 +396,32 @@ const DangerZone = () => {
       </div>
 
       {/* Confirm Modal */}
-      {confirmModal && (
-        <div className="dz__modal-overlay" onClick={() => setConfirmModal(null)}>
-          <div className="dz__modal" onClick={(e) => e.stopPropagation()}>
-            <p className="dz__modal-title">Are you sure?</p>
-            <p className="dz__modal-desc">This action is irreversible. Please confirm to proceed.</p>
-            <div className="dz__modal-actions">
-              <button className="dz__modal-cancel" onClick={() => setConfirmModal(null)}>
-                Cancel
-              </button>
-              <button className="dz__modal-confirm" onClick={handleConfirm}>
-                Confirm
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+      <AdminModal
+        isOpen={Boolean(confirmModal)}
+        onClose={() => setConfirmModal(null)}
+        title="Are you sure?"
+        maxWidth={420}
+        footer={
+          <>
+            <button className="dz__modal-cancel" onClick={() => setConfirmModal(null)} disabled={isConfirming}>
+              Cancel
+            </button>
+            <button className="dz__modal-confirm admin-btn-with-spinner" onClick={handleConfirm} disabled={isConfirming}>
+              {isConfirming ? (
+                <>
+                  <span className="admin-btn-spinner" /> Processing...
+                </>
+              ) : (
+                "Confirm"
+              )}
+            </button>
+          </>
+        }
+      >
+        <p className="dz__modal-desc" style={{ margin: 0, color: "#64748b", fontSize: "14px", lineHeight: 1.5 }}>
+          This action is irreversible. Please confirm to proceed.
+        </p>
+      </AdminModal>
     </div>
   );
 };

@@ -2,6 +2,7 @@ import React, { useState, useEffect } from "react";
 import "./Bannerlist.css";
 import blankIcon from "../../assets/admin/blank.svg";
 import { bannerService } from "../../services/bannerService";
+import AdminModal from "../components/AdminModal";
 
 const PlusIcon = () => (
   <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
@@ -12,6 +13,7 @@ const PlusIcon = () => (
 
 const BannerList = ({ banners: initialBanners = [], onAddBanner, onEditBanner, onDeleteBanner }) => {
   const [deleteConfirm, setDeleteConfirm] = useState(null);
+  const [isDeleting, setIsDeleting] = useState(false);
   const [bannerList, setBannerList] = useState(initialBanners);
   const [loading, setLoading] = useState(false);
 
@@ -38,12 +40,14 @@ const BannerList = ({ banners: initialBanners = [], onAddBanner, onEditBanner, o
   const handleDeleteConfirm = async () => {
     if (!deleteConfirm) return;
     try {
+      setIsDeleting(true);
       await bannerService.deleteBanner(deleteConfirm);
       setBannerList((prev) => prev.filter((b) => (b.id ?? b.banner_id) !== deleteConfirm));
       if (onDeleteBanner) onDeleteBanner(deleteConfirm);
     } catch (err) {
       console.error("Failed to delete banner:", err);
     } finally {
+      setIsDeleting(false);
       setDeleteConfirm(null);
     }
   };
@@ -137,18 +141,30 @@ const BannerList = ({ banners: initialBanners = [], onAddBanner, onEditBanner, o
       )}
 
       {/* Delete Confirm Modal */}
-      {deleteConfirm !== null && (
-        <div className="bl__modal-overlay" onClick={() => setDeleteConfirm(null)}>
-          <div className="bl__modal" onClick={(e) => e.stopPropagation()}>
-            <h3 className="bl__modal-title">Delete Banner?</h3>
-            <p className="bl__modal-text">This action will remove the banner from the home page.</p>
-            <div className="bl__modal-actions">
-              <button className="bl__modal-btn bl__modal-btn--cancel" onClick={() => setDeleteConfirm(null)}>Cancel</button>
-              <button className="bl__modal-btn bl__modal-btn--delete" onClick={handleDeleteConfirm}>Delete</button>
-            </div>
-          </div>
-        </div>
-      )}
+      <AdminModal
+        isOpen={deleteConfirm !== null}
+        onClose={() => setDeleteConfirm(null)}
+        title="Delete Banner?"
+        maxWidth={420}
+        footer={
+          <>
+            <button className="bl__modal-btn bl__modal-btn--cancel" onClick={() => setDeleteConfirm(null)} disabled={isDeleting}>Cancel</button>
+            <button className="bl__modal-btn bl__modal-btn--delete admin-btn-with-spinner" onClick={handleDeleteConfirm} disabled={isDeleting}>
+              {isDeleting ? (
+                <>
+                  <span className="admin-btn-spinner" /> Deleting...
+                </>
+              ) : (
+                "Delete"
+              )}
+            </button>
+          </>
+        }
+      >
+        <p className="bl__modal-text" style={{ margin: 0, color: "#475569", fontSize: "14px", lineHeight: 1.5 }}>
+          This action will remove the banner from the home page.
+        </p>
+      </AdminModal>
     </div>
   );
 };

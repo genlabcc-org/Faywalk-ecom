@@ -365,11 +365,24 @@ export default function AddCategory({ onBack, onPublish, onSaveDraft, initialDat
 
       {/* ── Footer ── */}
       <div className="ap-footer">
-        <button type="button" className="ap-btn-draft" onClick={handleDraft} disabled={saving || uploading}>
-          {saving ? "Saving..." : "Save Draft"}
+        <button type="button" className="ap-btn-draft admin-btn-with-spinner" onClick={handleDraft} disabled={saving || uploading}>
+          {saving ? (
+            <>
+              <span className="admin-btn-spinner admin-btn-spinner--dark" /> Saving...
+            </>
+          ) : (
+            "Save Draft"
+          )}
         </button>
-        <button type="button" className="ap-btn-publish" onClick={handlePublish} disabled={saving || uploading}>
-          {saving ? "Saving..." : uploading ? "Uploading..." : isEditing ? "Update Category" : "Publish Category"}
+        <button type="button" className="ap-btn-publish admin-btn-with-spinner" onClick={handlePublish} disabled={saving || uploading}>
+          {saving || uploading ? (
+            <>
+              <span className="admin-btn-spinner" />
+              {saving ? "Saving..." : "Uploading..."}
+            </>
+          ) : (
+            isEditing ? "Update Category" : "Publish Category"
+          )}
         </button>
       </div>
 

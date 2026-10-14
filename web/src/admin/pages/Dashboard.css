@@ -110,51 +110,7 @@
   }
 }
 
-.db__search-pill {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  background-color: #f8fafc;
-  border: 1px solid #e2e8f0;
-  border-radius: 999px;
-  padding: 0 14px;
-  height: 38px;
-  width: 200px;
-  transition: all 0.15s ease;
-}
 
-.db__search-pill:focus-within {
-  border-color: #0A2582;
-  background-color: #ffffff;
-  width: 240px;
-  box-shadow: 0 0 0 2px rgba(10, 37, 130, 0.1);
-}
-
-.db__search-input {
-  border: none;
-  outline: none;
-  background: transparent;
-  font-size: 13px;
-  color: #0f172a;
-  width: 100%;
-  font-family: inherit;
-}
-
-.db__search-input::placeholder {
-  color: #94a3b8;
-}
-
-.db__search-kbd {
-  background: #ffffff;
-  border: 1px solid #e2e8f0;
-  border-radius: 4px;
-  padding: 1px 6px;
-  font-size: 11px;
-  color: #94a3b8;
-  font-family: monospace;
-  font-weight: 600;
-  line-height: 1.2;
-}
 
 .db__navbar-actions {
   display: flex;
@@ -288,6 +244,7 @@
     transform: translateX(-100%);
     box-shadow: 0 10px 30px rgba(0, 0, 0, 0.15);
   }
+
   .db__sidebar--open {
     transform: translateX(0);
   }
@@ -333,16 +290,16 @@
 .db__menu-item {
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: 11px;
   background: transparent;
   border: none;
-  border-radius: 10px;
-  padding: 10px 14px;
+  border-radius: 12px;
+  padding: 8px 14px;
   cursor: pointer;
   width: 100%;
   text-align: left;
   color: #334155;
-  font-size: 13.5px;
+  font-size: 13px;
   font-weight: 500;
   font-family: inherit;
   transition: all 0.15s ease;
@@ -356,7 +313,8 @@
 .db__menu-item--active {
   background-color: #0A2582;
   color: #ffffff;
-  font-weight: 600;
+  border-radius: 12px;
+  box-shadow: none;
 }
 
 .db__menu-item--active svg {
@@ -418,12 +376,12 @@
   position: relative;
   display: flex;
   align-items: center;
-  padding: 7px 12px;
+  padding: 7px 14px;
   color: #64748B;
   font-size: 13px;
   font-weight: 500;
   text-decoration: none;
-  border-radius: 6px;
+  border-radius: 10px;
   transition: all 0.12s ease;
   font-family: inherit;
 }
@@ -447,6 +405,7 @@
   color: #0A2582;
   font-weight: 600;
   background-color: #EFF6FF;
+  border-radius: 10px;
 }
 
 .db__sub-item-icon {
@@ -486,7 +445,7 @@
 
 /* ── All Admin Pages Uniform White Background ── */
 .db__main,
-.db__main > *,
+.db__main>*,
 .dc,
 .ao,
 .product-list,
@@ -1473,16 +1432,16 @@
 .db__logout-btn {
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: 11px;
   background: transparent;
   border: none;
-  border-radius: 10px;
-  padding: 10px 14px;
+  border-radius: 12px;
+  padding: 8px 14px;
   cursor: pointer;
   width: 100%;
   text-align: left;
   color: #dc2626;
-  font-size: 13.5px;
+  font-size: 13px;
   font-weight: 500;
   font-family: inherit;
   transition: all 0.15s ease;
@@ -1496,3 +1455,436 @@
 .db__logout-btn svg {
   stroke: currentColor;
 }
+
+/* ─────────────────────────────────────────────────────────────────────────────
+   COMMON ADMIN LIST & TABLE DESIGN SYSTEM (Matches Allorders)
+───────────────────────────────────────────────────────────────────────────── */
+
+/* Unified Table Wrappers */
+.ao__table-wrap,
+.aa__table-wrap,
+.ac__table-container,
+.pl-table-wrap,
+.cpm-table-wrap,
+.sh__table-wrap {
+  background: #ffffff !important;
+  border: none !important;
+  border-radius: 0 !important;
+  box-shadow: none !important;
+  overflow-x: auto !important;
+  -webkit-overflow-scrolling: touch;
+  margin-top: 8px;
+}
+
+/* Unified Tables */
+.ao__table,
+.aa__table,
+.ac__table,
+.pl-table,
+.cpm-table,
+.sh__table {
+  width: 100% !important;
+  border-collapse: separate !important;
+  border-spacing: 0 !important;
+  font-family: inherit !important;
+  background: #ffffff !important;
+}
+
+/* ─────────────────────────────────────────────────────────────────────────────
+   UNIFIED ADMIN LIST & TABLE STYLES (Common across Orders, Products, Customers, Discounts, Admins)
+───────────────────────────────────────────────────────────────────────────── */
+
+/* Unified Table Wrappers (Clean, Flat, Borderless, Smooth Horizontal Scroll) */
+.ao__table-wrap,
+.pl-table-wrapper,
+.ac__table-wrapper,
+.cpm-table-wrapper,
+.cpm-table-card {
+  background: #ffffff !important;
+  border: none !important;
+  box-shadow: none !important;
+  border-radius: 0 !important;
+  overflow-x: auto !important;
+  -webkit-overflow-scrolling: touch !important;
+  margin-bottom: 24px !important;
+}
+
+/* Unified Tables (Separate spacing to allow rounded header corners) */
+.ao__table,
+.pl-table,
+.ac__table,
+.cpm-table,
+.aa__table,
+.sh__table {
+  width: 100% !important;
+  border-collapse: separate !important;
+  border-spacing: 0 !important;
+}
+
+/* Unified Table Headers (Minimal Blue #F0F4FA with subtle border and rounded pill ends) */
+.ao__table thead tr,
+.aa__table thead tr,
+.ac__table thead tr,
+.pl-table thead tr,
+.cpm-table thead tr,
+.sh__table thead tr {
+  background: #F0F4FA !important;
+}
+
+.ao__table th,
+.aa__table th,
+.ac__th,
+.ac__table th,
+.pl-table th,
+.pl-table thead th,
+.cpm-table th,
+.cpm-table thead th,
+.sh__th,
+.sh__table th {
+  padding: 14px 20px !important;
+  text-align: left !important;
+  font-size: 13.5px !important;
+  font-weight: 600 !important;
+  color: #1E293B !important;
+  border-bottom: 1px solid #E2E8F0 !important;
+  background: #F0F4FA !important;
+  white-space: nowrap !important;
+  text-transform: capitalize !important;
+  letter-spacing: normal !important;
+}
+
+.ao__table th:first-child,
+.aa__table th:first-child,
+.ac__th:first-child,
+.ac__table th:first-child,
+.pl-table th:first-child,
+.pl-table thead th:first-child,
+.cpm-table th:first-child,
+.cpm-table thead th:first-child,
+.sh__th:first-child,
+.sh__table th:first-child {
+  border-top-left-radius: 8px !important;
+  border-bottom-left-radius: 8px !important;
+}
+
+.ao__table th:last-child,
+.aa__table th:last-child,
+.ac__th:last-child,
+.ac__table th:last-child,
+.pl-table th:last-child,
+.pl-table thead th:last-child,
+.cpm-table th:last-child,
+.cpm-table thead th:last-child,
+.sh__th:last-child,
+.sh__table th:last-child {
+  border-top-right-radius: 8px !important;
+  border-bottom-right-radius: 8px !important;
+}
+
+/* Unified Table Rows (Hover highlight and soft separator) */
+.ao__row,
+.aa__tr,
+.ac__tr,
+.ac__table tbody tr,
+.pl-table tbody tr,
+.cpm-table tbody tr,
+.sh__tr,
+.sh__table tbody tr {
+  transition: background-color 0.12s ease !important;
+  border-bottom: 1px solid #F1F5F9 !important;
+}
+
+.ao__row:hover,
+.aa__tr:hover,
+.ac__tr:hover,
+.ac__table tbody tr:hover,
+.pl-table tbody tr:hover,
+.cpm-table tbody tr:hover,
+.cpm-table tbody tr:hover td,
+.sh__tr:hover,
+.sh__table tbody tr:hover {
+  background-color: #F8FAFD !important;
+}
+
+/* Unified Table Cells */
+.ao__table td,
+.aa__table td,
+.ac__td,
+.ac__table td,
+.pl-table tbody td,
+.pl-table td,
+.cpm-table tbody td,
+.cpm-table td,
+.sh__td,
+.sh__table td {
+  padding: 16px 20px !important;
+  font-size: 13.5px !important;
+  color: #334155 !important;
+  vertical-align: middle !important;
+  border-bottom: 1px solid #F8FAFC !important;
+  border-top: none !important;
+  font-family: var(--admin-font, 'Outfit', sans-serif) !important;
+}
+
+/* ── Unified List Typography (Matches All Orders) ── */
+.ao,
+.ao__table,
+.product-list,
+.pl-table,
+.ac,
+.ac__table,
+.cpm-container,
+.cpm-table,
+.aa__table {
+  font-family: var(--admin-font, 'Outfit', sans-serif) !important;
+}
+
+/* Primary text: Names, Titles, Main Identifiers */
+.ao__customer-name,
+.pl-product-name,
+.ac__name-text,
+.ac__td--name,
+.cpm-code-badge,
+.aa__user-name {
+  font-family: var(--admin-font, 'Outfit', sans-serif) !important;
+  font-size: 13.5px !important;
+  font-weight: 500 !important;
+  color: #1E293B !important;
+}
+
+/* Bold values: IDs, Totals, Final Prices, Key Numbers */
+.ao__cell-id,
+.ao__cell-total,
+.pl-price-final,
+.pl-price-col,
+.cpm-discount-pill,
+.aa__user-email {
+  font-family: var(--admin-font, 'Outfit', sans-serif) !important;
+  font-size: 13.5px !important;
+  font-weight: 600 !important;
+  color: #0F172A !important;
+}
+
+/* Secondary & Muted text: SKUs, sub-emails, secondary descriptions, compare prices */
+.ao__cell-items,
+.pl-product-sku,
+.ac__name-email-sm,
+.ac__td--contact span:last-child,
+.cpm-discount-cap,
+.cpm-desc-text,
+.pl-price-compare {
+  font-family: var(--admin-font, 'Outfit', sans-serif) !important;
+  font-size: 12px !important;
+  color: #64748B !important;
+  font-weight: 400 !important;
+}
+
+/* Action links and buttons */
+.ao__view-link,
+.ac__view-btn {
+  font-family: var(--admin-font, 'Outfit', sans-serif) !important;
+  font-size: 13.5px !important;
+  font-weight: 600 !important;
+  color: #0A2582 !important;
+}
+
+/* Unified Toolbars */
+.ao__toolbar,
+.aa__toolbar,
+.ac__toolbar,
+.pl-toolbar,
+.cpm-toolbar {
+  display: flex !important;
+  align-items: center !important;
+  justify-content: space-between !important;
+  gap: 14px !important;
+  margin-bottom: 24px !important;
+  flex-wrap: wrap !important;
+}
+
+/* Unified Search Boxes */
+.ao__search-box,
+.aa__search-box,
+.ac__search-wrapper,
+.pl-search,
+.pl-search-wrap,
+.cpm-search-box {
+  display: flex !important;
+  align-items: center !important;
+  border: 1px solid #E2E8F0 !important;
+  border-radius: 10px !important;
+  background: #ffffff !important;
+  padding: 0 16px !important;
+  height: 40px !important;
+  min-width: 260px !important;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease !important;
+  box-shadow: none !important;
+}
+
+.ao__search-box:focus-within,
+.aa__search-box:focus-within,
+.ac__search-wrapper:focus-within,
+.pl-search:focus-within,
+.pl-search-wrap:focus-within,
+.cpm-search-box:focus-within {
+  border-color: #0A2582 !important;
+  box-shadow: 0 0 0 2px rgba(10, 37, 130, 0.1) !important;
+}
+
+.ao__search-input,
+.aa__search-input,
+.ac__search-input,
+.pl-search input,
+.pl-search-input,
+.cpm-search-input {
+  border: none !important;
+  outline: none !important;
+  background: transparent !important;
+  font-size: 13.5px !important;
+  color: #0F172A !important;
+  width: 100% !important;
+  font-family: inherit !important;
+}
+
+.ao__search-input::placeholder,
+.aa__search-input::placeholder,
+.ac__search-input::placeholder,
+.pl-search input::placeholder,
+.pl-search-input::placeholder,
+.cpm-search-input::placeholder {
+  color: #94A3B8 !important;
+}
+
+/* Unified Checkboxes */
+.ao__checkbox,
+.aa__checkbox,
+.ac__checkbox,
+.ac__table input[type="checkbox"],
+.pl-table input[type="checkbox"],
+.pl-checkbox-col input[type="checkbox"],
+.cpm-table input[type="checkbox"],
+.cpm-checkbox {
+  width: 18px !important;
+  height: 18px !important;
+  border-radius: 4px !important;
+  accent-color: #0A2582 !important;
+  cursor: pointer !important;
+}
+
+/* Unified Pill Badges */
+.ao__badge,
+.aa__badge,
+.ac__badge,
+.pl-badge,
+.cpm-badge,
+.pl-status-badge,
+.pl-category-badge,
+.pl-subcategory-badge,
+.pl-stock-low,
+.cpm-status-tag,
+.cpm-cat-badge {
+  display: inline-flex !important;
+  align-items: center !important;
+  gap: 6px !important;
+  padding: 4px 14px !important;
+  border-radius: 999px !important;
+  font-size: 12px !important;
+  font-weight: 600 !important;
+  white-space: nowrap !important;
+  text-transform: capitalize !important;
+  letter-spacing: normal !important;
+  border: none !important;
+}
+
+/* Unified Primary Add Button */
+.ao__add-btn,
+.aa__btn-add,
+.ac__add-btn,
+.pl-add-btn,
+.cpm-add-btn {
+  display: inline-flex !important;
+  align-items: center !important;
+  gap: 8px !important;
+  padding: 0 18px !important;
+  height: 40px !important;
+  background: var(--admin-primary) !important;
+  color: #ffffff !important;
+  border: none !important;
+  border-radius: 10px !important;
+  font-size: 13.5px !important;
+  font-weight: 600 !important;
+  cursor: pointer !important;
+  white-space: nowrap !important;
+  transition: opacity 0.15s ease, background 0.15s ease !important;
+}
+
+.ao__add-btn:hover,
+.aa__btn-add:hover,
+.ac__add-btn:hover,
+.pl-add-btn:hover,
+.cpm-add-btn:hover {
+  background: var(--admin-primary-hover) !important;
+  opacity: 0.95 !important;
+}
+
+/* Unified Action Link */
+.ao__view-link,
+.ac__view-btn,
+.aa__view-link,
+.pl-view-link {
+  background: transparent !important;
+  border: none !important;
+  font-size: 13.5px !important;
+  font-weight: 500 !important;
+  color: #334155 !important;
+  cursor: pointer !important;
+  text-decoration: underline !important;
+  padding: 0 !important;
+  transition: color 0.15s ease !important;
+}
+
+.ao__view-link:hover,
+.ac__view-btn:hover,
+.aa__view-link:hover,
+.pl-view-link:hover {
+  color: #0A2582 !important;
+}
+
+/* ─────────────────────────────────────────────────────────────────────────────
+   GLOBAL ADMIN BUTTON SPINNER & LOADING STATES
+───────────────────────────────────────────────────────────────────────────── */
+.admin-btn-spinner {
+  display: inline-block;
+  width: 14px;
+  height: 14px;
+  border: 2px solid rgba(255, 255, 255, 0.35);
+  border-top-color: #ffffff;
+  border-radius: 50%;
+  animation: adminBtnSpin 0.65s linear infinite;
+  vertical-align: middle;
+  flex-shrink: 0;
+  margin-right: 6px;
+}
+
+.admin-btn-spinner--dark {
+  border: 2px solid rgba(15, 23, 42, 0.2);
+  border-top-color: #0f172a;
+}
+
+@keyframes adminBtnSpin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.admin-btn-with-spinner {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+}
+
+button:disabled {
+  opacity: 0.68;
+  cursor: not-allowed !important;
+}

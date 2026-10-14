@@ -275,10 +275,16 @@ export default function TopBarSettings() {
               </button>
               <button
                 type="submit"
-                className={`tbs-btn tbs-btn--primary ${saving ? "tbs-btn--loading" : ""}`}
+                className={`tbs-btn tbs-btn--primary admin-btn-with-spinner ${saving ? "tbs-btn--loading" : ""}`}
                 disabled={saving}
               >
-                {saving ? "Saving to Database..." : "Save Changes"}
+                {saving ? (
+                  <>
+                    <span className="admin-btn-spinner" /> Saving to Database...
+                  </>
+                ) : (
+                  "Save Changes"
+                )}
               </button>
             </div>
           </form>

@@ -1,6 +1,8 @@
 import React, { useState, useEffect, useMemo } from "react";
 import { couponService } from "../../services/couponService";
 import { productService } from "../../services/productService";
+import AdminModal from "../components/AdminModal";
+import "./Allorders.css";
 import "./CouponManagement.css";
 
 const EMPTY_COUPON_FORM = {
@@ -210,12 +212,12 @@ export default function CouponManagement() {
   }, [coupons, activeTab, searchQuery]);
 
   return (
-    <div className="cpm-container">
+    <div className="ao cpm-container">
       {/* ── Header ── */}
-      <div className="cpm-header">
-        <div>
-          <h1 className="cpm-title">Coupon Management</h1>
-          <p className="cpm-subtitle">
+      <div className="ao__page-header cpm-header">
+        <div className="ao__page-title-block">
+          <h1 className="ao__title">Coupons Management</h1>
+          <p className="ao__subtitle">
             Create, monitor, and manage discount promotional coupons for your customers.
           </p>
         </div>
@@ -320,14 +322,14 @@ export default function CouponManagement() {
           </button>
         </div>
 
-        <div className="cpm-search-box">
+        <div className="ao__search-box cpm-search-box">
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
             <circle cx="11" cy="11" r="8" />
             <line x1="21" y1="21" x2="16.65" y2="16.65" />
           </svg>
           <input
             type="text"
-            className="cpm-search-input"
+            className="ao__search-input cpm-search-input"
             placeholder="Search coupon code or description..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
@@ -379,8 +381,8 @@ export default function CouponManagement() {
             )}
           </div>
         ) : (
-          <div className="cpm-table-wrapper">
-            <table className="cpm-table">
+          <div className="ao__table-wrap">
+            <table className="ao__table">
               <thead>
                 <tr>
                   <th>Coupon Code</th>
@@ -399,9 +401,9 @@ export default function CouponManagement() {
                   const catName = coupon.categories?.name || (categories.find(c => String(c.category_id || c.id) === String(coupon.category_id))?.name);
                   const subName = coupon.subcategories?.name;
                   return (
-                    <tr key={coupon.id}>
+                    <tr key={coupon.id} className="ao__row">
                       {/* Code */}
-                      <td>
+                      <td className="ao__cell-id">
                         <div className="cpm-code-badge-wrap">
                           <span className="cpm-code-badge">
                             {coupon.code}
@@ -427,68 +429,68 @@ export default function CouponManagement() {
                       </td>
 
                       {/* Applicable Target (Category / Subcategory) */}
-                      <td>
+                      <td className="ao__cell-items">
                         {subName ? (
                           <div style={{ display: "flex", flexDirection: "column", gap: "2px" }}>
-                            <span className="cpm-cat-badge">
+                            <span className="ao__badge cpm-cat-badge">
                               {subName}
                             </span>
                             {catName && (
-                              <span style={{ fontSize: "11px", color: "#64748b" }}>
+                              <span style={{ fontSize: "12px", color: "#64748b" }}>
                                 in {catName}
                               </span>
                             )}
                           </div>
                         ) : catName ? (
-                          <span className="cpm-cat-badge">
+                          <span className="ao__badge cpm-cat-badge">
                             {catName}
                           </span>
                         ) : (
-                          <span className="cpm-cat-all">
+                          <span style={{ color: "#64748B", fontSize: "13.5px" }}>
                             All Categories
                           </span>
                         )}
                       </td>
 
                       {/* Discount Value */}
-                      <td>
+                      <td className="ao__cell-total">
                         <span className="cpm-discount-pill">
                           {coupon.discount_type === "percentage"
                             ? `${coupon.discount_value}% OFF`
                             : `₹${Number(coupon.discount_value).toLocaleString("en-IN")} OFF`}
                         </span>
                         {coupon.discount_type === "percentage" && coupon.max_discount_amount && (
-                          <div className="cpm-discount-cap">
+                          <div style={{ fontSize: "12px", color: "#64748B", fontWeight: 400, marginTop: "2px" }}>
                             Up to ₹{Number(coupon.max_discount_amount).toLocaleString("en-IN")}
                           </div>
                         )}
                       </td>
 
                       {/* Min Order */}
-                      <td>
+                      <td className="ao__cell-items">
                         {coupon.min_order_amount && Number(coupon.min_order_amount) > 0
                           ? `₹${Number(coupon.min_order_amount).toLocaleString("en-IN")}`
                           : "No min"}
                       </td>
 
                       {/* Usage */}
-                      <td>
+                      <td className="ao__cell-items">
                         <span>
                           {coupon.used_count || 0}
                           {coupon.usage_limit ? ` / ${coupon.usage_limit}` : " used"}
                         </span>
                         {coupon.usage_limit && coupon.used_count >= coupon.usage_limit && (
-                          <div className="cpm-discount-cap" style={{ color: "#dc2626" }}>
+                          <div style={{ color: "#dc2626", fontSize: "12px", marginTop: "2px" }}>
                             Limit reached
                           </div>
                         )}
                       </td>
 
                       {/* Validity */}
-                      <td>
+                      <td className="ao__cell-items">
                         {coupon.expiry_date ? (
                           <>
-                            <div style={{ fontSize: "12.5px" }}>
+                            <div>
                               {new Date(coupon.expiry_date).toLocaleDateString("en-IN", {
                                 day: "numeric",
                                 month: "short",
@@ -496,13 +498,13 @@ export default function CouponManagement() {
                               })}
                             </div>
                             {isExpired && (
-                              <span className="cpm-status-tag cpm-status-tag--expired">
+                              <span className="ao__badge" style={{ backgroundColor: "#FEE2E2", color: "#DC2626", marginTop: "4px" }}>
                                 Expired
                               </span>
                             )}
                           </>
                         ) : (
-                          <span style={{ color: "#6b7280", fontSize: "12.5px" }}>
+                          <span style={{ color: "#64748B" }}>
                             No expiry
                           </span>
                         )}
@@ -539,14 +541,12 @@ export default function CouponManagement() {
                         <div className="cpm-actions-cell" style={{ justifyContent: "flex-end" }}>
                           <button
                             type="button"
-                            className="cpm-action-btn cpm-action-btn--edit"
+                            className="ao__view-link"
                             title="Edit Coupon"
                             onClick={() => handleOpenEdit(coupon)}
+                            style={{ marginRight: "4px" }}
                           >
-                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                              <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
-                              <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" />
-                            </svg>
+                            Edit
                           </button>
                           <button
                             type="button"
@@ -571,27 +571,40 @@ export default function CouponManagement() {
       </div>
 
       {/* ── Create / Edit Coupon Modal ── */}
-      {isModalOpen && (
-        <div
-          className="cpm-modal-overlay"
-          onClick={() => !isSubmitting && setIsModalOpen(false)}
-        >
-          <div className="cpm-modal" onClick={(e) => e.stopPropagation()}>
-            <div className="cpm-modal-header">
-              <h2 className="cpm-modal-title">
-                {editingCoupon ? "Edit Coupon" : "Create New Coupon"}
-              </h2>
-              <button
-                type="button"
-                className="cpm-modal-close-btn"
-                onClick={() => !isSubmitting && setIsModalOpen(false)}
-              >
-                ✕
-              </button>
-            </div>
-
-            <form onSubmit={handleSubmitForm} className="cpm-form">
-              {formError && (
+      <AdminModal
+        isOpen={isModalOpen}
+        onClose={() => !isSubmitting && setIsModalOpen(false)}
+        title={editingCoupon ? "Edit Coupon" : "Create New Coupon"}
+        maxWidth={620}
+        footer={
+          <>
+            <button
+              type="button"
+              className="cpm-btn-cancel"
+              onClick={() => setIsModalOpen(false)}
+              disabled={isSubmitting}
+            >
+              Cancel
+            </button>
+            <button
+              type="submit"
+              form="cpm-coupon-form"
+              className="cpm-btn-submit admin-btn-with-spinner"
+              disabled={isSubmitting}
+            >
+              {isSubmitting ? (
+                <>
+                  <span className="admin-btn-spinner" /> Saving...
+                </>
+              ) : (
+                editingCoupon ? "Save Changes" : "Create Coupon"
+              )}
+            </button>
+          </>
+        }
+      >
+        <form id="cpm-coupon-form" onSubmit={handleSubmitForm} className="cpm-form" style={{ padding: 0 }}>
+          {formError && (
                 <div style={{ padding: "8px 12px", background: "#fef2f2", color: "#b91c1c", borderRadius: "6px", fontSize: "12.5px" }}>
                   {formError}
                 </div>
@@ -857,68 +870,48 @@ export default function CouponManagement() {
                 </label>
               </div>
 
-              {/* Modal Actions */}
-              <div className="cpm-modal-actions" style={{ margin: "-22px -24px -22px", marginTop: "4px" }}>
-                <button
-                  type="button"
-                  className="cpm-btn-cancel"
-                  onClick={() => setIsModalOpen(false)}
-                  disabled={isSubmitting}
-                >
-                  Cancel
-                </button>
-                <button
-                  type="submit"
-                  className="cpm-btn-submit"
-                  disabled={isSubmitting}
-                >
-                  {isSubmitting ? "Saving..." : editingCoupon ? "Save Changes" : "Create Coupon"}
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
+        </form>
+      </AdminModal>
+
 
       {/* ── Delete Confirmation Dialog ── */}
-      {deleteModalCoupon && (
-        <div
-          className="cpm-modal-overlay"
-          onClick={() => !isDeleting && setDeleteModalCoupon(null)}
-        >
-          <div
-            className="cpm-modal"
-            style={{ maxWidth: "400px", padding: "24px" }}
-            onClick={(e) => e.stopPropagation()}
-          >
-            <h3 style={{ margin: "0 0 8px", fontSize: "17px", fontWeight: 700, color: "#111827" }}>
-              Delete Coupon?
-            </h3>
-            <p style={{ margin: "0 0 20px", fontSize: "13.5px", color: "#6b7280", lineHeight: 1.45 }}>
-              Are you sure you want to delete coupon <strong>{deleteModalCoupon.code}</strong>? This action cannot be undone.
-            </p>
-            <div style={{ display: "flex", gap: "10px", justifyContent: "flex-end" }}>
-              <button
-                type="button"
-                className="cpm-btn-cancel"
-                onClick={() => setDeleteModalCoupon(null)}
-                disabled={isDeleting}
-              >
-                Cancel
-              </button>
-              <button
-                type="button"
-                className="cpm-btn-submit"
-                style={{ background: "#dc2626" }}
-                onClick={handleConfirmDelete}
-                disabled={isDeleting}
-              >
-                {isDeleting ? "Deleting..." : "Delete"}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+      <AdminModal
+        isOpen={Boolean(deleteModalCoupon)}
+        onClose={() => !isDeleting && setDeleteModalCoupon(null)}
+        title="Delete Coupon?"
+        maxWidth={400}
+        footer={
+          <>
+            <button
+              type="button"
+              className="cpm-btn-cancel"
+              onClick={() => setDeleteModalCoupon(null)}
+              disabled={isDeleting}
+            >
+              Cancel
+            </button>
+            <button
+              type="button"
+              className="cpm-btn-submit admin-btn-with-spinner"
+              style={{ background: "#dc2626" }}
+              onClick={handleConfirmDelete}
+              disabled={isDeleting}
+            >
+              {isDeleting ? (
+                <>
+                  <span className="admin-btn-spinner" /> Deleting...
+                </>
+              ) : (
+                "Delete"
+              )}
+            </button>
+          </>
+        }
+      >
+        <p style={{ margin: "0", fontSize: "14px", color: "#6b7280", lineHeight: 1.5 }}>
+          Are you sure you want to delete coupon <strong>{deleteModalCoupon?.code}</strong>? This action cannot be undone.
+        </p>
+      </AdminModal>
     </div>
   );
 }

@@ -768,6 +768,7 @@ const OrderDetails = ({ order, onBack }) => {
               <button
                 onClick={handleRetryBooking}
                 disabled={retryingBooking}
+                className="admin-btn-with-spinner"
                 style={{
                   backgroundColor: '#dc2626',
                   color: '#fff',
@@ -779,7 +780,13 @@ const OrderDetails = ({ order, onBack }) => {
                   cursor: retryingBooking ? 'not-allowed' : 'pointer'
                 }}
               >
-                {retryingBooking ? 'Retrying Booking...' : '🔄 Retry Booking'}
+                {retryingBooking ? (
+                  <>
+                    <span className="admin-btn-spinner" /> Retrying Booking...
+                  </>
+                ) : (
+                  '🔄 Retry Booking'
+                )}
               </button>
             )}
 
@@ -788,6 +795,7 @@ const OrderDetails = ({ order, onBack }) => {
                 <button
                   onClick={handlePrintLabel}
                   disabled={loadingLabel}
+                  className="admin-btn-with-spinner"
                   style={{
                     backgroundColor: '#eff6ff',
                     color: 'var(--admin-primary, #002277)',
@@ -802,13 +810,20 @@ const OrderDetails = ({ order, onBack }) => {
                     gap: '4px'
                   }}
                 >
-                  {loadingLabel ? 'Loading Label...' : '🏷️ Print Label'}
+                  {loadingLabel ? (
+                    <>
+                      <span className="admin-btn-spinner admin-btn-spinner--dark" /> Loading Label...
+                    </>
+                  ) : (
+                    '🏷️ Print Label'
+                  )}
                 </button>
 
                 {!isDelivered && !isOrderCancelled && (
                   <button
                     onClick={handleCancelShipment}
                     disabled={cancellingShipment}
+                    className="admin-btn-with-spinner"
                     style={{
                       backgroundColor: '#fff',
                       color: '#dc2626',
@@ -820,7 +835,13 @@ const OrderDetails = ({ order, onBack }) => {
                       cursor: cancellingShipment ? 'not-allowed' : 'pointer'
                     }}
                   >
-                    {cancellingShipment ? 'Cancelling...' : 'Cancel Shipment'}
+                    {cancellingShipment ? (
+                      <>
+                        <span className="admin-btn-spinner admin-btn-spinner--dark" /> Cancelling...
+                      </>
+                    ) : (
+                      'Cancel Shipment'
+                    )}
                   </button>
                 )}
               </>
@@ -910,6 +931,7 @@ const OrderDetails = ({ order, onBack }) => {
           <button
             onClick={handleSaveNote}
             disabled={savingNote}
+            className="admin-btn-with-spinner"
             style={{
               backgroundColor: 'var(--admin-primary, #002277)',
               color: '#fff',
@@ -923,7 +945,13 @@ const OrderDetails = ({ order, onBack }) => {
               transition: 'opacity 0.2s'
             }}
           >
-            {savingNote ? 'Saving...' : 'Save Note'}
+            {savingNote ? (
+              <>
+                <span className="admin-btn-spinner" /> Saving...
+              </>
+            ) : (
+              'Save Note'
+            )}
           </button>
         </div>
       </div>
@@ -952,6 +980,7 @@ const OrderDetails = ({ order, onBack }) => {
         <button
           onClick={handlePrintInvoice}
           disabled={printing}
+          className="admin-btn-with-spinner"
           style={{
             backgroundColor: invoicePrinted ? '#eff6ff' : 'var(--admin-primary, #002277)',
             color: invoicePrinted ? 'var(--admin-primary, #002277)' : '#fff',
@@ -969,7 +998,9 @@ const OrderDetails = ({ order, onBack }) => {
           }}
         >
           {printing ? (
-            <><span>⏳</span> Printing...</>
+            <>
+              <span className="admin-btn-spinner" /> Printing...
+            </>
           ) : invoicePrinted ? (
             <><span>🖨️</span> Print Again (Printed ✓)</>
           ) : (

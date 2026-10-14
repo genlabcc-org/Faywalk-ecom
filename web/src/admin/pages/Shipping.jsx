@@ -408,8 +408,14 @@ export default function Shipping() {
               </svg>
               Saves to <code>shipping_rates</code> as standard <code>__default__</code> fallback rule.
             </span>
-            <button type="submit" className="sh__btn-save" disabled={savingDefault}>
-              {savingDefault ? "Saving..." : "Save Default Rate"}
+            <button type="submit" className="sh__btn-save admin-btn-with-spinner" disabled={savingDefault}>
+              {savingDefault ? (
+                <>
+                  <span className="admin-btn-spinner" /> Saving...
+                </>
+              ) : (
+                "Save Default Rate"
+              )}
             </button>
           </div>
         </form>
@@ -734,8 +740,14 @@ export default function Shipping() {
                 >
                   Cancel
                 </button>
-                <button type="submit" className="sh__btn-save" disabled={isSubmitting}>
-                  {isSubmitting ? "Saving..." : editingRate ? "Update Rate" : "Save State Rate"}
+                <button type="submit" className="sh__btn-save admin-btn-with-spinner" disabled={isSubmitting}>
+                  {isSubmitting ? (
+                    <>
+                      <span className="admin-btn-spinner" /> Saving...
+                    </>
+                  ) : (
+                    editingRate ? "Update Rate" : "Save State Rate"
+                  )}
                 </button>
               </div>
             </form>
@@ -776,11 +788,17 @@ export default function Shipping() {
               </button>
               <button
                 type="button"
-                className="sh__btn-danger"
+                className="sh__btn-danger admin-btn-with-spinner"
                 onClick={handleConfirmDelete}
                 disabled={isDeleting}
               >
-                {isDeleting ? "Deleting..." : "Delete Rule"}
+                {isDeleting ? (
+                  <>
+                    <span className="admin-btn-spinner" /> Deleting...
+                  </>
+                ) : (
+                  "Delete Rule"
+                )}
               </button>
             </div>
           </div>

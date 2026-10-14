@@ -394,8 +394,14 @@ const CreateMultipleProduct = ({
           </div>
         </div>
 
-        <button type="button" className="cmp-save-btn" onClick={handleSave} disabled={saving}>
-          {saving ? "Saving..." : "Save"}
+        <button type="button" className="cmp-save-btn admin-btn-with-spinner" onClick={handleSave} disabled={saving}>
+          {saving ? (
+            <>
+              <span className="admin-btn-spinner" /> Saving...
+            </>
+          ) : (
+            "Save"
+          )}
         </button>
       </div>
 
@@ -769,11 +775,17 @@ const CreateMultipleProduct = ({
         </button>
         <button
           type="button"
-          className="cmp-save-btn cmp-save-btn--bottom"
+          className="cmp-save-btn cmp-save-btn--bottom admin-btn-with-spinner"
           onClick={handleSave}
           disabled={saving}
         >
-          {saving ? "Saving..." : "Save"}
+          {saving ? (
+            <>
+              <span className="admin-btn-spinner" /> Saving...
+            </>
+          ) : (
+            "Save"
+          )}
         </button>
       </div>
     </main>

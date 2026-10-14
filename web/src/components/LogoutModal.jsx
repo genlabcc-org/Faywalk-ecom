@@ -71,11 +71,17 @@ export default function LogoutModal({ isOpen, onClose, onConfirm, loading = fals
           </button>
           <button
             type="button"
-            className="logout-modal-btn logout-modal-btn-confirm"
+            className="logout-modal-btn logout-modal-btn-confirm admin-btn-with-spinner"
             onClick={onConfirm}
             disabled={loading}
           >
-            {loading ? "Logging out..." : "Log Out"}
+            {loading ? (
+              <>
+                <span className="admin-btn-spinner" /> Logging out...
+              </>
+            ) : (
+              "Log Out"
+            )}
           </button>
         </div>
       </div>

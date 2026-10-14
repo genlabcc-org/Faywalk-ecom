@@ -256,58 +256,77 @@
 
 /* ── Table wrapper ──────────────────────────────────────────────── */
 .ac__table-wrapper {
-  background: var(--ac-card-bg);
-  border-radius: var(--ac-radius-card);
-  border: 1px solid var(--ac-border);
+  background: #ffffff;
+  border: none;
+  border-radius: 0;
+  box-shadow: none;
   overflow-x: auto;
   -webkit-overflow-scrolling: touch;
-  margin-bottom: 14px;
+  margin-bottom: 24px;
 }
 
 .ac__table {
   width: 100%;
-  border-collapse: collapse;
+  border-collapse: separate;
+  border-spacing: 0;
   min-width: 560px;
 }
 
 .ac__th {
-  padding: 13px 14px;
-  font-size: 12.5px;
+  padding: 14px 20px;
+  font-size: 13.5px;
   font-weight: 600;
-  color: #555;
+  color: #1E293B;
   text-align: left;
-  background: var(--ac-card-bg);
-  border-bottom: 1px solid #f0f0f0;
+  background: #F0F4FA;
+  border-bottom: 1px solid #E2E8F0;
   white-space: nowrap;
 }
-.ac__th--check  { width: 40px; padding-left: 16px; padding-right: 8px; }
+.ac__th:first-child {
+  border-top-left-radius: 8px;
+  border-bottom-left-radius: 8px;
+}
+.ac__th:last-child {
+  border-top-right-radius: 8px;
+  border-bottom-right-radius: 8px;
+}
+.ac__th--check  { width: 40px; padding-left: 20px; padding-right: 12px; }
 .ac__th--center { text-align: center; }
 
 .ac__tr {
-  border-bottom: 1px solid #f5f5f5;
+  border-bottom: 1px solid #F1F5F9;
   transition: background .12s;
 }
-.ac__tr:last-child { border-bottom: none; }
-.ac__tr:hover      { background: #fafafa; }
+.ac__tr:hover      { background: #F8FAFD; }
 
 .ac__td {
-  padding: 13px 14px;
-  font-size: 13px;
-  color: #222;
+  padding: 16px 20px;
+  font-size: 13.5px;
+  color: #334155;
   vertical-align: middle;
 }
-.ac__td--check  { width: 40px; padding-left: 16px; padding-right: 8px; }
+.ac__td--check  { width: 40px; padding-left: 20px; padding-right: 12px; }
 .ac__td--center { text-align: center; }
 
 .ac__td--name {
+  font-family: inherit;
   font-weight: 500;
-  color: var(--ac-text-primary);
+  font-size: 13.5px;
+  color: #1E293B;
+}
+
+.ac__name-text {
+  font-family: inherit;
+  font-weight: 500;
+  font-size: 13.5px;
+  color: #1E293B;
 }
 
 .ac__name-email-sm {
   display: none;
+  font-family: inherit;
   font-size: 12px;
-  color: var(--ac-text-muted);
+  color: #64748B;
   font-weight: 400;
   margin-top: 2px;
 }
@@ -316,8 +335,15 @@
   display: flex;
   flex-direction: column;
   gap: 2px;
-  font-size: 12.5px;
-  color: #555;
+  font-family: inherit;
+  font-size: 13px;
+  color: #334155;
+}
+
+.ac__td--contact span:last-child {
+  font-size: 12px;
+  color: #64748B;
+  font-weight: 400;
 }
 
 .ac__th--hide-sm, .ac__td--hide-sm,
@@ -326,9 +352,9 @@
 
 /* ── Checkbox ───────────────────────────────────────────────────── */
 .ac__checkbox {
-  width: 15px;
-  height: 15px;
-  accent-color: var(--ac-accent);
+  width: 18px;
+  height: 18px;
+  accent-color: #0A2582;
   cursor: pointer;
   flex-shrink: 0;
 }
@@ -336,11 +362,12 @@
 /* ── Status badges ──────────────────────────────────────────────── */
 .ac__badge {
   display: inline-block;
-  padding: 3px 10px;
-  border-radius: 20px;
+  padding: 4px 14px;
+  border-radius: 9999px;
   font-size: 12px;
-  font-weight: 500;
+  font-weight: 600;
   white-space: nowrap;
+  letter-spacing: 0.2px;
 }
 .ac__badge--confirmed { background: var(--ac-green-bg); color: var(--ac-green-text); }
 .ac__badge--disabled  { background: var(--ac-red-bg);   color: var(--ac-red-text);   }
@@ -349,16 +376,19 @@
 .ac__view-btn {
   background: none;
   border: none;
-  color: var(--ac-blue);
-  font-size: 13px;
+  color: #0A2582;
+  font-size: 13.5px;
+  font-weight: 600;
   cursor: pointer;
-  padding: 2px 4px;
-  border-radius: 4px;
-  font-weight: 500;
-  transition: opacity .15s;
+  padding: 4px 8px;
+  border-radius: 6px;
+  transition: all 0.15s ease;
   white-space: nowrap;
+  font-family: inherit;
 }
-.ac__view-btn:hover { opacity: .7; }
+.ac__view-btn:hover {
+  background-color: #EFF6FF;
+}
 
 /* ── Mobile Cards ───────────────────────────────────────────────── */
 .ac__cards-wrapper {

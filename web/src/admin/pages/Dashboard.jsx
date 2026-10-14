@@ -111,12 +111,8 @@ const menuItems = [
       { label: "Invoices", path: "/admin/invoices" },
     ]
   },
-  {
-    id: "customer", label: "Customer", path: "/admin/customers", children: [
-      { label: "All Customers", path: "/admin/customers" },
-    ]
-  },
-  { id: "coupons", label: "Discount", path: "/admin/coupons" },
+  { id: "customer", label: "Customers", path: "/admin/customers" },
+  { id: "coupons", label: "Coupons Management", path: "/admin/coupons" },
   {
     id: "banner", label: "Banner & Content", path: "/admin/banners", children: [
       { label: "All Banners", path: "/admin/banners" },
@@ -124,10 +120,10 @@ const menuItems = [
     ]
   },
   { id: "analytics", label: "Analytics", path: "/admin/analytics" },
+  { id: "shipping", label: "Shipping", path: "/admin/shipping" },
+  { id: "topbar", label: "TopBar Content", path: "/admin/topbar" },
   {
-    id: "settings", label: "Settings", path: "/admin/shipping", children: [
-      { label: "Shipping", path: "/admin/shipping" },
-      { label: "TopBar Text", path: "/admin/topbar" },
+    id: "settings", label: "Settings", path: "/admin/account", children: [
       { label: "Admin Account", path: "/admin/account" },
       { label: "Danger Zone", path: "/admin/danger" },
     ]
@@ -183,6 +179,21 @@ const sidebarIcons = {
     <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
       <polyline points="23 6 13.5 15.5 8.5 10.5 1 18" />
       <polyline points="17 6 23 6 23 12" />
+    </svg>
+  ),
+  shipping: (
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <rect x="1" y="3" width="15" height="13" />
+      <polygon points="16 8 20 8 23 11 23 16 16 16 16 8" />
+      <circle cx="5.5" cy="18.5" r="2.5" />
+      <circle cx="18.5" cy="18.5" r="2.5" />
+    </svg>
+  ),
+  topbar: (
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <rect x="2" y="4" width="20" height="16" rx="2" />
+      <line x1="2" y1="9" x2="22" y2="9" />
+      <line x1="6" y1="6.5" x2="14" y2="6.5" />
     </svg>
   ),
   settings: (
@@ -852,7 +863,12 @@ const Dashboard = () => {
 
   const toggle = (id) => setOpenMenus((prev) => ({ ...prev, [id]: !prev[id] }));
 
-  const isActive = (path) => currentPath === path || currentPath.startsWith(path + "/");
+  const isActive = (path) => {
+    if (path === "/admin") {
+      return currentPath === "/admin" || currentPath === "/admin/";
+    }
+    return currentPath === path || currentPath.startsWith(path + "/");
+  };
 
   const showSearchNavbar = ["/admin/categories", "/admin/categories/add", "/admin/products/add", "/admin/orders", "/admin/orders/detail", "/admin/customers", "/admin/customers/detail", "/admin/banners"].some(p => currentPath.startsWith(p));
   const hideAddProduct = HIDE_ADD_PRODUCT_PATHS.includes(currentPath);
@@ -1247,15 +1263,7 @@ const Dashboard = () => {
         </div>
 
         <div className="db__navbar-actions">
-          {/* Pill Search */}
-          <div className="db__search-pill">
-            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#94a3b8" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <circle cx="11" cy="11" r="8" />
-              <line x1="21" y1="21" x2="16.65" y2="16.65" />
-            </svg>
-            <input type="text" placeholder="Search" className="db__search-input" />
-            <kbd className="db__search-kbd">/</kbd>
-          </div>
+
 
 
 
@@ -1386,7 +1394,7 @@ const Dashboard = () => {
                     onClick={() => {
                       if (hasChildren) {
                         toggle(item.id);
-                        navigate(item.children[0].path);
+                        navigate(item.children[0].path);  
                       } else {
                         navigate(item.path);
                       }

@@ -163,6 +163,7 @@ const ProductList = ({ onAddProduct, onEditProduct, onDeleteProduct, products = 
   const [selectedSort, setSelectedSort] = useState("default");
   const [sortOpen, setSortOpen] = useState(false);
   const [pendingDeleteId, setPendingDeleteId] = useState(null);
+  const [isDeleting, setIsDeleting] = useState(false);
   const [expandedRows, setExpandedRows] = useState([]);
 
   const SORTS = [
@@ -257,14 +258,25 @@ const ProductList = ({ onAddProduct, onEditProduct, onDeleteProduct, products = 
     setPendingDeleteId(id);
   };
 
-  const confirmDelete = () => {
-    const id = pendingDeleteId
-    if (onDeleteProduct) onDeleteProduct(id);
-    const newTotal = filteredProducts.length - 1;
-    const newTotalPages = Math.max(1, Math.ceil(newTotal / itemsPerPage));
-    if (currentPage > newTotalPages) setCurrentPage(newTotalPages);
-    setSelectedRows((prev) => prev.filter((rowId) => rowId !== id));
-    setPendingDeleteId(null);
+  const confirmDelete = async () => {
+    const id = pendingDeleteId;
+    if (onDeleteProduct) {
+      try {
+        setIsDeleting(true);
+        await onDeleteProduct(id);
+      } catch (err) {
+        console.error("Error deleting product:", err);
+      } finally {
+        setIsDeleting(false);
+        const newTotal = filteredProducts.length - 1;
+        const newTotalPages = Math.max(1, Math.ceil(newTotal / itemsPerPage));
+        if (currentPage > newTotalPages) setCurrentPage(newTotalPages);
+        setSelectedRows((prev) => prev.filter((rowId) => rowId !== id));
+        setPendingDeleteId(null);
+      }
+    } else {
+      setPendingDeleteId(null);
+    }
   };
 
   const toggleSelectAll = (e) => {
@@ -522,32 +534,32 @@ const ProductList = ({ onAddProduct, onEditProduct, onDeleteProduct, products = 
         </div>
       ) : (
         /* ── Desktop / tablet table ── */
-        <div className="pl-table-wrapper">
-          <table className="pl-table">
+        <div className="ao__table-wrap pl-table-wrapper">
+          <table className="ao__table pl-table">
             <thead>
               <tr>
-                <th className="pl-checkbox-col">
-                  <input type="checkbox" checked={isAllSelected} onChange={toggleSelectAll} />
+                <th className="ao__th-check pl-checkbox-col">
+                  <input type="checkbox" className="ao__checkbox" checked={isAllSelected} onChange={toggleSelectAll} />
                 </th>
-                <th className="pl-product-col">PRODUCT</th>
-                <th className="pl-category-col">CATEGORY</th>
-                <th className="pl-subcategory-col">TYPE</th>
-                <th className="pl-price-col">PRICE</th>
-                <th className="pl-stock-col">STOCK</th>
-                <th className="pl-status-col">STATUS</th>
-                <th className="pl-actions-col">ACTIONS</th>
+                <th className="pl-product-col">Product</th>
+                <th className="pl-category-col">Category</th>
+                <th className="pl-subcategory-col">Type</th>
+                <th className="pl-price-col">Price</th>
+                <th className="pl-stock-col">Stock</th>
+                <th className="pl-status-col">Status</th>
+                <th className="pl-actions-col">Actions</th>
               </tr>
             </thead>
             <tbody>
               {loading ? (
                 <tr>
-                  <td colSpan="7" style={{ padding: "20px" }}>
-                    <SkeletonTable rows={5} cols={7} />
+                  <td colSpan="8" style={{ padding: "20px" }}>
+                    <SkeletonTable rows={5} cols={8} />
                   </td>
                 </tr>
               ) : filteredProducts.length === 0 ? (
                 <tr>
-                  <td colSpan="7" className="pl-empty-state">
+                  <td colSpan="8" className="pl-empty-state">
                     <div className="pl-empty-content">
                       <img src={searchEmpty} alt="No results" className="pl-empty-img" />
                       <p className="pl-empty-title">No results found</p>
@@ -562,10 +574,11 @@ const ProductList = ({ onAddProduct, onEditProduct, onDeleteProduct, products = 
               ) : (
                 currentProducts.map((product) => (
                   <React.Fragment key={product.id}>
-                    <tr key={product.id}>
-                      <td className="pl-checkbox-col">
+                    <tr key={product.id} className="ao__row">
+                      <td className="ao__td-check pl-checkbox-col">
                         <input
                           type="checkbox"
+                          className="ao__checkbox"
                           checked={selectedRows.includes(product.id)}
                           onChange={() => toggleSelectRow(product.id)}
                         />
@@ -579,8 +592,7 @@ const ProductList = ({ onAddProduct, onEditProduct, onDeleteProduct, products = 
                             onError={(e) => { e.target.src = searchEmpty; }}
                           />
                           <div className="pl-product-details">
-                            <span className="pl-product-name"></span>
-                            {product.name}
+                            <span className="pl-product-name">{product.name}</span>
                             {product.has_variants && product.variants?.length > 0 && (
                               <button
                                 className="pl-variant-toggle"
@@ -752,11 +764,17 @@ const ProductList = ({ onAddProduct, onEditProduct, onDeleteProduct, products = 
             </div>
             <p className="pl-confirm-text">Are you sure you want to delete this product?</p>
             <div className="pl-confirm-actions">
-              <button className="pl-confirm-cancel" onClick={() => setPendingDeleteId(null)}>
+              <button className="pl-confirm-cancel" onClick={() => setPendingDeleteId(null)} disabled={isDeleting}>
                 Cancel
               </button>
-              <button className="pl-confirm-ok" onClick={confirmDelete}>
-                Okay
+              <button className="pl-confirm-ok admin-btn-with-spinner" onClick={confirmDelete} disabled={isDeleting}>
+                {isDeleting ? (
+                  <>
+                    <span className="admin-btn-spinner" /> Deleting...
+                  </>
+                ) : (
+                  "Okay"
+                )}
               </button>
             </div>
           </div>
