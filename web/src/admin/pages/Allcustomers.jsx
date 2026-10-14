@@ -1,42 +1,46 @@
 import React, { useState } from "react";
 import AdminModal from "../components/AdminModal";
-import "./Allorders.css";
 import "./Allcustomers.css";
 
 const ROWS_PER_PAGE = 6;
 
 const ChevronDown = () => (
-  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
     <polyline points="6 9 12 15 18 9" />
   </svg>
 );
 
-const SearchIcon = () => (
-  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#aaa" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-    <circle cx="11" cy="11" r="8" /><line x1="21" y1="21" x2="16.65" y2="16.65" />
-  </svg>
-);
+const formatOrdinalJoinedDate = (dateVal) => {
+  if (!dateVal) return "—";
+  const d = new Date(dateVal);
+  if (isNaN(d.getTime())) return dateVal;
+  const day = d.getDate();
+  const suffix =
+    day % 10 === 1 && day !== 11 ? "st" :
+    day % 10 === 2 && day !== 12 ? "nd" :
+    day % 10 === 3 && day !== 13 ? "rd" : "th";
+  const month = d.toLocaleDateString("en-US", { month: "short" });
+  const year = d.getFullYear();
+  return `${day}${suffix} ${month},${year}`;
+};
 
 /* ── Skeleton row ── */
 const SkeletonCustomerRow = () => (
-  <tr className="ao__row">
-    <td className="ao__td-check"><div className="skeleton-shimmer" style={{ width: 18, height: 18, borderRadius: 4 }} /></td>
-    <td className="ao__cell-customer">
-      <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-        <div className="skeleton-shimmer" style={{ width: 120, height: 14, borderRadius: '4px' }} />
-        <div className="skeleton-shimmer" style={{ width: 80, height: 10, borderRadius: '4px' }} />
+  <tr className="ac__row">
+    <td className="ac__td-check"><div className="skeleton-shimmer" style={{ width: 18, height: 18, borderRadius: 4 }} /></td>
+    <td className="ac__td-name">
+      <div className="skeleton-shimmer" style={{ width: 120, height: 16, borderRadius: 4 }} />
+    </td>
+    <td className="ac__td-contact">
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+        <div className="skeleton-shimmer" style={{ width: 150, height: 13, borderRadius: 4 }} />
+        <div className="skeleton-shimmer" style={{ width: 110, height: 13, borderRadius: 4 }} />
       </div>
     </td>
-    <td className="ao__cell-items">
-      <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-        <div className="skeleton-shimmer" style={{ width: 140, height: 12, borderRadius: '4px' }} />
-        <div className="skeleton-shimmer" style={{ width: 90, height: 12, borderRadius: '4px' }} />
-      </div>
-    </td>
-    <td className="ao__cell-items"><div className="skeleton-shimmer" style={{ width: 32, height: 14, borderRadius: '4px' }} /></td>
-    <td className="ao__cell-total"><div className="skeleton-shimmer" style={{ width: 70, height: 14, borderRadius: '4px' }} /></td>
-    <td className="ao__cell-items"><div className="skeleton-shimmer" style={{ width: 80, height: 14, borderRadius: '4px' }} /></td>
-    <td><div className="skeleton-shimmer" style={{ width: 48, height: 24, borderRadius: '4px' }} /></td>
+    <td className="ac__td-orders"><div className="skeleton-shimmer" style={{ width: 32, height: 16, borderRadius: 4 }} /></td>
+    <td className="ac__td-spent"><div className="skeleton-shimmer" style={{ width: 70, height: 16, borderRadius: 4 }} /></td>
+    <td className="ac__td-joined"><div className="skeleton-shimmer" style={{ width: 100, height: 16, borderRadius: 4 }} /></td>
+    <td className="ac__td-action"><div className="skeleton-shimmer" style={{ width: 40, height: 18, borderRadius: 4 }} /></td>
   </tr>
 );
 
@@ -44,63 +48,54 @@ const SkeletonCustomerRow = () => (
 const CustomerCard = ({ customer, selected, onToggle, onViewDetail, loading }) => {
   if (loading) {
     return (
-      <div className="ac__card skeleton-shimmer" style={{ minHeight: '180px', opacity: 0.85, borderRadius: '8px', marginBottom: '12px' }} />
+      <div className="ac__mobile-card skeleton-shimmer" style={{ minHeight: 180, borderRadius: 12, marginBottom: 12 }} />
     );
   }
 
-  const getJoinedDate = (c) => {
-    if (c.joined) return c.joined;
-    if (c.created_at) {
-      return new Date(c.created_at).toLocaleDateString("en-GB", {
-        day: "numeric",
-        month: "short",
-        year: "numeric",
-      });
-    }
-    return "N/A";
-  };
-
   return (
-    <div className={`ac__card ${selected ? "ac__card--selected" : ""}`}>
-      <div className="ac__card-top">
-        <input
-          type="checkbox"
-          className="ac__checkbox"
-          checked={selected}
-          onChange={() => onToggle(customer.id)}
-        />
-        <div className="ac__card-name">{customer.name || "No name set"}</div>
-        <span className={`ac__badge ac__badge--${(customer.status || "Confirmed") === "Confirmed" ? "confirmed" : "disabled"}`}>
-          {customer.status || "Confirmed"}
+    <div className={`ac__mobile-card ${selected ? "ac__mobile-card--selected" : ""}`}>
+      <div className="ac__mobile-top">
+        <label className="ac__custom-checkbox">
+          <input
+            type="checkbox"
+            checked={selected}
+            onChange={() => onToggle(customer.id)}
+          />
+          <span className="ac__checkmark" />
+        </label>
+        <div className="ac__mobile-name">{customer.name || customer.email?.split("@")[0] || "Customer"}</div>
+        <span className={`ac__mobile-badge ac__mobile-badge--${(customer.status || "Confirmed") === "Confirmed" ? "active" : "disabled"}`}>
+          {customer.status || "Active"}
         </span>
       </div>
 
-      <div className="ac__card-body">
-        <div className="ac__card-row">
-          <span className="ac__card-lbl">Email</span>
-          <span className="ac__card-val">{customer.email || "N/A"}</span>
+      <div className="ac__mobile-body">
+        <div className="ac__mobile-row">
+          <span className="ac__mobile-lbl">Contact</span>
+          <div className="ac__mobile-val" style={{ textAlign: "right" }}>
+            <div>{customer.email || "No email"}</div>
+            <div style={{ color: "#64748B", fontSize: "12px", marginTop: "2px" }}>
+              {customer.phone || customer.phone_number || customer.mobile || customer.phoneNumber || "—"}
+            </div>
+          </div>
         </div>
-        <div className="ac__card-row">
-          <span className="ac__card-lbl">Phone</span>
-          <span className="ac__card-val">{customer.phone || customer.phone_number || customer.mobile || customer.phoneNumber || "No phone set"}</span>
+        <div className="ac__mobile-row">
+          <span className="ac__mobile-lbl">Orders</span>
+          <span className="ac__mobile-val font-semibold">{customer.orderCount ?? customer.orders ?? 0}</span>
         </div>
-        <div className="ac__card-row">
-          <span className="ac__card-lbl">Orders</span>
-          <span className="ac__card-val">{customer.orderCount || 0}</span>
+        <div className="ac__mobile-row">
+          <span className="ac__mobile-lbl">Total Spent</span>
+          <span className="ac__mobile-val font-semibold">₹{Number(customer.totalSpent ?? 0).toLocaleString("en-IN")}</span>
         </div>
-        <div className="ac__card-row">
-          <span className="ac__card-lbl">Total Spent</span>
-          <span className="ac__card-val">₹{Number(customer.totalSpent || 0).toLocaleString("en-IN")}</span>
-        </div>
-        <div className="ac__card-row">
-          <span className="ac__card-lbl">Joined</span>
-          <span className="ac__card-val">{getJoinedDate(customer)}</span>
+        <div className="ac__mobile-row">
+          <span className="ac__mobile-lbl">Joined</span>
+          <span className="ac__mobile-val">{formatOrdinalJoinedDate(customer.joined || customer.created_at)}</span>
         </div>
       </div>
 
-      <div className="ac__card-footer">
-        <button className="ac__view-btn" onClick={() => onViewDetail && onViewDetail(customer)}>
-          View Details
+      <div className="ac__mobile-footer">
+        <button className="ac__action-view" onClick={() => onViewDetail && onViewDetail(customer)}>
+          View
         </button>
       </div>
     </div>
@@ -125,10 +120,9 @@ const AddCustomerModal = ({ onClose, onAdd }) => {
 
   const validate = () => {
     const e = {};
-    if (!form.name.trim())       e.name       = "Name is required";
-    if (!form.email.trim())      e.email      = "Email is required";
-    if (!form.phone.trim())      e.phone      = "Phone is required";
-    if (!form.joined.trim())     e.joined     = "Joined date is required";
+    if (!form.name.trim())  e.name  = "Name is required";
+    if (!form.email.trim()) e.email = "Email is required";
+    if (!form.phone.trim()) e.phone = "Phone is required";
     return e;
   };
 
@@ -149,7 +143,7 @@ const AddCustomerModal = ({ onClose, onAdd }) => {
         phone:      form.phone.trim(),
         orders:     parseInt(form.orders, 10)     || 0,
         totalSpent: parseFloat(form.totalSpent)   || 0,
-        joined:     form.joined.trim(),
+        joined:     form.joined.trim() || new Date().toISOString(),
         status:     form.status,
       });
       onClose();
@@ -166,21 +160,14 @@ const AddCustomerModal = ({ onClose, onAdd }) => {
       maxWidth={520}
       footer={
         <>
-          <button className="ac__cancel-btn" onClick={onClose} disabled={isSubmitting}>Cancel</button>
-          <button className="ac__submit-btn admin-btn-with-spinner" onClick={handleSubmit} disabled={isSubmitting}>
-            {isSubmitting ? (
-              <>
-                <span className="admin-btn-spinner" /> Adding Customer...
-              </>
-            ) : (
-              "Add Customer"
-            )}
+          <button className="ac__modal-cancel-btn" onClick={onClose} disabled={isSubmitting}>Cancel</button>
+          <button className="ac__modal-submit-btn admin-btn-with-spinner" onClick={handleSubmit} disabled={isSubmitting}>
+            {isSubmitting ? "Adding Customer..." : "Add Customer"}
           </button>
         </>
       }
     >
       <div style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
-        {/* Row 1: Name + Email */}
         <div className="ac__modal-row">
           <div className="ac__field">
             <label className="ac__field-label">Full Name <span className="ac__required">*</span></label>
@@ -196,7 +183,7 @@ const AddCustomerModal = ({ onClose, onAdd }) => {
             <label className="ac__field-label">Email <span className="ac__required">*</span></label>
             <input
               className={`ac__field-input${errors.email ? " ac__field-input--error" : ""}`}
-              placeholder="e.g. user@gmail.com"
+              placeholder="e.g. priya.s@gmail.com"
               value={form.email}
               onChange={(e) => handleChange("email", e.target.value)}
             />
@@ -204,7 +191,6 @@ const AddCustomerModal = ({ onClose, onAdd }) => {
           </div>
         </div>
 
-        {/* Row 2: Phone + Joined */}
         <div className="ac__modal-row">
           <div className="ac__field">
             <label className="ac__field-label">Phone <span className="ac__required">*</span></label>
@@ -217,50 +203,11 @@ const AddCustomerModal = ({ onClose, onAdd }) => {
             {errors.phone && <span className="ac__field-error">{errors.phone}</span>}
           </div>
           <div className="ac__field">
-            <label className="ac__field-label">Joined Date <span className="ac__required">*</span></label>
-            <input
-              className={`ac__field-input${errors.joined ? " ac__field-input--error" : ""}`}
-              placeholder="e.g. 12th May,2026"
-              value={form.joined}
-              onChange={(e) => handleChange("joined", e.target.value)}
-            />
-            {errors.joined && <span className="ac__field-error">{errors.joined}</span>}
-          </div>
-        </div>
-
-        {/* Row 3: Orders + Total Spent */}
-        <div className="ac__modal-row">
-          <div className="ac__field">
-            <label className="ac__field-label">Orders</label>
-            <input
-              className="ac__field-input"
-              type="number"
-              min="0"
-              placeholder="e.g. 87"
-              value={form.orders}
-              onChange={(e) => handleChange("orders", e.target.value)}
-            />
-          </div>
-          <div className="ac__field">
-            <label className="ac__field-label">Total Spent (₹)</label>
-            <input
-              className="ac__field-input"
-              type="number"
-              min="0"
-              placeholder="e.g. 5000"
-              value={form.totalSpent}
-              onChange={(e) => handleChange("totalSpent", e.target.value)}
-            />
-          </div>
-        </div>
-
-        {/* Row 4: Status */}
-        <div className="ac__modal-row">
-          <div className="ac__field">
             <label className="ac__field-label">Status</label>
-            <div className="ac__select-wrapper">
+            <div className="ac__select-pill-wrapper" style={{ width: "100%" }}>
               <select
-                className="ac__select ac__field-input"
+                className="ac__select-pill"
+                style={{ width: "100%" }}
                 value={form.status}
                 onChange={(e) => handleChange("status", e.target.value)}
               >
@@ -278,12 +225,13 @@ const AddCustomerModal = ({ onClose, onAdd }) => {
 
 /* ── Main Component ────────────────────────────────────────────── */
 const AllCustomers = ({ customers = [], loading, onViewDetail }) => {
-  const [selectedIds, setSelectedIds]   = useState([]);
+  const [selectedIds, setSelectedIds]       = useState([]);
+  const [statusFilter, setStatusFilter]     = useState("All Status");
   const [customerFilter, setCustomerFilter] = useState("All Customers");
-  const [searchQuery, setSearchQuery]   = useState("");
-  const [currentPage, setCurrentPage]   = useState(1);
-  const [showFilters, setShowFilters]   = useState(false);
-  const [showModal, setShowModal]       = useState(false);
+  const [extraFilter, setExtraFilter]       = useState("Filter");
+  const [searchQuery, setSearchQuery]       = useState("");
+  const [currentPage, setCurrentPage]       = useState(1);
+  const [showModal, setShowModal]           = useState(false);
   const [localCustomers, setLocalCustomers] = useState([]);
 
   // Merge local added customers (if any) with database customers
@@ -295,31 +243,39 @@ const AllCustomers = ({ customers = [], loading, onViewDetail }) => {
 
   /* Filtering */
   const filtered = allCustomers.filter((c) => {
-    const matchSearch = !searchQuery ||
-      (c.name || "").toLowerCase().includes(searchQuery.toLowerCase()) ||
-      (c.email || "").toLowerCase().includes(searchQuery.toLowerCase()) ||
-      (c.phone || "").includes(searchQuery);
+    const q = searchQuery.toLowerCase().trim();
+    const matchSearch = !q ||
+      (c.name || "").toLowerCase().includes(q) ||
+      (c.email || "").toLowerCase().includes(q) ||
+      (c.phone || c.phone_number || c.mobile || "").includes(q);
 
     if (!matchSearch) return false;
 
+    // Status Filter
+    if (statusFilter === "Confirmed" && (c.status && c.status !== "Confirmed")) return false;
+    if (statusFilter === "Disabled" && c.status !== "Disabled") return false;
+
+    // Customer Filter
     if (customerFilter === "New this month") {
       const now = new Date();
       if (c.created_at) {
         const d = new Date(c.created_at);
-        return d.getMonth() === now.getMonth() && d.getFullYear() === now.getFullYear();
+        if (d.getMonth() !== now.getMonth() || d.getFullYear() !== now.getFullYear()) return false;
       }
-      return c.joined?.includes("2026");
+    } else if (customerFilter === "Active Accounts") {
+      if (c.status === "Disabled") return false;
+    } else if (customerFilter === "Has Orders") {
+      if ((c.orderCount || c.orders || 0) <= 0) return false;
     }
 
-    if (customerFilter === "Active Accounts") {
-      return (c.status || "Confirmed") === "Confirmed";
+    // Extra Filter
+    if (extraFilter === "High Spenders") {
+      if ((c.totalSpent || 0) < 5000) return false;
+    } else if (extraFilter === "Repeat Customers") {
+      if ((c.orderCount || c.orders || 0) < 2) return false;
     }
 
-    if (customerFilter === "Disabled Accounts") {
-      return c.status === "Disabled";
-    }
-
-    return true; // "All Customers"
+    return true;
   });
 
   const totalPages = Math.max(1, Math.ceil(filtered.length / ROWS_PER_PAGE));
@@ -334,40 +290,33 @@ const AllCustomers = ({ customers = [], loading, onViewDetail }) => {
   const toggleOne  = (id) => setSelectedIds((prev) =>
     prev.includes(id) ? prev.filter((i) => i !== id) : [...prev, id]);
 
-  /* Stats */
-  const totalCustomers   = allCustomers.length;
+  /* Stats calculation */
+  const totalCustomers = allCustomers.length;
   const now = new Date();
-  const newThisMonth     = allCustomers.filter((c) => {
+  const currentMonthYear = now.toLocaleDateString("en-US", { month: "short", year: "numeric" }); // e.g. "May 2026"
+  
+  const newThisMonth = allCustomers.filter((c) => {
     if (c.created_at) {
       const d = new Date(c.created_at);
       return d.getMonth() === now.getMonth() && d.getFullYear() === now.getFullYear();
     }
     return c.joined?.includes("2026");
   }).length;
-  const activeAccounts   = allCustomers.filter((c) => (c.status || "Confirmed") === "Confirmed").length;
-  const disabledAccounts = allCustomers.filter((c) => c.status === "Disabled").length;
-  const avgOrderValue    = totalCustomers > 0
-    ? Math.round(allCustomers.reduce((s, c) => s + (c.totalSpent || 0), 0) / totalCustomers)
-    : 0;
 
-  /* Pagination */
+  const activeAccounts = allCustomers.filter((c) => (c.status || "Confirmed") === "Confirmed").length;
+  
+  const totalOrdersCount = allCustomers.reduce((s, c) => s + (c.orderCount || c.orders || 0), 0);
+  const totalSpentSum = allCustomers.reduce((s, c) => s + (Number(c.totalSpent) || 0), 0);
+  const avgOrderValue = totalOrdersCount > 0
+    ? Math.round(totalSpentSum / totalOrdersCount)
+    : (totalCustomers > 0 ? Math.round(totalSpentSum / totalCustomers) : 0);
+
+  /* Pagination numbers */
   const getPageNumbers = () => {
     if (totalPages <= 5) return Array.from({ length: totalPages }, (_, i) => i + 1);
     if (safePage <= 3) return [1, 2, 3, "...", totalPages];
     if (safePage >= totalPages - 2) return [1, "...", totalPages - 2, totalPages - 1, totalPages];
     return [1, "...", safePage, "...", totalPages];
-  };
-
-  const getJoinedDate = (c) => {
-    if (c.joined) return c.joined;
-    if (c.created_at) {
-      return new Date(c.created_at).toLocaleDateString("en-GB", {
-        day: "numeric",
-        month: "short",
-        year: "numeric",
-      });
-    }
-    return "N/A";
   };
 
   const renderTableBody = () => {
@@ -378,10 +327,10 @@ const AllCustomers = ({ customers = [], loading, onViewDetail }) => {
     if (allCustomers.length === 0) {
       return (
         <tr>
-          <td colSpan={7} className="ac__empty">
+          <td colSpan={7} className="ac__empty-cell">
             <div className="ac__empty-state">
               <p className="ac__empty-title">No customers yet</p>
-              <p className="ac__empty-sub">Database customer list is empty.</p>
+              <p className="ac__empty-sub">Registered customer accounts will appear here.</p>
             </div>
           </td>
         </tr>
@@ -391,10 +340,10 @@ const AllCustomers = ({ customers = [], loading, onViewDetail }) => {
     if (paginated.length === 0) {
       return (
         <tr>
-          <td colSpan={7} className="ac__empty">
+          <td colSpan={7} className="ac__empty-cell">
             <div className="ac__empty-state">
               <p className="ac__empty-title">No customers match filters</p>
-              <p className="ac__empty-sub">Try adjusting filters or search query.</p>
+              <p className="ac__empty-sub">Try adjusting your filters or search keywords.</p>
             </div>
           </td>
         </tr>
@@ -402,34 +351,37 @@ const AllCustomers = ({ customers = [], loading, onViewDetail }) => {
     }
 
     return paginated.map((customer) => (
-      <tr key={customer.id} className="ao__row">
-        <td className="ao__td-check">
-          <input
-            type="checkbox"
-            className="ao__checkbox"
-            checked={selectedIds.includes(customer.id)}
-            onChange={() => toggleOne(customer.id)}
-          />
+      <tr key={customer.id} className="ac__row">
+        <td className="ac__td-check">
+          <label className="ac__custom-checkbox">
+            <input
+              type="checkbox"
+              checked={selectedIds.includes(customer.id)}
+              onChange={() => toggleOne(customer.id)}
+            />
+            <span className="ac__checkmark" />
+          </label>
         </td>
-        <td className="ao__cell-customer">
-          <span className="ao__customer-name">{customer.name || "No name set"}</span>
-          {customer.email && (
-            <div style={{ fontSize: "12px", color: "#64748B", marginTop: "2px" }}>
-              {customer.email}
-            </div>
-          )}
+        <td className="ac__td-name">
+          <span className="ac__customer-name">{customer.name || customer.email?.split("@")[0] || "Customer"}</span>
         </td>
-        <td className="ao__cell-items">
-          <div style={{ color: "#334155" }}>{customer.email || "N/A"}</div>
-          <div style={{ fontSize: "12px", color: "#64748B", marginTop: "2px" }}>
-            {customer.phone || customer.phone_number || customer.mobile || customer.phoneNumber || "No phone set"}
+        <td className="ac__td-contact">
+          <div className="ac__contact-email">{customer.email || "No email"}</div>
+          <div className="ac__contact-phone">
+            {customer.phone || customer.phone_number || customer.mobile || customer.phoneNumber || "—"}
           </div>
         </td>
-        <td className="ao__cell-items">{customer.orderCount || 0}</td>
-        <td className="ao__cell-total">₹{Number(customer.totalSpent || 0).toLocaleString("en-IN")}</td>
-        <td className="ao__cell-items">{getJoinedDate(customer)}</td>
-        <td>
-          <button className="ao__view-link" onClick={() => onViewDetail && onViewDetail(customer)}>
+        <td className="ac__td-orders">
+          <span className="ac__orders-count">{customer.orderCount ?? customer.orders ?? 0}</span>
+        </td>
+        <td className="ac__td-spent">
+          <span className="ac__spent-amount">₹{Number(customer.totalSpent ?? 0).toLocaleString("en-IN")}</span>
+        </td>
+        <td className="ac__td-joined">
+          <span className="ac__joined-date">{formatOrdinalJoinedDate(customer.joined || customer.created_at)}</span>
+        </td>
+        <td className="ac__td-action">
+          <button className="ac__action-view" onClick={() => onViewDetail && onViewDetail(customer)}>
             View
           </button>
         </td>
@@ -438,153 +390,185 @@ const AllCustomers = ({ customers = [], loading, onViewDetail }) => {
   };
 
   return (
-    <div className="ao ac">
-      {/* ── Header ── */}
-      <div className="ao__page-header">
-        <div className="ao__page-title-block">
-          <h1 className="ao__title">All Customers</h1>
-          <p className="ao__subtitle">{loading ? "Loading…" : `${filtered.length} customers`}</p>
-        </div>
+    <div className="ac">
+      {/* ── Page Header ── */}
+      <div className="ac__header-block">
+        <h1 className="ac__page-title">All Customers</h1>
       </div>
 
-      {/* ── Stat Cards ── */}
+      {/* ── 4 Stat Cards in Pastel Theme ── */}
       <div className="ac__stats-row">
-        <div className="ac__stat-card">
+        {/* Card 1: Total Customers (Pastel Mint Green) */}
+        <div className="ac__stat-card ac__stat-card--green">
           <div className="ac__stat-label">Total Customers</div>
           <div className="ac__stat-value">{loading ? "—" : totalCustomers}</div>
           <div className="ac__stat-sub">All Time</div>
         </div>
-        <div className="ac__stat-card">
+
+        {/* Card 2: New this month (Pastel Butter Yellow) */}
+        <div className="ac__stat-card ac__stat-card--yellow">
           <div className="ac__stat-label">New this month</div>
           <div className="ac__stat-value">{loading ? "—" : newThisMonth}</div>
-          <div className="ac__stat-sub">Current Month</div>
+          <div className="ac__stat-sub">{currentMonthYear}</div>
         </div>
-        <div className="ac__stat-card">
+
+        {/* Card 3: Active Accounts (Pastel Lilac Purple) */}
+        <div className="ac__stat-card ac__stat-card--purple">
           <div className="ac__stat-label">Active Accounts</div>
           <div className="ac__stat-value">{loading ? "—" : activeAccounts}</div>
           <div className="ac__stat-sub">Enabled</div>
         </div>
-        <div className="ac__stat-card">
-          <div className="ac__stat-label">Disabled Accounts</div>
-          <div className="ac__stat-value">{loading ? "—" : disabledAccounts}</div>
-          <div className="ac__stat-sub">Restricted</div>
-        </div>
-        <div className="ac__stat-card">
+
+        {/* Card 4: Avg. order value (Pastel Sky Blue) */}
+        <div className="ac__stat-card ac__stat-card--blue">
           <div className="ac__stat-label">Avg. order value</div>
           <div className="ac__stat-value">₹{loading ? "—" : avgOrderValue.toLocaleString("en-IN")}</div>
           <div className="ac__stat-sub">Per customer</div>
         </div>
       </div>
 
-      {/* ── Toolbar ── */}
-      <div className="ao__toolbar ac__toolbar">
-        <div className="ao__search-box">
-          <SearchIcon />
-          <input
-            type="text"
-            className="ao__search-input"
-            placeholder="Search name, email, contact..."
-            value={searchQuery}
-            onChange={(e) => { setSearchQuery(e.target.value); setCurrentPage(1); }}
-          />
-        </div>
+      {/* ── Filter / Search Bar ── */}
+      <div className="ac__toolbar-row">
+        <div className="ac__toolbar-left">
+          {/* Status Dropdown */}
+          <div className="ac__select-pill-wrapper">
+            <select
+              className="ac__select-pill"
+              value={statusFilter}
+              onChange={(e) => { setStatusFilter(e.target.value); setCurrentPage(1); }}
+            >
+              <option value="All Status">All Status</option>
+              <option value="Confirmed">Active</option>
+              <option value="Disabled">Disabled</option>
+            </select>
+            <ChevronDown />
+          </div>
 
-        <button
-          className="ac__filter-toggle"
-          onClick={() => setShowFilters((v) => !v)}
-          aria-expanded={showFilters}
-        >
-          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-            <line x1="4" y1="6" x2="20" y2="6" /><line x1="8" y1="12" x2="16" y2="12" /><line x1="11" y1="18" x2="13" y2="18" />
-          </svg>
-          Filters
-          {customerFilter !== "All Customers" && <span className="ac__filter-dot" />}
-        </button>
+          {/* Customer Group Dropdown */}
+          <div className="ac__select-pill-wrapper">
+            <select
+              className="ac__select-pill"
+              value={customerFilter}
+              onChange={(e) => { setCustomerFilter(e.target.value); setCurrentPage(1); }}
+            >
+              <option value="All Customers">All Customers</option>
+              <option value="New this month">New this month</option>
+              <option value="Active Accounts">Active Accounts</option>
+              <option value="Has Orders">Has Orders</option>
+            </select>
+            <ChevronDown />
+          </div>
 
-        <div className={`ac__filters${showFilters ? " ac__filters--open" : ""}`}>
-          <div className="ac__select-wrapper">
-            <select className="ac__select" value={customerFilter}
-              onChange={(e) => { setCustomerFilter(e.target.value); setCurrentPage(1); }}>
-              <option>All Customers</option>
-              <option>New this month</option>
-              <option>Active Accounts</option>
-              <option>Disabled Accounts</option>
+          {/* Extra Filter Dropdown */}
+          <div className="ac__select-pill-wrapper">
+            <select
+              className="ac__select-pill"
+              value={extraFilter}
+              onChange={(e) => { setExtraFilter(e.target.value); setCurrentPage(1); }}
+            >
+              <option value="Filter">Filter</option>
+              <option value="High Spenders">High Spenders (₹5k+)</option>
+              <option value="Repeat Customers">Repeat Customers (2+ orders)</option>
             </select>
             <ChevronDown />
           </div>
         </div>
+
+        {/* Search Input on Right */}
+        <div className="ac__toolbar-right">
+          <input
+            type="text"
+            className="ac__search-input"
+            placeholder="Search namer,email,contact...."
+            value={searchQuery}
+            onChange={(e) => { setSearchQuery(e.target.value); setCurrentPage(1); }}
+          />
+        </div>
       </div>
 
-      {/* ── Table (tablet +) ── */}
-      {(loading || allCustomers.length > 0) && (
-        <div className="ao__table-wrap ac__table-wrapper">
-          <table className="ao__table ac__table">
-            <thead>
-              <tr>
-                <th className="ao__th-check">
+      {/* ── Table (Desktop & Tablet) ── */}
+      <div className="ac__table-container">
+        <table className="ac__table">
+          <thead>
+            <tr>
+              <th className="ac__th-check">
+                <label className="ac__custom-checkbox">
                   <input
                     type="checkbox"
-                    className="ao__checkbox"
                     checked={allChecked}
                     onChange={toggleAll}
                     disabled={loading || paginated.length === 0}
                   />
-                </th>
-                <th>Customer</th>
-                <th>Contact</th>
-                <th>Orders</th>
-                <th>Total Spent</th>
-                <th>Joined</th>
-                <th>Action</th>
-              </tr>
-            </thead>
-            <tbody>
-              {renderTableBody()}
-            </tbody>
-          </table>
-        </div>
-      )}
+                  <span className="ac__checkmark" />
+                </label>
+              </th>
+              <th>Customer</th>
+              <th>Contact</th>
+              <th>Orders</th>
+              <th>Total spent</th>
+              <th>Joined</th>
+              <th>Action</th>
+            </tr>
+          </thead>
+          <tbody>
+            {renderTableBody()}
+          </tbody>
+        </table>
+      </div>
 
-      {/* ── Mobile Cards ── */}
-      {allCustomers.length > 0 && (
-        <div className="ac__cards-wrapper">
-          {loading ? (
-            Array.from({ length: ROWS_PER_PAGE }).map((_, i) => <CustomerCard key={i} loading={true} />)
-          ) : (
-            paginated.map((customer) => (
-              <CustomerCard
-                key={customer.id}
-                customer={customer}
-                selected={selectedIds.includes(customer.id)}
-                onToggle={toggleOne}
-                onViewDetail={onViewDetail}
-              />
-            ))
-          )}
-        </div>
-      )}
+      {/* ── Mobile Cards (Phone View) ── */}
+      <div className="ac__mobile-cards-list">
+        {loading ? (
+          Array.from({ length: ROWS_PER_PAGE }).map((_, i) => <CustomerCard key={i} loading={true} />)
+        ) : (
+          paginated.map((customer) => (
+            <CustomerCard
+              key={customer.id}
+              customer={customer}
+              selected={selectedIds.includes(customer.id)}
+              onToggle={toggleOne}
+              onViewDetail={onViewDetail}
+            />
+          ))
+        )}
+      </div>
 
-      {/* ── Footer ── */}
+      {/* ── Pagination Footer ── */}
       {!loading && allCustomers.length > 0 && (
-        <div className="ac__footer">
-          <span className="ac__showing">
-            Showing {(safePage - 1) * ROWS_PER_PAGE + 1}–{Math.min(safePage * ROWS_PER_PAGE, filtered.length)} of {filtered.length}
-            <span className="ac__showing-full"> Customers</span>
+        <div className="ac__pagination-row">
+          <span className="ac__showing-text">
+            Showing {(safePage - 1) * ROWS_PER_PAGE + 1}–{Math.min(safePage * ROWS_PER_PAGE, filtered.length)} of {filtered.length} Customers
           </span>
-          <div className="ac__pagination">
-            <button className="ac__page-btn ac__page-btn--arrow" disabled={safePage === 1}
-              onClick={() => setCurrentPage((p) => p - 1)}>‹</button>
+          <div className="ac__pagination-controls">
+            <button
+              className="ac__page-arrow"
+              disabled={safePage === 1}
+              onClick={() => setCurrentPage((p) => p - 1)}
+              aria-label="Previous page"
+            >
+              ‹
+            </button>
             {getPageNumbers().map((p, i) =>
               p === "..." ? (
-                <span key={`e-${i}`} className="ac__page-ellipsis">…</span>
+                <span key={`ellip-${i}`} className="ac__page-ellipsis">…</span>
               ) : (
-                <button key={p}
-                  className={`ac__page-btn${safePage === p ? " ac__page-btn--active" : ""}`}
-                  onClick={() => setCurrentPage(p)}>{p}</button>
+                <button
+                  key={p}
+                  className={`ac__page-number${safePage === p ? " ac__page-number--active" : ""}`}
+                  onClick={() => setCurrentPage(p)}
+                >
+                  {p}
+                </button>
               )
             )}
-            <button className="ac__page-btn ac__page-btn--arrow" disabled={safePage === totalPages}
-              onClick={() => setCurrentPage((p) => p + 1)}>›</button>
+            <button
+              className="ac__page-arrow"
+              disabled={safePage === totalPages}
+              onClick={() => setCurrentPage((p) => p + 1)}
+              aria-label="Next page"
+            >
+              ›
+            </button>
           </div>
         </div>
       )}
@@ -600,4 +584,4 @@ const AllCustomers = ({ customers = [], loading, onViewDetail }) => {
   );
 };
 
-export default AllCustomers;
+export default AllCustomers;

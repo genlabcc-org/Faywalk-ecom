@@ -525,76 +525,65 @@
 .dc__stats-row {
   display: grid;
   grid-template-columns: repeat(4, 1fr);
-  gap: 16px;
-  margin-bottom: 20px;
+  gap: 20px;
+  margin-bottom: 28px;
 }
 
 .dc__stat-card {
-  background: #ffffff;
   border-radius: 16px;
-  padding: 20px 22px;
-  border: 1px solid #F1F5F9;
-  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.02);
-  transition: transform 0.15s ease;
+  padding: 22px 24px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  min-height: 122px;
+  box-sizing: border-box;
+  border: none;
+  box-shadow: none;
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
 }
 
 .dc__stat-card:hover {
   transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.04);
 }
 
-.dc__stat-icon {
-  width: 40px;
-  height: 40px;
-  border-radius: 10px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  margin-bottom: 12px;
+/* Pastel Variants */
+.dc__stat-card--green {
+  background-color: #EAF8E7;
+}
+
+.dc__stat-card--yellow {
+  background-color: #FEF7D6;
+}
+
+.dc__stat-card--purple {
+  background-color: #EDE7FE;
+}
+
+.dc__stat-card--blue {
+  background-color: #BFDBFE;
 }
 
 .dc__stat-label {
-  font-size: 12.5px;
-  color: #888;
-  font-weight: 500;
-  margin-bottom: 6px;
-}
-
-.dc__stat-value {
-  font-size: 24px;
-  font-weight: 700;
-  color: #1c1c1e;
+  font-size: 13.5px;
+  font-weight: 600;
+  color: #2D3748;
   margin-bottom: 8px;
 }
 
-.dc__stat-change {
-  display: flex;
-  align-items: center;
-  gap: 8px;
+.dc__stat-value {
+  font-size: 32px;
+  font-weight: 700;
+  color: #0F172A;
+  line-height: 1.1;
+  margin-bottom: 6px;
+  letter-spacing: -0.02em;
 }
 
-.dc__change-badge {
-  display: inline-flex;
-  align-items: center;
-  gap: 3px;
-  font-size: 11.5px;
-  font-weight: 600;
-  padding: 2px 6px;
-  border-radius: 4px;
-}
-
-.dc__change-badge--up {
-  color: #10b981;
-  background-color: #10b98115;
-}
-
-.dc__change-badge--down {
-  color: #ef4444;
-  background-color: #ef444415;
-}
-
-.dc__change-text {
-  font-size: 11.5px;
-  color: #999;
+.dc__stat-sub {
+  font-size: 12.5px;
+  font-weight: 500;
+  color: #718096;
 }
 
 /* ── CHARTS ROW ───────────────────────────────────────────────────── */

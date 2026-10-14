@@ -125,12 +125,17 @@ export function useAdminData() {
 
   const aggregatedCustomers = useMemo(() => {
     return customers.map((customer) => {
-      const customerOrders = orders.filter((o) => o.user_id === customer.id);
+      const customerOrders = orders.filter((o) => {
+        if (o.user_id && o.user_id === customer.id) return true;
+        if (customer.email && (o.customer?.email?.toLowerCase() === customer.email.toLowerCase() || o.email?.toLowerCase() === customer.email.toLowerCase())) return true;
+        if (customer.phone && (o.customer?.phone === customer.phone || o.phone === customer.phone)) return true;
+        return false;
+      });
       const orderWithPhone = customerOrders.find((o) => o.phone || o.phone_number || o.customer?.phone || o.shipping_address?.phone);
       const orderPhone = orderWithPhone?.phone || orderWithPhone?.phone_number || orderWithPhone?.customer?.phone || orderWithPhone?.shipping_address?.phone;
 
       const phone = customer.phone || customer.phone_number || customer.mobile || customer.phoneNumber || orderPhone || '';
-      const name = customer.name || customer.full_name || (customerOrders[0]?.customer?.name) || 'Unknown Customer';
+      const name = customer.name || customer.full_name || (customerOrders[0]?.customer?.name) || (customer.email ? customer.email.split('@')[0] : 'Unknown Customer');
       const email = customer.email || (customerOrders[0]?.customer?.email) || '';
 
       const totalSpent = customerOrders

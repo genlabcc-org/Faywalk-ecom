@@ -214,33 +214,18 @@ const HIDE_ADD_PRODUCT_PATHS = [
 ];
 
 // ── Sub-Components ──────────────────────────────────────────────
-const StatCard = ({ icon, label, value, change, changeType, subtext, color, loading }) => {
+const StatCard = ({ label, value, subtext, variant = "green", loading }) => {
   if (loading) {
     return (
-      <div className="dc__stat-card skeleton-shimmer" style={{ minHeight: '138px', opacity: 0.85 }}>
-        <div style={{ width: '40px', height: '40px', borderRadius: '10px', background: 'rgba(255,255,255,0.4)', marginBottom: '12px' }} />
-        <div style={{ width: '60%', height: '14px', background: 'rgba(255,255,255,0.4)', marginBottom: '8px', borderRadius: '4px' }} />
-        <div style={{ width: '40%', height: '24px', background: 'rgba(255,255,255,0.4)', borderRadius: '4px' }} />
-      </div>
+      <div className={`dc__stat-card dc__stat-card--${variant} skeleton-shimmer`} style={{ minHeight: '122px', opacity: 0.85 }} />
     );
   }
 
   return (
-    <div className="dc__stat-card">
-      <div className="dc__stat-icon" style={{ backgroundColor: color + "15", color: color }}>
-        <StatIcon type={icon} />
-      </div>
+    <div className={`dc__stat-card dc__stat-card--${variant}`}>
       <div className="dc__stat-label">{label}</div>
       <div className="dc__stat-value">{value}</div>
-      <div className="dc__stat-change">
-        {change ? (
-          <span className={`dc__change-badge dc__change-badge--${changeType}`}>
-            {changeType === "up" ? <ArrowUp /> : changeType === "down" ? <ArrowDown /> : null}
-            {change}
-          </span>
-        ) : null}
-        <span className="dc__change-text">{subtext}</span>
-      </div>
+      <div className="dc__stat-sub">{subtext}</div>
     </div>
   );
 };
@@ -583,15 +568,15 @@ const DashboardHome = ({ orders, customers, products, loading }) => {
     };
 
     const totalCustomers = customers.length;
-    const pendingOrders = orders.filter(o => o.status?.toLowerCase() === 'pending').length;
+    const totalProducts = products?.length || 0;
 
     return {
       totalOrders,
       revenue: formatRevenue(revenue),
       totalCustomers,
-      pendingOrders
+      totalProducts
     };
-  }, [orders, customers]);
+  }, [orders, customers, products]);
 
 
   return (
@@ -601,10 +586,34 @@ const DashboardHome = ({ orders, customers, products, loading }) => {
       </div>
       <div className="dc__content">
         <div className="dc__stats-row">
-          <StatCard icon="orders" label="Total orders" value={stats.totalOrders} change="" changeType="up" subtext="Live count" color="#10b981" loading={loading} />
-          <StatCard icon="revenue" label="Revenue (this month)" value={stats.revenue} change="" changeType="down" subtext="Month total" color="#0ea5e9" loading={loading} />
-          <StatCard icon="customers" label="Total customers" value={stats.totalCustomers} change="" changeType="up" subtext="Active directory" color="#f59e0b" loading={loading} />
-          <StatCard icon="pending" label="Pending orders" value={stats.pendingOrders} change="" changeType="up" subtext="Needs attention" color="#ef4444" loading={loading} />
+          <StatCard
+            label="Total orders"
+            value={loading ? "—" : stats.totalOrders}
+            subtext="All Time"
+            variant="green"
+            loading={loading}
+          />
+          <StatCard
+            label="Revenue (this month)"
+            value={loading ? "—" : stats.revenue}
+            subtext={new Date().toLocaleDateString("en-US", { month: "short", year: "numeric" })}
+            variant="yellow"
+            loading={loading}
+          />
+          <StatCard
+            label="Total customers"
+            value={loading ? "—" : stats.totalCustomers}
+            subtext="Active directory"
+            variant="purple"
+            loading={loading}
+          />
+          <StatCard
+            label="Total products"
+            value={loading ? "—" : stats.totalProducts}
+            subtext="In catalog"
+            variant="blue"
+            loading={loading}
+          />
         </div>
         <div className="dc__charts-row">
           <div className="dc__chart-wrapper"><RevenueChart orders={orders} loading={loading} /></div>
