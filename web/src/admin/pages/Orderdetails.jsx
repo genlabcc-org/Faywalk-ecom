@@ -918,7 +918,7 @@ const OrderDetails = ({ order, onBack }) => {
       </div>
 
       {/* Admin Notes */}
-      <div className="od__card od__card--section">
+      {/* <div className="od__card od__card--section">
         <div className="od__card-title">Admin Notes</div>
         <textarea
           className="od__admin-notes"
@@ -954,7 +954,7 @@ const OrderDetails = ({ order, onBack }) => {
             )}
           </button>
         </div>
-      </div>
+      </div> */}
 
       {/* Footer Actions */}
       <div className="od__footer" style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px', marginTop: '20px' }}>

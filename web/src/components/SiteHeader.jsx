@@ -593,7 +593,7 @@ export default function SiteHeader({ activeLink = "", onLinkClick }) {
               <input
                 ref={searchInputRef}
                 type="text"
-                placeholder="Search products, shoes, sandals, sneakers..."
+                placeholder="Search products, vest, shorts..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 onKeyDown={handleSearchKeyDown}

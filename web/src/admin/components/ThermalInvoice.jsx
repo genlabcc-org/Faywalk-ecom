@@ -1,5 +1,41 @@
-import React from "react";
+import React, { useEffect, useRef } from "react";
+import JsBarcode from "jsbarcode";
 import "./ThermalInvoice.css";
+
+export const Barcode = ({
+  value,
+  displayValue = false,
+  height = 55,
+  width = 2.2,
+  fontSize = 14,
+}) => {
+  const ref = useRef(null);
+
+  useEffect(() => {
+    if (!ref.current || !value) return;
+    JsBarcode(ref.current, String(value), {
+      format: "CODE128",
+      width,
+      height,
+      displayValue,
+      fontSize,
+      textMargin: 2,
+      margin: 0,
+    });
+    // make it scale to the box instead of overflowing 100mm
+    const svg = ref.current;
+    const w = svg.getAttribute("width");
+    const h = svg.getAttribute("height");
+    if (w && h) {
+      svg.setAttribute("viewBox", `0 0 ${parseInt(w)} ${parseInt(h)}`);
+      svg.removeAttribute("width");
+      svg.removeAttribute("height");
+    }
+  }, [value, displayValue, height, width, fontSize]);
+
+  if (!value) return null;
+  return <svg ref={ref} className="ti-barcode" />;
+};
 
 const formatInvoiceDate = (dateVal) => {
   if (!dateVal) {
@@ -49,6 +85,8 @@ const ThermalInvoice = React.forwardRef(({ order, address, isPreview = false }, 
 
   const total = Number(o.total_price || o.total || 0);
   const invoiceDate = formatInvoiceDate(o.order_date || o.created_at);
+  const waybill = o.waybill || "";
+  const courierName = o.courier_name || o.delivery_provider || "";
 
   const rawId = o.invoice_no || o.invoice_number || o.order_number || (o.id ? String(o.id).slice(-8).toUpperCase() : "00000001");
   const invoiceNo = String(rawId).startsWith("#") ? String(rawId) : `#${rawId}`;
@@ -118,7 +156,7 @@ const ThermalInvoice = React.forwardRef(({ order, address, isPreview = false }, 
     <div className={`thermal-invoice ${isPreview ? "thermal-invoice--preview" : ""}`} ref={ref}>
       {/* ── Box 1: Store Brand Header ── */}
       <div className="ti-box ti-box--header">
-        <div className="ti-store-title">ANIKA FASHION STORE</div>
+        <div className="ti-store-title">FAYWALK VIBE</div>
       </div>
 
       {/* ── Box 2: Invoice Metadata (2 Columns) ── */}
@@ -150,6 +188,21 @@ const ThermalInvoice = React.forwardRef(({ order, address, isPreview = false }, 
         </div>
       </div>
 
+      {waybill && (
+        <div className="ti-box ti-box--barcode">
+          <div className="ti-barcode-header">
+            <span className="ti-barcode-title">AIR WAYBILL (AWB)</span>
+            {courierName && (
+              <span className="ti-barcode-carrier-badge">{courierName}</span>
+            )}
+          </div>
+          <div className="ti-barcode-graphic">
+            <Barcode value={waybill} displayValue={false} height={55} />
+          </div>
+          <div className="ti-barcode-awb-text">AWB: {waybill}</div>
+        </div>
+      )}
+
       {/* ── Box 4: Total Items & Total Amount (2 Columns) ── */}
       <div className="ti-box ti-box--totals">
         <div className="ti-total-left">
@@ -168,7 +221,7 @@ const ThermalInvoice = React.forwardRef(({ order, address, isPreview = false }, 
       {/* ── Box 5: Footer (Dashed Box) ── */}
       <div className="ti-box ti-box--footer">
         <div className="ti-footer-text">Thank you for shopping with</div>
-        <div className="ti-footer-brand">www.faywalk.in</div>
+        <div className="ti-footer-brand">www.faywalk.com</div>
       </div>
     </div>
   );

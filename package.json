@@ -16,6 +16,7 @@
     "supabase:functions:serve:prod": "supabase functions serve --no-verify-jwt --env-file supabase/functions/.env.production.local"
   },
   "dependencies": {
+    "jsbarcode": "^3.12.3",
     "razorpay": "^2.9.8"
   }
 }
