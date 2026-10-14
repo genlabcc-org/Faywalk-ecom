@@ -517,8 +517,8 @@ const AllCustomers = ({ customers = [], loading, onViewDetail }) => {
 
       {/* ── Table (tablet +) ── */}
       {(loading || allCustomers.length > 0) && (
-        <div className="ao__table-wrap">
-          <table className="ao__table">
+        <div className="ao__table-wrap ac__table-wrapper">
+          <table className="ao__table ac__table">
             <thead>
               <tr>
                 <th className="ao__th-check">

@@ -323,7 +323,7 @@ export default function Profile() {
               <h2>Confirm Account Deletion</h2>
             </div>
             <p className="profile-modal-desc">
-              This will permanently delete your account, order history, addresses, and wishlist. This action <strong>cannot be reversed</strong>.
+              This will permanently delete your account, order history, and addresses. This action <strong>cannot be reversed</strong>.
             </p>
             <p className="profile-modal-instruction">
               Type <strong>DELETE</strong> below to confirm:

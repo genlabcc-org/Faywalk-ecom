@@ -102,7 +102,6 @@ textarea {
 .global-title,
 .collections-title,
 .showcase-title,
-.realExperiences,
 .section-main-title {
   font-family: var(--title-font-family) !important;
   font-weight: var(--title-font-weight) !important;

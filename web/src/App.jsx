@@ -10,10 +10,8 @@ import Profile from "./profile/Profile";
 import Orders from "./profile/Orders";
 import OrderTracking from "./profile/OrderTracking";
 import Addresses from "./profile/Addresses";
-import Wishlists from "./profile/Wishlists";
 import CheckoutPage from "./pages/CheckoutPage";
 import HomePage from "./pages/HomePage";
-import WishlistPage from "./pages/WishlistPage";
 import CartPage from "./pages/CartPage";
 import ProductPage from "./pages/ProductPage";
 import ProductDetailsPage from "./pages/ProductDetailsPage";
@@ -153,7 +151,6 @@ function App() {
         <Route path="/profile/orders/track/:orderId" element={<OrderTracking />} />
         <Route path="/track-order/:orderId" element={<OrderTracking />} />
         <Route path="/profile/addresses" element={<Addresses />} />
-        <Route path="/profile/wishlists" element={<Wishlists />} />
         <Route path="/profile/account" element={<Navigate to="/profile" replace />} />
 
         <Route path="/terms" element={<TermsPage />} />
@@ -161,7 +158,6 @@ function App() {
         <Route path="/contact" element={<ContactPage />} />
 
         <Route path="/cart" element={<CartPage />} />
-        <Route path="/wishlist" element={<WishlistPage />} />
 
 
 

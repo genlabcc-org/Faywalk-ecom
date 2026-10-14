@@ -52,14 +52,11 @@ export default function ProductPage({ category = "Trending" }) {
   const products = useStore(state => state.products[category] || EMPTY_PRODUCTS);
   const loading = useStore(state => state.loadingProducts);
   const fetchProductsByCategory = useStore(state => state.fetchProductsByCategory);
-  const wishlistItems = useStore(state => state.wishlistItems);
-  const toggleWishlist = useStore(state => state.toggleWishlist);
   const addToCart = useStore(state => state.addToCart);
   const setSelectedProduct = useStore(state => state.setSelectedProduct);
 
   const allCategories = useStore(state => state.categories);
   const fetchCategories = useStore(state => state.fetchCategories);
-  const wishlistProductIds = useMemo(() => wishlistItems.map(w => w.id), [wishlistItems]);
 
   useEffect(() => {
     fetchProductsByCategory(category);

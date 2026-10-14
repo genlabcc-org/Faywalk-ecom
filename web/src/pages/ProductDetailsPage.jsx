@@ -131,7 +131,6 @@ export default function ProductDetailsPage({ onBack = () => window.history.back(
   const setSelectedProduct = useStore(state => state.setSelectedProduct);
   const categories = useStore(state => state.categories);
   const addToCart = useStore(state => state.addToCart);
-  const wishlistItems = useStore(state => state.wishlistItems);
   const fetchProductsByCategory = useStore(state => state.fetchProductsByCategory);
   const productsCache = useStore(state => state.products);
   const fetchProductDetails = useStore(state => state.fetchProductDetails);

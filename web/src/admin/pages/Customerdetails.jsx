@@ -495,16 +495,6 @@ const CustomerDetails = ({ customer, onBack }) => {
         </div>
       </div>
 
-      {/* ── Wishlist ── */}
-      <div className="cd__section">
-        <div className="cd__section-title-row">
-          <div className="cd__section-title">Wishlist</div>
-          <div className="cd__wishlist-count">0 Items Wishlisted</div>
-        </div>
-        <div className="cd__card" style={{ color: 'var(--cd-text-muted)', fontStyle: 'italic', fontSize: '13.5px' }}>
-          No wishlisted items found (customer wishlists are kept private).
-        </div>
-      </div>
 
       {/* ── Recent Activity ── */}
       <div className="cd__section">

@@ -780,9 +780,7 @@ select {
   color: var(--text-muted);
 }
 
-.recent-wish-btn.wishlisted {
-  color: var(--price-red);
-}
+
 
 .recent-wish-btn:hover {
   background: #f5f5f5;
@@ -1452,10 +1450,7 @@ select {
     font-size: 12px;
   }
 
-  .cart-wishlist-btn {
-    font-size: 11px;
-    padding: 7px 12px;
-  }
+
 
   /* Frequently bought — stack items vertically */
   .freq-img {

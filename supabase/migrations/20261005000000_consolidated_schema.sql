@@ -1,21 +1,15 @@
 -- =============================================================================
 -- FAYWALK E-COM — COMPLETE CONSOLIDATED DATABASE SCHEMA
 -- =============================================================================
--- Single source of truth for the entire Supabase PostgreSQL database schema.
--- Includes all core tables, role-based profiles, product variants, subcategories,
--- banners, shipping rates, social videos, order item details, and iCarry delivery.
 
 -- =============================================================================
 -- EXTENSIONS
 -- =============================================================================
 CREATE EXTENSION IF NOT EXISTS pgcrypto;
 
--- Drop deprecated admin_users table if it exists
-DROP TABLE IF EXISTS public.admin_users CASCADE;
-
 
 -- =============================================================================
--- 1. USERS TABLE (With single 'role' column: 'admin' | 'user')
+-- 1. USERS TABLE
 -- =============================================================================
 CREATE TABLE IF NOT EXISTS public.users (
   id         uuid REFERENCES auth.users ON DELETE CASCADE PRIMARY KEY,
@@ -27,10 +21,7 @@ CREATE TABLE IF NOT EXISTS public.users (
   created_at timestamp with time zone DEFAULT timezone('utc'::text, now())
 );
 
-ALTER TABLE public.users ADD COLUMN IF NOT EXISTS role text NOT NULL DEFAULT 'user';
-ALTER TABLE public.users DROP COLUMN IF EXISTS roles CASCADE;
-
--- Helper function to check if current user is admin (SECURITY DEFINER bypasses RLS recursion)
+-- Helper function to check if current user is admin
 CREATE OR REPLACE FUNCTION public.is_admin()
 RETURNS boolean
 LANGUAGE sql
@@ -46,25 +37,16 @@ $$;
 
 ALTER TABLE public.users ENABLE ROW LEVEL SECURITY;
 
-DROP POLICY IF EXISTS "Users can view their own profile" ON public.users;
-DROP POLICY IF EXISTS "Users can view own profile" ON public.users;
-DROP POLICY IF EXISTS "Admins can view all profiles" ON public.users;
-DROP POLICY IF EXISTS "Users can view profile" ON public.users;
 DROP POLICY IF EXISTS "Users can view users" ON public.users;
 CREATE POLICY "Users can view users"
   ON public.users FOR SELECT
   USING (auth.uid() = id OR public.is_admin());
 
-DROP POLICY IF EXISTS "Users can insert their own profile" ON public.users;
-DROP POLICY IF EXISTS "Users can insert own profile" ON public.users;
 DROP POLICY IF EXISTS "Users can insert users" ON public.users;
 CREATE POLICY "Users can insert users"
   ON public.users FOR INSERT
   WITH CHECK (auth.uid() = id);
 
-DROP POLICY IF EXISTS "Users can update their own profile" ON public.users;
-DROP POLICY IF EXISTS "Users can update own profile" ON public.users;
-DROP POLICY IF EXISTS "Users can update profile" ON public.users;
 DROP POLICY IF EXISTS "Users can update users" ON public.users;
 CREATE POLICY "Users can update users"
   ON public.users FOR UPDATE
@@ -85,9 +67,6 @@ CREATE TABLE IF NOT EXISTS public.categories (
   is_active   boolean DEFAULT true,
   created_at  timestamp with time zone DEFAULT timezone('utc'::text, now()) NOT NULL
 );
-
-ALTER TABLE public.categories ADD COLUMN IF NOT EXISTS parent_id bigint REFERENCES public.categories(category_id) ON DELETE SET NULL;
-ALTER TABLE public.categories ADD COLUMN IF NOT EXISTS sort_order integer DEFAULT 0;
 
 ALTER TABLE public.categories ENABLE ROW LEVEL SECURITY;
 
@@ -118,6 +97,8 @@ CREATE TABLE IF NOT EXISTS public.subcategories (
   UNIQUE (category_id, slug)
 );
 
+CREATE INDEX IF NOT EXISTS subcategories_category_id_idx ON public.subcategories (category_id);
+
 ALTER TABLE public.subcategories ENABLE ROW LEVEL SECURITY;
 
 DROP POLICY IF EXISTS "Allow public read access to subcategories" ON public.subcategories;
@@ -129,8 +110,6 @@ DROP POLICY IF EXISTS "Admins can manage subcategories" ON public.subcategories;
 CREATE POLICY "Admins can manage subcategories"
   ON public.subcategories FOR ALL
   USING (public.is_admin());
-
-CREATE INDEX IF NOT EXISTS subcategories_category_id_idx ON public.subcategories (category_id);
 
 
 -- =============================================================================
@@ -167,11 +146,9 @@ CREATE TABLE IF NOT EXISTS public.products (
   updated_at          timestamp with time zone DEFAULT timezone('utc'::text, now())
 );
 
-ALTER TABLE public.products ADD COLUMN IF NOT EXISTS is_festive_edit boolean DEFAULT false;
-ALTER TABLE public.products ADD COLUMN IF NOT EXISTS badge text;
-ALTER TABLE public.products ADD COLUMN IF NOT EXISTS subcategory_id bigint REFERENCES public.subcategories(subcategory_id) ON DELETE SET NULL;
-ALTER TABLE public.products ADD COLUMN IF NOT EXISTS colors jsonb DEFAULT '[]'::jsonb;
-ALTER TABLE public.products ADD COLUMN IF NOT EXISTS available_sizes jsonb DEFAULT '[]'::jsonb;
+CREATE INDEX IF NOT EXISTS products_category_id_idx ON public.products (category_id);
+CREATE INDEX IF NOT EXISTS products_subcategory_id_idx ON public.products (subcategory_id);
+CREATE INDEX IF NOT EXISTS products_slug_idx ON public.products (slug);
 
 ALTER TABLE public.products ENABLE ROW LEVEL SECURITY;
 
@@ -184,10 +161,6 @@ DROP POLICY IF EXISTS "Admins can manage products" ON public.products;
 CREATE POLICY "Admins can manage products"
   ON public.products FOR ALL
   USING (public.is_admin());
-
-CREATE INDEX IF NOT EXISTS products_category_id_idx ON public.products (category_id);
-CREATE INDEX IF NOT EXISTS products_subcategory_id_idx ON public.products (subcategory_id);
-CREATE INDEX IF NOT EXISTS products_slug_idx ON public.products (slug);
 
 
 -- =============================================================================
@@ -207,6 +180,8 @@ CREATE TABLE IF NOT EXISTS public.product_variants (
   UNIQUE (product_id, size, color)
 );
 
+CREATE INDEX IF NOT EXISTS product_variants_product_id_idx ON public.product_variants (product_id);
+
 ALTER TABLE public.product_variants ENABLE ROW LEVEL SECURITY;
 
 DROP POLICY IF EXISTS "Allow public read access to product variants" ON public.product_variants;
@@ -218,8 +193,6 @@ DROP POLICY IF EXISTS "Admins can manage variants" ON public.product_variants;
 CREATE POLICY "Admins can manage variants"
   ON public.product_variants FOR ALL
   USING (public.is_admin());
-
-CREATE INDEX IF NOT EXISTS product_variants_product_id_idx ON public.product_variants (product_id);
 
 
 -- =============================================================================
@@ -238,6 +211,8 @@ CREATE TABLE IF NOT EXISTS public.addresses (
   created_at   timestamp with time zone DEFAULT timezone('utc'::text, now()) NOT NULL
 );
 
+CREATE INDEX IF NOT EXISTS addresses_user_id_idx ON public.addresses (user_id);
+
 ALTER TABLE public.addresses ENABLE ROW LEVEL SECURITY;
 
 DROP POLICY IF EXISTS "Users can manage their own addresses" ON public.addresses;
@@ -245,8 +220,6 @@ CREATE POLICY "Users can manage their own addresses"
   ON public.addresses FOR ALL
   USING (auth.uid() = user_id)
   WITH CHECK (auth.uid() = user_id);
-
-CREATE INDEX IF NOT EXISTS addresses_user_id_idx ON public.addresses (user_id);
 
 
 -- =============================================================================
@@ -283,20 +256,8 @@ CREATE TABLE IF NOT EXISTS public.orders (
   updated_at            timestamp with time zone DEFAULT timezone('utc'::text, now())
 );
 
-ALTER TABLE public.orders ADD COLUMN IF NOT EXISTS subtotal numeric(10,2);
-ALTER TABLE public.orders ADD COLUMN IF NOT EXISTS discount_amount numeric(10,2) DEFAULT 0;
-ALTER TABLE public.orders ADD COLUMN IF NOT EXISTS shipping_fee numeric(10,2) DEFAULT 0;
-ALTER TABLE public.orders ADD COLUMN IF NOT EXISTS icarry_shipment_id text;
-ALTER TABLE public.orders ADD COLUMN IF NOT EXISTS icarry_tracking_id text;
-ALTER TABLE public.orders ADD COLUMN IF NOT EXISTS icarry_awb text;
-ALTER TABLE public.orders ADD COLUMN IF NOT EXISTS icarry_courier_code text;
-ALTER TABLE public.orders ADD COLUMN IF NOT EXISTS icarry_courier_name text;
-ALTER TABLE public.orders ADD COLUMN IF NOT EXISTS icarry_status text;
-ALTER TABLE public.orders ADD COLUMN IF NOT EXISTS icarry_routing_code text;
-ALTER TABLE public.orders ADD COLUMN IF NOT EXISTS icarry_label_url text;
-ALTER TABLE public.orders ADD COLUMN IF NOT EXISTS icarry_events jsonb DEFAULT '[]'::jsonb;
-ALTER TABLE public.orders ADD COLUMN IF NOT EXISTS dispatched_at timestamp with time zone;
-ALTER TABLE public.orders ADD COLUMN IF NOT EXISTS delivered_at timestamp with time zone;
+CREATE INDEX IF NOT EXISTS orders_user_id_idx ON public.orders (user_id);
+CREATE INDEX IF NOT EXISTS orders_created_at_idx ON public.orders (created_at DESC);
 
 ALTER TABLE public.orders ENABLE ROW LEVEL SECURITY;
 
@@ -320,9 +281,6 @@ CREATE POLICY "Admins can update orders"
   ON public.orders FOR UPDATE
   USING (public.is_admin());
 
-CREATE INDEX IF NOT EXISTS orders_user_id_idx ON public.orders (user_id);
-CREATE INDEX IF NOT EXISTS orders_created_at_idx ON public.orders (created_at DESC);
-
 
 -- =============================================================================
 -- 8. ORDER ITEMS TABLE
@@ -337,11 +295,13 @@ CREATE TABLE IF NOT EXISTS public.order_items (
   quantity     integer NOT NULL,
   size         text,
   color        text,
+  sku          text,
+  category     text,
   image_url    text,
   created_at   timestamp with time zone DEFAULT timezone('utc'::text, now()) NOT NULL
 );
 
-ALTER TABLE public.order_items ADD COLUMN IF NOT EXISTS variant_id bigint REFERENCES public.product_variants(variant_id) ON DELETE SET NULL;
+CREATE INDEX IF NOT EXISTS order_items_order_id_idx ON public.order_items (order_id);
 
 ALTER TABLE public.order_items ENABLE ROW LEVEL SECURITY;
 
@@ -370,8 +330,6 @@ CREATE POLICY "Admins can update order items"
   ON public.order_items FOR UPDATE
   USING (public.is_admin());
 
-CREATE INDEX IF NOT EXISTS order_items_order_id_idx ON public.order_items (order_id);
-
 
 -- =============================================================================
 -- 9. CART ITEMS TABLE
@@ -388,7 +346,7 @@ CREATE TABLE IF NOT EXISTS public.cart_items (
   UNIQUE (user_id, product_id, size, color)
 );
 
-ALTER TABLE public.cart_items ADD COLUMN IF NOT EXISTS variant_id bigint REFERENCES public.product_variants(variant_id) ON DELETE SET NULL;
+CREATE INDEX IF NOT EXISTS cart_items_user_id_idx ON public.cart_items (user_id);
 
 ALTER TABLE public.cart_items ENABLE ROW LEVEL SECURITY;
 
@@ -398,33 +356,9 @@ CREATE POLICY "Users can manage their own cart items"
   USING (auth.uid() = user_id)
   WITH CHECK (auth.uid() = user_id);
 
-CREATE INDEX IF NOT EXISTS cart_items_user_id_idx ON public.cart_items (user_id);
-
 
 -- =============================================================================
--- 10. WISHLIST ITEMS TABLE
--- =============================================================================
-CREATE TABLE IF NOT EXISTS public.wishlist_items (
-  id         uuid DEFAULT gen_random_uuid() PRIMARY KEY,
-  user_id    uuid REFERENCES auth.users ON DELETE CASCADE NOT NULL,
-  product_id bigint REFERENCES public.products(product_id) ON DELETE CASCADE NOT NULL,
-  created_at timestamp with time zone DEFAULT timezone('utc'::text, now()) NOT NULL,
-  UNIQUE (user_id, product_id)
-);
-
-ALTER TABLE public.wishlist_items ENABLE ROW LEVEL SECURITY;
-
-DROP POLICY IF EXISTS "Users can manage their own wishlist items" ON public.wishlist_items;
-CREATE POLICY "Users can manage their own wishlist items"
-  ON public.wishlist_items FOR ALL
-  USING (auth.uid() = user_id)
-  WITH CHECK (auth.uid() = user_id);
-
-CREATE INDEX IF NOT EXISTS wishlist_items_user_id_idx ON public.wishlist_items (user_id);
-
-
--- =============================================================================
--- 11. BANNERS TABLE
+-- 10. BANNERS TABLE
 -- =============================================================================
 CREATE TABLE IF NOT EXISTS public.banners (
   banner_id   bigint GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
@@ -450,7 +384,7 @@ CREATE POLICY "Admins can manage banners"
 
 
 -- =============================================================================
--- 12. SHIPPING RATES TABLE
+-- 11. SHIPPING RATES TABLE
 -- =============================================================================
 CREATE TABLE IF NOT EXISTS public.shipping_rates (
   id          bigint GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
@@ -475,29 +409,81 @@ CREATE POLICY "Admins can manage shipping rates"
 
 
 -- =============================================================================
--- 13. SOCIAL MEDIA VIDEOS TABLE
+-- 12. TOPBAR / ANNOUNCEMENT BAR TABLE
 -- =============================================================================
-CREATE TABLE IF NOT EXISTS public.social_videos (
-  video_id    bigint GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
-  title       text,
-  video_url   text NOT NULL,
-  caption     text,
-  sort_order  integer DEFAULT 0,
+CREATE TABLE IF NOT EXISTS public.topbar (
+  id          bigint GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+  text        text NOT NULL,
+  link_url    text,
   is_active   boolean DEFAULT true,
-  created_at  timestamp with time zone DEFAULT timezone('utc'::text, now()) NOT NULL
+  created_at  timestamp with time zone DEFAULT timezone('utc'::text, now()) NOT NULL,
+  updated_at  timestamp with time zone DEFAULT timezone('utc'::text, now()) NOT NULL
 );
 
-ALTER TABLE public.social_videos ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.topbar ENABLE ROW LEVEL SECURITY;
 
-DROP POLICY IF EXISTS "Allow public read access to social videos" ON public.social_videos;
-CREATE POLICY "Allow public read access to social videos"
-  ON public.social_videos FOR SELECT
+DROP POLICY IF EXISTS "Allow public read access to topbar" ON public.topbar;
+CREATE POLICY "Allow public read access to topbar"
+  ON public.topbar FOR SELECT
   USING (true);
 
-DROP POLICY IF EXISTS "Admins can manage social videos" ON public.social_videos;
-CREATE POLICY "Admins can manage social videos"
-  ON public.social_videos FOR ALL
+DROP POLICY IF EXISTS "Admins can manage topbar" ON public.topbar;
+CREATE POLICY "Admins can manage topbar"
+  ON public.topbar FOR ALL
   USING (public.is_admin());
+
+-- Insert default record if table is empty
+INSERT INTO public.topbar (text, is_active)
+SELECT 'Diwali Sale - Everything Is Off By 50%', true
+WHERE NOT EXISTS (SELECT 1 FROM public.topbar LIMIT 1);
+
+
+-- =============================================================================
+-- 13. COUPONS MANAGEMENT TABLE
+-- =============================================================================
+CREATE TABLE IF NOT EXISTS public.coupons (
+  id                  bigint GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+  code                text NOT NULL,
+  description         text,
+  discount_type       text NOT NULL DEFAULT 'percentage' CHECK (discount_type IN ('percentage', 'fixed')),
+  discount_value      numeric(10,2) NOT NULL CHECK (discount_value > 0),
+  min_order_amount    numeric(10,2) DEFAULT 0,
+  max_discount_amount numeric(10,2),
+  category_id         bigint REFERENCES public.categories(category_id) ON DELETE SET NULL,
+  subcategory_id      bigint REFERENCES public.subcategories(subcategory_id) ON DELETE SET NULL,
+  usage_limit         integer,
+  used_count          integer NOT NULL DEFAULT 0,
+  start_date          timestamp with time zone DEFAULT timezone('utc'::text, now()) NOT NULL,
+  expiry_date         timestamp with time zone,
+  is_active           boolean NOT NULL DEFAULT true,
+  created_at          timestamp with time zone DEFAULT timezone('utc'::text, now()) NOT NULL,
+  updated_at          timestamp with time zone DEFAULT timezone('utc'::text, now()) NOT NULL
+);
+
+CREATE UNIQUE INDEX IF NOT EXISTS coupons_code_upper_idx ON public.coupons (UPPER(code));
+CREATE INDEX IF NOT EXISTS coupons_category_id_idx ON public.coupons(category_id);
+CREATE INDEX IF NOT EXISTS coupons_subcategory_id_idx ON public.coupons(subcategory_id);
+
+ALTER TABLE public.coupons ENABLE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS "Allow public read access to coupons" ON public.coupons;
+CREATE POLICY "Allow public read access to coupons"
+  ON public.coupons FOR SELECT
+  USING (true);
+
+DROP POLICY IF EXISTS "Admins can manage coupons" ON public.coupons;
+CREATE POLICY "Admins can manage coupons"
+  ON public.coupons FOR ALL
+  USING (public.is_admin());
+
+-- Seed default coupons if not present
+INSERT INTO public.coupons (code, description, discount_type, discount_value, min_order_amount, is_active)
+SELECT 'WELCOME10', 'Welcome discount for all customers', 'percentage', 10, 0, true
+WHERE NOT EXISTS (SELECT 1 FROM public.coupons WHERE UPPER(code) = 'WELCOME10');
+
+INSERT INTO public.coupons (code, description, discount_type, discount_value, min_order_amount, is_active)
+SELECT 'FESTIVE20', 'Festive season special discount', 'percentage', 20, 499, true
+WHERE NOT EXISTS (SELECT 1 FROM public.coupons WHERE UPPER(code) = 'FESTIVE20');
 
 
 -- =============================================================================
@@ -515,7 +501,7 @@ REVOKE SELECT, INSERT, UPDATE ON public.order_id_seq FROM service_role;
 
 
 -- =============================================================================
--- FUNCTIONS & TRIGGERS
+-- 15. FUNCTIONS & TRIGGERS
 -- =============================================================================
 
 CREATE OR REPLACE FUNCTION public.check_user_exists(email_to_check text)
@@ -566,7 +552,7 @@ RETURNS text
 LANGUAGE plpgsql
 SECURITY DEFINER
 AS $$
-DECLARATION
+DECLARE
   today    date    := current_date;
   date_str text    := to_char(today, 'YYYYMMDD');
   next_seq integer;
@@ -602,7 +588,7 @@ CREATE TRIGGER trg_set_order_id
 
 
 -- =============================================================================
--- STORAGE BUCKETS & RLS POLICIES
+-- 16. STORAGE BUCKETS & RLS POLICIES
 -- =============================================================================
 INSERT INTO storage.buckets (id, name, public)
 VALUES
@@ -629,29 +615,17 @@ CREATE POLICY "Allow public read access to banner images"
 DROP POLICY IF EXISTS "Admins can manage product images" ON storage.objects;
 CREATE POLICY "Admins can manage product images"
   ON storage.objects FOR ALL
-  USING (
-    bucket_id = 'product_img' AND public.is_admin()
-  )
-  WITH CHECK (
-    bucket_id = 'product_img' AND public.is_admin()
-  );
+  USING (bucket_id = 'product_img' AND public.is_admin())
+  WITH CHECK (bucket_id = 'product_img' AND public.is_admin());
 
 DROP POLICY IF EXISTS "Admins can manage category images" ON storage.objects;
 CREATE POLICY "Admins can manage category images"
   ON storage.objects FOR ALL
-  USING (
-    bucket_id = 'categories_img' AND public.is_admin()
-  )
-  WITH CHECK (
-    bucket_id = 'categories_img' AND public.is_admin()
-  );
+  USING (bucket_id = 'categories_img' AND public.is_admin())
+  WITH CHECK (bucket_id = 'categories_img' AND public.is_admin());
 
 DROP POLICY IF EXISTS "Admins can manage banner images" ON storage.objects;
 CREATE POLICY "Admins can manage banner images"
   ON storage.objects FOR ALL
-  USING (
-    bucket_id = 'banners' AND public.is_admin()
-  )
-  WITH CHECK (
-    bucket_id = 'banners' AND public.is_admin()
-  );
+  USING (bucket_id = 'banners' AND public.is_admin())
+  WITH CHECK (bucket_id = 'banners' AND public.is_admin());

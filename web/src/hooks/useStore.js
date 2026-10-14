@@ -3,7 +3,6 @@ import { supabase } from '../lib/supabase';
 import { productService } from '../services/productService';
 import { variantService } from '../services/variantService';
 import { cartService } from '../services/cartService';
-import { wishlistService } from '../services/wishlistService';
 import { authService } from '../services/authService';
 import { orderService } from '../services/orderService';
 import { topbarService } from '../services/topbarService';
@@ -103,11 +102,9 @@ export const useStore = create((set, get) => ({
   loadingCategories: false,
   loadingProducts: false,
 
-  // --- Cart and Wishlist ---
+  // --- Cart ---
   cartItems: [],
-  wishlistItems: [],
   loadingCart: false,
-  loadingWishlist: false,
 
   // --- Orders ---
   orders: [],
@@ -156,16 +153,14 @@ export const useStore = create((set, get) => ({
       const session = await authService.getSession();
       if (session) {
         set({ session, user: session.user });
-        await get().syncCartAndWishlist(session.user.id);
+        await get().syncCart(session.user.id);
         await get().checkAdminStatus(session.user.id);
         await get().syncProfileFromMetadata(session.user);
       } else {
-        // Load guest cart & wishlist from localStorage
+        // Load guest cart from localStorage
         const localCart = localStorage.getItem('anika_guest_cart');
-        const localWishlist = localStorage.getItem('anika_guest_wishlist');
         set({
-          cartItems: localCart ? JSON.parse(localCart) : [],
-          wishlistItems: localWishlist ? JSON.parse(localWishlist) : []
+          cartItems: localCart ? JSON.parse(localCart) : []
         });
       }
     } catch (err) {
@@ -183,10 +178,10 @@ export const useStore = create((set, get) => ({
       if (session) {
         const currentUser = get().user;
         if (!currentUser || currentUser.id !== session.user.id) {
-          // New sign-in (or first load) — set user and sync guest cart/wishlist
+          // New sign-in (or first load) — set user and sync guest cart
           set({ session, user: session.user });
           setTimeout(async () => {
-            await get().syncCartAndWishlist(session.user.id);
+            await get().syncCart(session.user.id);
             await get().checkAdminStatus(session.user.id);
           }, 0);
         } else {
@@ -202,14 +197,12 @@ export const useStore = create((set, get) => ({
           isAdmin: false,
           adminChecked: false,
           cartItems: [],
-          wishlistItems: [],
           orders: [],
           ordersFetchedFor: null,
           addresses: [],
           addressesFetchedFor: null
         });
         localStorage.removeItem('anika_guest_cart');
-        localStorage.removeItem('anika_guest_wishlist');
       }
     });
 
@@ -592,106 +585,13 @@ export const useStore = create((set, get) => ({
     }
   },
 
-  // --- Wishlist Actions ---
-  toggleWishlist: async (product) => {
-    const user = get().user;
-    const productId = product.productId || product.id || product.product_id;
-    if (!productId) return;
-    if (user) {
-      set({ loadingWishlist: true });
-      try {
-        const exists = get().wishlistItems.find(w => (w.id === productId || w.productId === productId));
-        if (exists) {
-          await wishlistService.deleteWishlistItem(user.id, productId);
-        } else {
-          await wishlistService.addWishlistItem(user.id, productId);
-        }
-        const updatedItems = await wishlistService.getWishlistItems(user.id);
-        set({ wishlistItems: updatedItems, loadingWishlist: false });
-      } catch (err) {
-        console.error('Error toggling wishlist:', err);
-        set({ loadingWishlist: false });
-        alert("Failed to toggle wishlist item. Please sign out and sign in again to refresh your session.");
-      }
-    } else {
-      // Guest local update
-      let localWishlist = [...get().wishlistItems];
-      const exists = localWishlist.find(w => (w.id === productId || w.productId === productId));
-      if (exists) {
-        localWishlist = localWishlist.filter(w => (w.id !== productId && w.productId !== productId));
-      } else {
-        const price = parsePrice(product.price);
-        const originalPrice = parsePrice(product.originalPrice || product.compare_price || Math.round(price * 1.3));
-        localWishlist.push({
-          id: productId,
-          productId: productId,
-          name: product.name,
-          price: price,
-          originalPrice: originalPrice,
-          category: product.category || '',
-          qty: 1,
-          image: product.img || product.image || (product.images && product.images[0]) || '/src/assets/cart/bangle1.webp',
-          deliveryDate: '2 - 3 Days'
-        });
-      }
-      set({ wishlistItems: localWishlist });
-      localStorage.setItem('anika_guest_wishlist', JSON.stringify(localWishlist));
-    }
-  },
-
-  removeFromWishlist: async (productId) => {
-    const user = get().user;
-    if (user) {
-      set({ loadingWishlist: true });
-      try {
-        await wishlistService.deleteWishlistItem(user.id, productId);
-        const updatedItems = await wishlistService.getWishlistItems(user.id);
-        set({ wishlistItems: updatedItems, loadingWishlist: false });
-      } catch (err) {
-        console.error('Error removing from wishlist:', err);
-        set({ loadingWishlist: false });
-      }
-    } else {
-      const localWishlist = get().wishlistItems.filter(w => w.id !== productId);
-      set({ wishlistItems: localWishlist });
-      localStorage.setItem('anika_guest_wishlist', JSON.stringify(localWishlist));
-    }
-  },
-
-  removeSelectedFromWishlist: async (selectedProductIds) => {
-    if (!selectedProductIds || selectedProductIds.length === 0) return;
-    const user = get().user;
-    if (user) {
-      set({ loadingWishlist: true });
-      try {
-        // Get the DB IDs matching these product IDs for this user
-        const currentWishlist = get().wishlistItems;
-        const dbIdsToDelete = currentWishlist
-          .filter(item => selectedProductIds.includes(item.id))
-          .map(item => item.dbId)
-          .filter(Boolean);
-
-        await wishlistService.deleteWishlistItems(dbIdsToDelete);
-        const updatedItems = await wishlistService.getWishlistItems(user.id);
-        set({ wishlistItems: updatedItems, loadingWishlist: false });
-      } catch (err) {
-        console.error('Error removing selected from wishlist:', err);
-        set({ loadingWishlist: false });
-      }
-    } else {
-      const localWishlist = get().wishlistItems.filter(item => !selectedProductIds.includes(item.id));
-      set({ wishlistItems: localWishlist });
-      localStorage.setItem('anika_guest_wishlist', JSON.stringify(localWishlist));
-    }
-  },
-
-  // --- Synchronization Actions (Merge guest state to DB) ---
-  syncCartAndWishlist: async (userId) => {
+  // --- Synchronization Actions (Merge guest cart to DB) ---
+  syncCart: async (userId) => {
     if (!userId) return;
-    set({ loadingCart: true, loadingWishlist: true });
+    set({ loadingCart: true });
 
     try {
-      // 1. Sync Cart
+      // Sync Cart
       const guestCartJson = localStorage.getItem('anika_guest_cart');
       const guestCart = guestCartJson ? JSON.parse(guestCartJson) : [];
       const dbCart = await cartService.getCartItems(userId);
@@ -753,44 +653,14 @@ export const useStore = create((set, get) => ({
       const finalCart = await cartService.getCartItems(userId);
       set({ cartItems: finalCart, loadingCart: false });
 
-      // 2. Sync Wishlist
-      const guestWishlistJson = localStorage.getItem('anika_guest_wishlist');
-      const guestWishlist = guestWishlistJson ? JSON.parse(guestWishlistJson) : [];
-      const dbWishlist = await wishlistService.getWishlistItems(userId);
-
-      const mergedWishlist = [];
-      dbWishlist.forEach(dbItem => {
-        mergedWishlist.push({
-          user_id: userId,
-          product_id: dbItem.id
-        });
-      });
-
-      guestWishlist.forEach(guestItem => {
-        const exists = mergedWishlist.some(m => m.product_id === guestItem.id);
-        if (!exists) {
-          mergedWishlist.push({
-            user_id: userId,
-            product_id: guestItem.id
-          });
-        }
-      });
-
-      if (mergedWishlist.length > 0) {
-        await wishlistService.syncWishlistItems(mergedWishlist);
-      }
-      localStorage.removeItem('anika_guest_wishlist');
-      const finalWishlist = await wishlistService.getWishlistItems(userId);
-      set({ wishlistItems: finalWishlist, loadingWishlist: false });
-
     } catch (err) {
-      console.error('Failed to sync guest cart & wishlist to database:', err);
+      console.error('Failed to sync guest cart to database:', err);
       // Still try to load cart from DB so user doesn't see an empty cart
       try {
         const fallbackCart = await cartService.getCartItems(userId);
-        set({ cartItems: fallbackCart, loadingCart: false, loadingWishlist: false });
+        set({ cartItems: fallbackCart, loadingCart: false });
       } catch {
-        set({ loadingCart: false, loadingWishlist: false });
+        set({ loadingCart: false });
       }
     }
   },

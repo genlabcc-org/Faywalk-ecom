@@ -424,12 +424,14 @@
   left: 240px;
   right: 0;
   bottom: 0;
-  overflow-y: auto;
+  overflow-y: auto !important;
+  overflow-x: hidden;
   padding: 0;
   background-color: #ffffff;
   text-align: left;
   display: flex;
   flex-direction: column;
+  -webkit-overflow-scrolling: touch;
 }
 
 @media (max-width: 1024px) {
@@ -439,8 +441,11 @@
 }
 
 .db__main>* {
-  flex: 1;
+  flex: 1 0 auto;
   min-height: 100%;
+  width: 100%;
+  max-width: 100%;
+  box-sizing: border-box;
 }
 
 /* ── All Admin Pages Uniform White Background ── */
@@ -1500,6 +1505,8 @@
 .ac__table-wrapper,
 .cpm-table-wrapper,
 .cpm-table-card {
+  width: 100% !important;
+  max-width: 100% !important;
   background: #ffffff !important;
   border: none !important;
   box-shadow: none !important;
@@ -1517,6 +1524,7 @@
 .aa__table,
 .sh__table {
   width: 100% !important;
+  min-width: 780px !important;
   border-collapse: separate !important;
   border-spacing: 0 !important;
 }

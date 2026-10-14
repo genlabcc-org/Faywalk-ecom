@@ -12,7 +12,6 @@ const CategorySection = lazy(() => import('../components/CategorySection'));
 const NewArrivals = lazy(() => import('../components/NewArrivals'));
 const BestSellers = lazy(() => import('../components/BestSellers'));
 const CollectionsSection = lazy(() => import('../components/CollectionsSection'));
-const RealExperience = lazy(() => import('../components/RealExperience'));
 const CustomerExperiences = lazy(() => import('../components/CustomerExperiences'));
 const SiteFooter = lazy(() => import('../components/SiteFooter'));
 
@@ -60,7 +59,6 @@ export default function HomePage() {
           <BestSellers onProductClick={handleProductClick} />
         </div>
         {/* <CollectionsSection /> */}
-        <RealExperience />
         <div id="reviews"><CustomerExperiences /></div>
         <SiteFooter />
       </Suspense>

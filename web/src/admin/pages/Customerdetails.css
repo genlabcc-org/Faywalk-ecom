@@ -102,12 +102,6 @@
   flex-wrap: wrap;
 }
 
-.cd__wishlist-count {
-  font-size: 13px;
-  color: #555;
-  font-weight: 500;
-}
-
 /* ── Cards ──────────────────────────────────────────────────────── */
 .cd__card {
   background: var(--cd-card-bg);
@@ -272,36 +266,7 @@
   white-space: nowrap;
 }
 
-/* ── Wishlist ───────────────────────────────────────────────────── */
-.cd__wishlist-grid {
-  display: grid;
-  grid-template-columns: repeat(5, 1fr);
-  gap: 12px;
-}
 
-.cd__wishlist-card {
-  background: var(--cd-card-bg);
-  border-radius: 10px;
-  border: 1px solid var(--cd-border);
-  padding: 14px;
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-  box-shadow: var(--cd-shadow);
-}
-
-.cd__wishlist-name {
-  font-size: 12px;
-  font-weight: 500;
-  color: var(--cd-text-primary);
-  line-height: 1.4;
-}
-
-.cd__wishlist-price {
-  font-size: 13px;
-  font-weight: 600;
-  color: var(--cd-text-primary);
-}
 
 /* ── Recent Activity ────────────────────────────────────────────── */
 .cd__activity-row {
@@ -453,10 +418,7 @@
 
 /* ── Tablet: 768–1023px ─────────────────────────────────────────── */
 @media (max-width: 1023px) {
-  /* Wishlist: 3 per row on tablet */
-  .cd__wishlist-grid {
-    grid-template-columns: repeat(3, 1fr);
-  }
+
 }
 
 /* ── Small tablet / large phone: < 768px ───────────────────────── */
@@ -485,11 +447,7 @@
     gap: 12px;
   }
 
-  /* Wishlist — 2 per row */
-  .cd__wishlist-grid {
-    grid-template-columns: repeat(2, 1fr);
-    gap: 10px;
-  }
+
 
   /* Order rows — tighter padding */
   .cd__order-row {
@@ -530,14 +488,7 @@
     text-align: left;
   }
 
-  /* Wishlist: 2 columns on small phones */
-  .cd__wishlist-grid {
-    grid-template-columns: repeat(2, 1fr);
-    gap: 8px;
-  }
-  .cd__wishlist-card { padding: 10px; gap: 6px; }
-  .cd__wishlist-name { font-size: 11.5px; }
-  .cd__wishlist-price { font-size: 12px; }
+
 
   /* Order rows: stack amount/status below product info */
   .cd__order-row {

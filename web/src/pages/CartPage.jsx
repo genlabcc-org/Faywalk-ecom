@@ -4,7 +4,6 @@ import Navbar from "../components/SiteHeader";
 import TopBar from "../components/TopBar";
 import Footer from "../components/SiteFooter";
 import { useNavigate } from "react-router-dom";
-import WishlistPage from "./WishlistPage";
 import { useStore } from "../hooks/useStore";
 import { getOriginalImageUrl } from '../utils/imageUtils';
 import { getNavPath } from "../services/categoryRoute";
@@ -12,16 +11,13 @@ import { getNavPath } from "../services/categoryRoute";
 export default function CartPage() {
   const categories = useStore((state) => state.categories);
   const cartItems = useStore((state) => state.cartItems);
-  const wishlistItems = useStore((state) => state.wishlistItems);
   const updateCartQty = useStore((state) => state.updateCartQty);
   const removeFromCart = useStore((state) => state.removeFromCart);
   const removeSelectedFromCart = useStore((state) => state.removeSelectedFromCart);
-  const toggleWishlist = useStore((state) => state.toggleWishlist);
 
   const [selectedIds, setSelectedIds] = useState([]);
   const selectedItems = cartItems.filter((i) => selectedIds.includes(i.id));
   const [toast, setToast] = useState("");
-  const [showWishlist, setShowWishlist] = useState(false);
 
   const navigate = useNavigate();
 
@@ -70,41 +66,12 @@ export default function CartPage() {
     showToast("Items removed from cart");
   };
 
-  const moveToWishlist = async () => {
-    const moved = cartItems.filter((i) => selectedIds.includes(i.id));
-    for (const item of moved) {
-      const isWishlisted = wishlistItems.some((w) => w.id === item.productId);
-      if (!isWishlisted) {
-        await toggleWishlist({
-          productId: item.productId,
-          name: item.name,
-          price: item.price,
-          originalPrice: item.originalPrice,
-          category: item.category,
-          img: item.image
-        });
-      }
-    }
-    await removeSelectedFromCart(selectedIds);
-    setSelectedIds([]);
-    showToast("Items moved to wishlist");
-    setTimeout(() => setShowWishlist(true), 800);
-  };
-
   // Only calculate totals for currently SELECTED items
   const subtotal = selectedItems.reduce((sum, i) => sum + (Number(i.price) || 0) * (Number(i.qty) || 1), 0);
   // GST is already included in product price — extract for display only, not added to total
   const gstIncluded = subtotal > 0 ? Math.round(subtotal - (subtotal / 1.03)) : 0;
   const platformFee = 0;
   const grandTotal = subtotal + platformFee;
-
-  if (showWishlist) {
-    return (
-      <WishlistPage
-        onBack={() => setShowWishlist(false)}
-      />
-    );
-  }
 
   return (
     <>
