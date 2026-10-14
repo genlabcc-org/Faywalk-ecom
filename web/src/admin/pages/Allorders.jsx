@@ -2,14 +2,14 @@ import React, { useState, useEffect, useCallback, useMemo, useRef } from "react"
 import "./Allorders.css";
 
 const STATUS_STYLE = {
-  "Order Placed": { bg: "#E0F2FE", color: "#0369A1" },
-  Pending:   { bg: "#FFF4E5", color: "#D97706" },
-  Shipped:   { bg: "#EFF6FF", color: "#2563EB" },
-  Delivered: { bg: "#F0FDF4", color: "#16A34A" },
-  Confirmed: { bg: "#F5F3FF", color: "#7C3AED" },
-  Return:    { bg: "#FEF2F2", color: "#DC2626" },
-  Returned:  { bg: "#FEF2F2", color: "#DC2626" },
-  Cancelled: { bg: "#FEF2F2", color: "#DC2626" },
+  "Order Placed": { bg: "#E0F2FE", color: "#0284C7" },
+  Pending:   { bg: "#FCE7F3", color: "#DB2777" },
+  Shipped:   { bg: "#FEF3C7", color: "#D97706" },
+  Delivered: { bg: "#DCFCE7", color: "#16A34A" },
+  Confirmed: { bg: "#E0F2FE", color: "#0284C7" },
+  Return:    { bg: "#FEE2E2", color: "#EF4444" },
+  Returned:  { bg: "#FEE2E2", color: "#EF4444" },
+  Cancelled: { bg: "#FEE2E2", color: "#DC2626" },
 };
 
 const PAYMENT_STYLE = {
@@ -129,6 +129,23 @@ const FilterDropdown = ({ value, options, onChange }) => {
       )}
     </div>
   );
+};
+
+const getCustomerDisplayName = (order) => {
+  const raw = order?.shipping_address?.full_name || order?.shipping_address?.name || order?.customer?.name;
+  if (!raw) return "—";
+  const trimmed = raw.trim();
+  const lower = trimmed.toLowerCase();
+  if (
+    !trimmed ||
+    lower === "unknown customer" ||
+    lower === "no name set" ||
+    lower === "unknown" ||
+    (order?.customer?.email && lower === order.customer.email.split("@")[0].toLowerCase())
+  ) {
+    return "—";
+  }
+  return trimmed;
 };
 
 /* ── Main Component ── */
@@ -324,27 +341,27 @@ const AllOrders = ({ orders = [], products = [], loading, error = null, onViewDe
               onChange={() => toggleRow(order.id)}
             />
           </td>
-          <td className="ao__cell-id">#{order.id?.slice(-6) || order.id}</td>
+          <td className="ao__cell-id">
+            #{order.id?.slice(-6)?.toUpperCase() || order.id || "—"}
+          </td>
           <td className="ao__cell-customer">
-            <div style={{ display: 'flex', flexDirection: 'column' }}>
-              <span style={{ fontWeight: '500' }}>{order.customer?.name || "Unknown"}</span>
-              <span style={{ fontSize: '11px', color: '#888' }}>{order.customer?.email || ""}</span>
-            </div>
+            <span className="ao__customer-name">
+              {getCustomerDisplayName(order)}
+            </span>
           </td>
-          <td className="ao__cell-items ao__col-items">{order.item_name} {order.quantity > 1 ? `x${order.quantity}` : ''}</td>
-          <td className="ao__cell-total">₹{Number(order.total_price || 0).toLocaleString('en-IN')}</td>
-          <td className="ao__col-payment">
-            <span className="ao__badge" style={{ background: ps.bg, color: ps.color }}>
-              {order.payment}
+          <td className="ao__cell-items">
+            {order.item_name || (order.order_items?.length ? order.order_items.map(i => i.name || i.product_name).filter(Boolean).join(', ') : "—")} {order.quantity > 1 ? `x${order.quantity}` : ''}
+          </td>
+          <td className="ao__cell-total">
+            ₹{Number(order.total_price || 0).toLocaleString('en-IN')}
+          </td>
+          <td>
+            <span className="ao__badge" style={{ backgroundColor: ss.bg, color: ss.color }}>
+              {order.status || 'Pending'}
             </span>
           </td>
           <td>
-            <span className="ao__badge" style={{ background: ss.bg, color: ss.color }}>
-              {order.status}
-            </span>
-          </td>
-          <td>
-            <button className="ao__view-btn" onClick={() => onViewDetail?.(order)}>
+            <button className="ao__view-link" onClick={() => onViewDetail?.(order)}>
               View
             </button>
           </td>
@@ -454,10 +471,7 @@ const AllOrders = ({ orders = [], products = [], loading, error = null, onViewDe
                 </div>
                 <div className="ao__card-body">
                   <div className="ao__card-customer">
-                    <span className="ao__card-customer-name">{order.customer?.name || "Unknown"}</span>
-                    {order.customer?.email && (
-                      <span className="ao__card-customer-email">{order.customer?.email}</span>
-                    )}
+                    <span className="ao__card-customer-name">{getCustomerDisplayName(order)}</span>
                   </div>
                   <div className="ao__card-items">
                     <span className="ao__card-items-text">
@@ -497,225 +511,151 @@ const AllOrders = ({ orders = [], products = [], loading, error = null, onViewDe
         </div>
       </div>
 
-      {/* ── Stats grid ── */}
-      <div className="ao__stats-grid">
-
-        {/* KPI row */}
-        <div className="ao__kpi-row">
-
-          {/* Total Orders + Revenue */}
-          <div className="ao__kpi-card ao__kpi-card--orders">
-            <div className="ao__kpi-top">
-              <span className="ao__kpi-icon">📦</span>
-              <span className="ao__kpi-label">Total Orders</span>
-            </div>
-            <div className={`ao__kpi-value${loading ? ' ao__kpi-value--loading' : ''}`}>
-              {loading ? '—' : orders.length.toLocaleString()}
-            </div>
-            <div className="ao__kpi-sub">
-              Revenue: <strong>{loading ? '—' : fmtRevenue(revenue)}</strong>
-            </div>
-            <div className="ao__kpi-bar">
-              <div className="ao__kpi-bar-fill" style={{ width: '100%', background: '#6366f1' }} />
+      {/* ── Stats grid (4 Pastel Cards) ── */}
+      <div className="ao__kpi-cards">
+        {/* Total Orders */}
+        <div className="ao__kpi-card ao__kpi-card--green">
+          <div className="ao__kpi-card-header">
+            <span className="ao__kpi-card-title">Total Orders</span>
+            <div className="ao__kpi-card-time">
+              <span>This week</span>
+              <ChevronDownIcon />
             </div>
           </div>
-
-          {/* Action needed */}
-          <div className="ao__kpi-card ao__kpi-card--action">
-            <div className="ao__kpi-top">
-              <span className="ao__kpi-icon">⏳</span>
-              <span className="ao__kpi-label">Needs Action</span>
-            </div>
-            <div className={`ao__kpi-value${loading ? ' ao__kpi-value--loading' : ''}`}>
-              {loading ? '—' : actionNeeded}
-            </div>
-            <div className="ao__kpi-sub">
-              <span className="ao__kpi-chip ao__kpi-chip--pending">{loading ? '—' : count('Pending')} Pending</span>
-              <span className="ao__kpi-chip ao__kpi-chip--confirmed">{loading ? '—' : count('Confirmed')} Confirmed</span>
-            </div>
-            <div className="ao__kpi-bar">
-              <div className="ao__kpi-bar-fill" style={{
-                width: orders.length ? `${(actionNeeded / orders.length) * 100}%` : '0%',
-                background: '#f59e0b'
-              }} />
-            </div>
+          <div className="ao__kpi-card-val">
+            {loading ? "—" : orders.length.toLocaleString('en-IN')}
           </div>
-
-          {/* In Transit */}
-          <div className="ao__kpi-card ao__kpi-card--transit">
-            <div className="ao__kpi-top">
-              <span className="ao__kpi-icon">🚚</span>
-              <span className="ao__kpi-label">In Transit</span>
-            </div>
-            <div className={`ao__kpi-value${loading ? ' ao__kpi-value--loading' : ''}`}>
-              {loading ? '—' : inTransit}
-            </div>
-            <div className="ao__kpi-sub">
-              Delivered: <strong>{loading ? '—' : count('Delivered')}</strong>
-              &nbsp;·&nbsp; Rate: <strong>{loading ? '—' : `${fulfillmentRate}%`}</strong>
-            </div>
-            <div className="ao__kpi-bar">
-              <div className="ao__kpi-bar-fill" style={{
-                width: `${fulfillmentRate}%`,
-                background: '#10b981'
-              }} />
-            </div>
-          </div>
-
-          {/* Payment split */}
-          <div className="ao__kpi-card ao__kpi-card--payment">
-            <div className="ao__kpi-top">
-              <span className="ao__kpi-icon">💳</span>
-              <span className="ao__kpi-label">Payment Split</span>
-            </div>
-            <div className={`ao__kpi-value${loading ? ' ao__kpi-value--loading' : ''}`}>
-              {loading ? '—' : `${paidCount} / ${codCount}`}
-            </div>
-            <div className="ao__kpi-sub">
-              <span className="ao__kpi-chip ao__kpi-chip--paid">{loading ? '—' : paidCount} Paid</span>
-              <span className="ao__kpi-chip ao__kpi-chip--cod">{loading ? '—' : codCount} COD</span>
-            </div>
-            <div className="ao__kpi-bar">
-              <div className="ao__kpi-bar-split">
-                <div style={{ flex: paidCount || 0, background: '#10b981' }} />
-                <div style={{ flex: codCount  || 0, background: '#f59e0b' }} />
-              </div>
-            </div>
-          </div>
-
         </div>
 
-        {/* Status pill row */}
-        <div className="ao__pill-row">
-          {[
-            { label: 'Pending',   val: count('Pending'),   color: '#f59e0b', bg: '#fffbeb' },
-            { label: 'Confirmed', val: count('Confirmed'), color: '#7c3aed', bg: '#f5f3ff' },
-            { label: 'Shipped',   val: count('Shipped'),   color: '#2563eb', bg: '#eff6ff' },
-            { label: 'Delivered', val: count('Delivered'), color: '#16a34a', bg: '#f0fdf4' },
-            { label: 'Cancelled', val: count('Cancelled'), color: '#dc2626', bg: '#fef2f2' },
-            { label: 'Returned',  val: count('Returned'), color: '#dc2626', bg: '#fef2f2' },
-          ].map(({ label, val, color, bg }) => {
-            const isActive = status.toLowerCase() === label.toLowerCase();
-            return (
-              <div 
-                key={label} 
-                className={`ao__pill${isActive ? ' ao__pill--active' : ''}`}
-                style={{ 
-                  '--pill-color': color, 
-                  '--pill-bg': bg, 
-                  cursor: 'pointer',
-                  outline: isActive ? `2px solid ${color}` : 'none',
-                  outlineOffset: '-1px'
-                }}
-                onClick={() => {
-                  setStatus(isActive ? "All Status" : label);
-                  setPage(1);
-                }}
-                title={`Filter by ${label}`}
-              >
-                <span className="ao__pill-dot" />
-                <span className="ao__pill-label">{label}</span>
-                <span className={`ao__pill-val${loading ? ' ao__pill-val--loading' : ''}`}>
-                  {loading ? '—' : val}
-                </span>
-              </div>
-            );
-          })}
+        {/* Total Revenue */}
+        <div className="ao__kpi-card ao__kpi-card--yellow">
+          <div className="ao__kpi-card-header">
+            <span className="ao__kpi-card-title">Total Revenue</span>
+            <div className="ao__kpi-card-time">
+              <span>This week</span>
+              <ChevronDownIcon />
+            </div>
+          </div>
+          <div className="ao__kpi-card-val">
+            {loading ? "—" : `₹${revenue.toLocaleString('en-IN')}`}
+          </div>
         </div>
 
+        {/* Delivered */}
+        <div className="ao__kpi-card ao__kpi-card--purple">
+          <div className="ao__kpi-card-header">
+            <span className="ao__kpi-card-title">Delivered</span>
+            <div className="ao__kpi-card-time">
+              <span>This week</span>
+              <ChevronDownIcon />
+            </div>
+          </div>
+          <div className="ao__kpi-card-val">
+            {loading ? "—" : count('Delivered')}
+          </div>
+        </div>
+
+        {/* In Transit */}
+        <div className="ao__kpi-card ao__kpi-card--blue">
+          <div className="ao__kpi-card-header">
+            <span className="ao__kpi-card-title">In Transit</span>
+          </div>
+          <div className="ao__kpi-card-val">
+            {loading ? "—" : inTransit}
+          </div>
+        </div>
       </div>
 
+      {/* ── Status Badges Filter Row ── */}
+      <div className="ao__status-row">
+        {[
+          { label: 'pending',   filterVal: 'Pending',   val: count('Pending'),   dot: '#EAB308', color: '#CA8A04', bg: '#FEF9C3' },
+          { label: 'Confirmed', filterVal: 'Confirmed', val: count('Confirmed'), dot: '#8B5CF6', color: '#7C3AED', bg: '#EDE9FE' },
+          { label: 'Shipped',   filterVal: 'Shipped',   val: count('Shipped'),   dot: '#3B82F6', color: '#2563EB', bg: '#DBEAFE' },
+          { label: 'Delivered', filterVal: 'Delivered', val: count('Delivered'), dot: '#22C55E', color: '#16A34A', bg: '#DCFCE7' },
+          { label: 'Cancelled', filterVal: 'Cancelled', val: count('Cancelled'), dot: '#EF4444', color: '#DC2626', bg: '#FEE2E2' },
+          { label: 'Returned',  filterVal: 'Returned',  val: count('Returned'),  dot: '#F43F5E', color: '#E11D48', bg: '#FFE4E6' },
+        ].map((item) => {
+          const isActive = status.toLowerCase() === item.filterVal.toLowerCase();
+          return (
+            <button
+              key={item.label}
+              className={`ao__status-pill${isActive ? ' ao__status-pill--active' : ''}`}
+              style={{
+                backgroundColor: item.bg,
+                color: item.color,
+                outline: isActive ? `2px solid ${item.dot}` : 'none'
+              }}
+              onClick={() => {
+                setStatus(isActive ? "All Status" : item.filterVal);
+                setPage(1);
+              }}
+              title={`Filter by ${item.label}`}
+            >
+              <span className="ao__status-dot" style={{ backgroundColor: item.dot }} />
+              <span className="ao__status-name">{item.label}</span>
+              <span className="ao__status-count">{loading ? "—" : item.val}</span>
+            </button>
+          );
+        })}
+      </div>
 
       {/* ── Toolbar ── */}
       <div className="ao__toolbar">
-        <FilterDropdown value={category} options={categoryOptions} onChange={(v) => { setCategory(v); setPage(1); }} />
-        <FilterDropdown value={status}   options={STATUSES}   onChange={(v) => { setStatus(v);   setPage(1); }} />
-        <FilterDropdown value={paymentFilter} options={PAYMENT_OPTIONS} onChange={(v) => { setPaymentFilter(v); setPage(1); }} />
-        
-        <button 
-          className={`ao__filter-btn${filterPanelOpen || hasActiveFilters ? ' ao__filter-btn--active' : ''}`} 
-          onClick={() => setFilterPanelOpen(o => !o)}
-          style={hasActiveFilters ? { background: '#f5f3ff', color: '#4f46e5', borderColor: '#c7d2fe' } : {}}
-        >
-          <FilterIcon />
-          <span>Filter{hasActiveFilters ? ` (Active)` : ''}</span>
-          <ChevronDownIcon />
-        </button>
-
-        {hasActiveFilters && (
-          <button className="ao__filter-btn" onClick={handleResetFilters} style={{ background: '#fef2f2', color: '#ef4444', borderColor: '#fca5a5' }}>
-            Clear Filters
+        <div className="ao__toolbar-left">
+          <FilterDropdown value={category} options={categoryOptions} onChange={(v) => { setCategory(v); setPage(1); }} />
+          <FilterDropdown value={status}   options={STATUSES}   onChange={(v) => { setStatus(v);   setPage(1); }} />
+          <FilterDropdown value={paymentFilter} options={["All Types", "Paid", "COD"]} onChange={(v) => { setPaymentFilter(v === "All Types" ? "All Payment" : v); setPage(1); }} />
+          
+          <button 
+            className={`ao__filter-btn${filterPanelOpen || hasActiveFilters ? ' ao__filter-btn--active' : ''}`} 
+            onClick={() => setFilterPanelOpen(o => !o)}
+          >
+            <span>Filter</span>
+            <ChevronDownIcon />
           </button>
-        )}
 
-        <div className="ao__search">
-          <SearchIcon />
-          <input
-            className="ao__search-input"
-            placeholder="Search orders (ID, Customer, Item)"
-            value={search}
-            onChange={(e) => { setSearch(e.target.value); setPage(1); }}
-          />
+          {hasActiveFilters && (
+            <button className="ao__filter-btn ao__filter-btn--clear" onClick={handleResetFilters}>
+              Clear
+            </button>
+          )}
+        </div>
+
+        <div className="ao__toolbar-right">
+          <div className="ao__search-box">
+            <input
+              className="ao__search-input"
+              placeholder="Search Categories"
+              value={search}
+              onChange={(e) => { setSearch(e.target.value); setPage(1); }}
+            />
+          </div>
         </div>
       </div>
 
       {/* Expanded Filter Panel */}
       {filterPanelOpen && (
-        <div className="ao__filter-panel" style={{
-          display: 'flex',
-          flexWrap: 'wrap',
-          gap: '12px',
-          alignItems: 'center',
-          background: '#fff',
-          padding: '12px 16px',
-          borderRadius: '8px',
-          border: '1px solid #e5e7eb',
-          marginBottom: '16px',
-          boxShadow: '0 2px 8px rgba(0,0,0,0.04)'
-        }}>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-            <span style={{ fontSize: '11px', fontWeight: '600', color: '#666' }}>Category</span>
+        <div className="ao__filter-panel">
+          <div className="ao__filter-group">
+            <span className="ao__filter-label">Category</span>
             <FilterDropdown value={category} options={categoryOptions} onChange={(v) => { setCategory(v); setPage(1); }} />
           </div>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-            <span style={{ fontSize: '11px', fontWeight: '600', color: '#666' }}>Status</span>
+          <div className="ao__filter-group">
+            <span className="ao__filter-label">Status</span>
             <FilterDropdown value={status} options={STATUSES} onChange={(v) => { setStatus(v); setPage(1); }} />
           </div>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-            <span style={{ fontSize: '11px', fontWeight: '600', color: '#666' }}>Payment Method</span>
+          <div className="ao__filter-group">
+            <span className="ao__filter-label">Payment Method</span>
             <FilterDropdown value={paymentFilter} options={PAYMENT_OPTIONS} onChange={(v) => { setPaymentFilter(v); setPage(1); }} />
           </div>
-          <div style={{ display: 'flex', alignItems: 'flex-end', marginLeft: 'auto', gap: '8px', paddingTop: '16px' }}>
+          <div className="ao__filter-actions">
             {hasActiveFilters && (
-              <button 
-                onClick={handleResetFilters}
-                style={{
-                  padding: '6px 12px',
-                  fontSize: '12.5px',
-                  background: '#fef2f2',
-                  color: '#ef4444',
-                  border: '1px solid #fca5a5',
-                  borderRadius: '6px',
-                  cursor: 'pointer',
-                  fontWeight: '500'
-                }}
-              >
+              <button onClick={handleResetFilters} className="ao__filter-btn ao__filter-btn--clear">
                 Reset All Filters
               </button>
             )}
-            <button 
-              onClick={() => setFilterPanelOpen(false)}
-              style={{
-                padding: '6px 12px',
-                fontSize: '12.5px',
-                background: '#111',
-                color: '#fff',
-                border: 'none',
-                borderRadius: '6px',
-                cursor: 'pointer',
-                fontWeight: '500'
-              }}
-            >
+            <button onClick={() => setFilterPanelOpen(false)} className="ao__filter-btn ao__filter-btn--close">
               Close Panel
             </button>
           </div>
@@ -738,9 +678,8 @@ const AllOrders = ({ orders = [], products = [], loading, error = null, onViewDe
               </th>
               <th>Order ID</th>
               <th>Customer</th>
-              <th className="ao__col-items">Items</th>
+              <th>Items</th>
               <th>Total</th>
-              <th className="ao__col-payment">Payment</th>
               <th>Status</th>
               <th>Action</th>
             </tr>

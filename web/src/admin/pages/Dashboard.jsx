@@ -5,6 +5,8 @@ import { useAdminData } from "../../hooks/useAdminData";
 import { Routes, Route, Link, useNavigate, useLocation, Navigate, useSearchParams } from "react-router-dom";
 import { useStore } from "../../hooks/useStore";
 import { getUserInitials } from "../../utils/avatarUtils";
+import { authService } from "../../services/authService";
+import LogoutModal from "../../components/LogoutModal";
 import "./Dashboard.css";
 
 
@@ -36,14 +38,9 @@ import CustomerDetails from "./Customerdetails";
 import AddBanner from "./Addbanner";
 import BannerList from "./Bannerlist";
 import Analytics from "./Analytics";
-import StoreInfo from "./Storeinfo";
-import Policies from "./Policies";
-import Contact from "./Contact";
 import Shipping from "./Shipping";
-import Payment from "./Payment";
 import AdminAccount from "./Adminaccount";
 import DangerZone from "./Dangerzone";
-import Notification from "./Notification";
 import Invoices from "./Invoices";
 import TopBarSettings from "./TopBarSettings";
 import CouponManagement from "./CouponManagement";
@@ -97,65 +94,76 @@ const HamburgerIcon = ({ open }) =>
 const menuItems = [
   { id: "dashboard", label: "Dashboard", path: "/admin" },
   {
+    id: "product", label: "Product", path: "/admin/products", children: [
+      { label: "All Products", path: "/admin/products" },
+      { label: "Add Product", path: "/admin/products/add" },
+    ]
+  },
+  {
     id: "category", label: "Category", path: "/admin/categories", children: [
       { label: "All Categories", path: "/admin/categories" },
       { label: "Add Category", path: "/admin/categories/add" },
     ]
   },
   {
-    id: "product", label: "Product", path: "/admin/products", children: [
-      { label: "All Products", path: "/admin/products" },
-      { label: "Add Product", path: "/admin/products/add" },
+    id: "order", label: "Order", path: "/admin/orders", children: [
+      { label: "All Orders", path: "/admin/orders" },
+      { label: "Invoices", path: "/admin/invoices" },
     ]
   },
-  { id: "order", label: "Orders", path: "/admin/orders" },
-  { id: "invoice", label: "Invoices", path: "/admin/invoices" },
-  { id: "customer", label: "Customers", path: "/admin/customers" },
+  {
+    id: "customer", label: "Customer", path: "/admin/customers", children: [
+      { label: "All Customers", path: "/admin/customers" },
+    ]
+  },
+  { id: "coupons", label: "Discount", path: "/admin/coupons" },
   {
     id: "banner", label: "Banner & Content", path: "/admin/banners", children: [
       { label: "All Banners", path: "/admin/banners" },
       { label: "Add Banner", path: "/admin/banners/add" },
     ]
   },
-  { id: "topbar", label: "TopBar Text", path: "/admin/topbar" },
-  { id: "coupons", label: "Coupons", path: "/admin/coupons" },
-  { id: "shipping", label: "Shipping Rates", path: "/admin/shipping" },
   { id: "analytics", label: "Analytics", path: "/admin/analytics" },
   {
-    id: "settings", label: "Settings", path: "/admin/account", children: [
-      { label: "Store Info", path: "/admin/store" },
-      { label: "Contact", path: "/admin/contact" },
+    id: "settings", label: "Settings", path: "/admin/shipping", children: [
       { label: "Shipping", path: "/admin/shipping" },
-      { label: "Payment", path: "/admin/payment" },
+      { label: "TopBar Text", path: "/admin/topbar" },
       { label: "Admin Account", path: "/admin/account" },
-      { label: "Notification", path: "/admin/notification" },
-      { label: "Policies", path: "/admin/policies" },
       { label: "Danger Zone", path: "/admin/danger" },
     ]
   },
 ];
 
 const sidebarIcons = {
-  dashboard: <img src={dashboardIcon} alt="dashboard" className="db__menu-icon-img" />,
-  product: <img src={productIcon} alt="product" className="db__menu-icon-img" />,
-  category: <img src={categoryIcon} alt="category" className="db__menu-icon-img" />,
-  order: <img src={orderIcon} alt="order" className="db__menu-icon-img" />,
-  invoice: (
+  dashboard: (
     <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-      <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
-      <polyline points="14 2 14 8 20 8" />
-      <line x1="16" y1="13" x2="8" y2="13" />
-      <line x1="16" y1="17" x2="8" y2="17" />
-      <polyline points="10 9 9 9 8 9" />
+      <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" />
+      <polyline points="9 22 9 12 15 12 15 22" />
     </svg>
   ),
-  customer: <img src={customerIcon} alt="customer" className="db__menu-icon-img" />,
-  banner: <img src={bannerIcon} alt="banner" className="db__menu-icon-img" />,
-  topbar: (
+  product: (
     <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-      <rect x="2" y="4" width="20" height="6" rx="2" />
-      <path d="M4 15h16" />
-      <path d="M8 19h8" />
+      <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z" />
+      <polyline points="3.27 6.96 12 12.01 20.73 6.96" />
+      <line x1="12" y1="22.08" x2="12" y2="12" />
+    </svg>
+  ),
+  category: (
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z" />
+    </svg>
+  ),
+  order: (
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <circle cx="9" cy="21" r="1" />
+      <circle cx="20" cy="21" r="1" />
+      <path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6" />
+    </svg>
+  ),
+  customer: (
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
+      <circle cx="12" cy="7" r="4" />
     </svg>
   ),
   coupons: (
@@ -164,16 +172,25 @@ const sidebarIcons = {
       <line x1="7" y1="7" x2="7.01" y2="7" />
     </svg>
   ),
-  shipping: (
+  banner: (
     <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-      <rect x="1" y="3" width="15" height="13" />
-      <polygon points="16 8 20 8 23 11 23 16 16 16 16 8" />
-      <circle cx="5.5" cy="18.5" r="2.5" />
-      <circle cx="18.5" cy="18.5" r="2.5" />
+      <rect x="3" y="3" width="18" height="18" rx="2" ry="2" />
+      <circle cx="8.5" cy="8.5" r="1.5" />
+      <polyline points="21 15 16 10 5 21" />
     </svg>
   ),
-  analytics: <img src={analyticsIcon} alt="analytics" className="db__menu-icon-img" />,
-  settings: <img src={settingsIcon} alt="settings" className="db__menu-icon-img" />,
+  analytics: (
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <polyline points="23 6 13.5 15.5 8.5 10.5 1 18" />
+      <polyline points="17 6 23 6 23 12" />
+    </svg>
+  ),
+  settings: (
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <circle cx="12" cy="12" r="3" />
+      <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z" />
+    </svg>
+  ),
 };
 
 const HIDE_ADD_PRODUCT_PATHS = [
@@ -418,7 +435,15 @@ const RecentOrders = ({ orders, loading, searchIcon }) => {
                 <span className="dc__order-price">₹{Number(order.total_price || 0).toLocaleString('en-IN')}</span>
               </div>
               <div className="dc__order-details">
-                <span className="dc__order-name">{order.customer?.name || 'Unknown'}</span>
+                <span className="dc__order-name">
+                  {(() => {
+                    const name = order.shipping_address?.full_name || order.customer?.name;
+                    if (!name || name === 'Unknown' || name === 'Unknown Customer' || name === 'No name set' || (order.customer?.email && name.toLowerCase() === order.customer.email.split('@')[0].toLowerCase())) {
+                      return '—';
+                    }
+                    return name;
+                  })()}
+                </span>
                 <span className="dc__order-product">{order.item_name} {order.quantity > 1 ? `x${order.quantity}` : ''}</span>
               </div>
             </div>
@@ -613,6 +638,22 @@ const Dashboard = () => {
 
   const [notifications, setNotifications] = useState([]);
   const [notificationOpen, setNotificationOpen] = useState(false);
+  const [showLogoutModal, setShowLogoutModal] = useState(false);
+  const [loggingOut, setLoggingOut] = useState(false);
+
+  const handleConfirmLogout = async () => {
+    setLoggingOut(true);
+    try {
+      await authService.signOut();
+      setShowLogoutModal(false);
+      navigate("/");
+    } catch (err) {
+      console.error("Admin logout failed:", err);
+      alert("Failed to log out: " + (err.message || err));
+    } finally {
+      setLoggingOut(false);
+    }
+  };
 
   const [products, setProducts] = useState([]);
   const [editingProduct, setEditingProduct] = useState(null);
@@ -815,6 +856,123 @@ const Dashboard = () => {
 
   const showSearchNavbar = ["/admin/categories", "/admin/categories/add", "/admin/products/add", "/admin/orders", "/admin/orders/detail", "/admin/customers", "/admin/customers/detail", "/admin/banners"].some(p => currentPath.startsWith(p));
   const hideAddProduct = HIDE_ADD_PRODUCT_PATHS.includes(currentPath);
+
+  const pageTitle = useMemo(() => {
+    if (currentPath === "/admin" || currentPath === "/admin/") return "Dashboard";
+    if (currentPath === "/admin/analytics") return "Analytics";
+
+    if (currentPath === "/admin/products/add-multiple") return "Create Multiple Product";
+    if (currentPath === "/admin/products/edit-multiple") return "Edit Multiple Product";
+    if (currentPath === "/admin/products/add") return editingProduct ? "Edit Product" : "Add Product";
+    if (currentPath.startsWith("/admin/products")) return "All Products";
+
+    if (currentPath === "/admin/categories/add") return editingCategory ? "Edit Category" : "Add Category";
+    if (currentPath === "/admin/subcategories/new") return "Add Subcategory";
+    if (currentPath.startsWith("/admin/subcategories")) return "Subcategories";
+    if (currentPath.startsWith("/admin/categories")) return "All Categories";
+
+    if (currentPath.startsWith("/admin/orders/detail")) return "Order Details";
+    if (currentPath.startsWith("/admin/orders")) return "All Orders";
+    if (currentPath.startsWith("/admin/invoices")) return "Invoices";
+
+    if (currentPath.startsWith("/admin/customers/detail")) return "Customer Details";
+    if (currentPath.startsWith("/admin/customers")) return "All Customers";
+
+    if (currentPath === "/admin/banners/add") return editingBanner ? "Edit Banner" : "Add Banner";
+    if (currentPath.startsWith("/admin/banners")) return "Banner & Content";
+
+    if (currentPath.startsWith("/admin/coupons")) return "Coupon Management";
+    if (currentPath.startsWith("/admin/topbar")) return "TopBar Announcement";
+    if (currentPath.startsWith("/admin/shipping")) return "Shipping & Delivery";
+    if (currentPath.startsWith("/admin/account")) return "Admin Account";
+    if (currentPath.startsWith("/admin/danger")) return "Danger Zone";
+
+    for (const item of menuItems) {
+      if (item.path === currentPath) return item.label;
+      if (item.children) {
+        const found = item.children.find((c) => c.path === currentPath);
+        if (found) return found.label;
+      }
+    }
+    return "Dashboard";
+  }, [currentPath, editingProduct, editingCategory, editingBanner]);
+
+  const pageDescription = useMemo(() => {
+    if (currentPath === "/admin" || currentPath === "/admin/") {
+      return "Overview of sales, store performance, and real-time activity";
+    }
+    if (currentPath === "/admin/analytics") {
+      return "Comprehensive reports, sales analytics, and customer insights";
+    }
+
+    if (currentPath === "/admin/products/add-multiple") {
+      return "Create products with multiple variants, colors, and sizes";
+    }
+    if (currentPath === "/admin/products/edit-multiple") {
+      return "Edit product variants, inventory, and pricing";
+    }
+    if (currentPath === "/admin/products/add") {
+      return editingProduct ? "Update product details, pricing, and images" : "Add a new product to your store catalog";
+    }
+    if (currentPath.startsWith("/admin/products")) {
+      return "Manage, search, and organize your store's product catalog";
+    }
+
+    if (currentPath === "/admin/categories/add") {
+      return editingCategory ? "Update category details and banner" : "Create a new category for your products";
+    }
+    if (currentPath === "/admin/subcategories/new") {
+      return "Create a new subcategory linked to a parent category";
+    }
+    if (currentPath.startsWith("/admin/subcategories")) {
+      return "Manage and organize subcategories";
+    }
+    if (currentPath.startsWith("/admin/categories")) {
+      return "Organize products into categories and collections";
+    }
+
+    if (currentPath.startsWith("/admin/orders/detail")) {
+      return "View order items, customer information, and fulfillment status";
+    }
+    if (currentPath.startsWith("/admin/orders")) {
+      return "Track, filter, and manage customer orders and shipments";
+    }
+    if (currentPath.startsWith("/admin/invoices")) {
+      return "Generate, download, and print thermal invoices and receipts";
+    }
+
+    if (currentPath.startsWith("/admin/customers/detail")) {
+      return "Customer account profile, purchase history, and saved addresses";
+    }
+    if (currentPath.startsWith("/admin/customers")) {
+      return "View and manage registered customers and their activity";
+    }
+
+    if (currentPath === "/admin/banners/add") {
+      return editingBanner ? "Edit banner image, display text, and link" : "Create a new promotional banner for the storefront";
+    }
+    if (currentPath.startsWith("/admin/banners")) {
+      return "Manage promotional banners and homepage marketing content";
+    }
+
+    if (currentPath.startsWith("/admin/coupons")) {
+      return "Create and manage discounts, promo codes, and vouchers";
+    }
+    if (currentPath.startsWith("/admin/topbar")) {
+      return "Manage announcement bar text displayed at the top of the store";
+    }
+    if (currentPath.startsWith("/admin/shipping")) {
+      return "Configure shipping zones, courier rates, and delivery timeframes";
+    }
+    if (currentPath.startsWith("/admin/account")) {
+      return "Manage your admin profile, contact information, and security";
+    }
+    if (currentPath.startsWith("/admin/danger")) {
+      return "Irreversible actions, system maintenance, and store reset controls";
+    }
+
+    return "Store administration and control center";
+  }, [currentPath, editingProduct, editingCategory, editingBanner]);
 
   const fetchSubcategoriesForParent = useCallback(async (parentId, force = false) => {
     if (!force && subcategoriesCache[parentId]) {
@@ -1078,17 +1236,33 @@ const Dashboard = () => {
     <div className="db">
       {/* Navbar */}
       <nav className="db__navbar">
-        <button className="db__hamburger" aria-label={sidebarOpen ? "Close menu" : "Open menu"} onClick={() => setSidebarOpen((v) => !v)}>
-          <HamburgerIcon open={sidebarOpen} />
-        </button>
-        <div className="db__navbar-logo">
-          <img src="/logo.png" alt="Faywalk" className="db__logo-img" style={{ borderRadius: 0, height: 38, objectFit: "contain" }} />
+        <div className="db__navbar-left">
+          <button className="db__hamburger" aria-label={sidebarOpen ? "Close menu" : "Open menu"} onClick={() => setSidebarOpen((v) => !v)}>
+            <HamburgerIcon open={sidebarOpen} />
+          </button>
+          <div className="db__header-title-block">
+            <span className="db__breadcrumb-title">{pageTitle}</span>
+            <span className="db__breadcrumb-desc">{pageDescription}</span>
+          </div>
         </div>
 
         <div className="db__navbar-actions">
+          {/* Pill Search */}
+          <div className="db__search-pill">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#94a3b8" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <circle cx="11" cy="11" r="8" />
+              <line x1="21" y1="21" x2="16.65" y2="16.65" />
+            </svg>
+            <input type="text" placeholder="Search" className="db__search-input" />
+            <kbd className="db__search-kbd">/</kbd>
+          </div>
+
+
+
+          {/* Notification dropdown */}
           <div className="notification-wrapper">
             <button
-              className="db__add-btn notification-btn"
+              className="db__action-icon-btn notification-btn"
               onClick={() => setNotificationOpen((prev) => !prev)}
               aria-label={`Notifications${notifications.filter((n) => !n.read).length
                 ? `, ${notifications.filter((n) => !n.read).length} unread`
@@ -1096,8 +1270,8 @@ const Dashboard = () => {
                 }`}
             >
               <svg
-                width="16"
-                height="16"
+                width="18"
+                height="18"
                 viewBox="0 0 24 24"
                 fill="none"
                 stroke="currentColor"
@@ -1109,12 +1283,8 @@ const Dashboard = () => {
                 <path d="M13.73 21a2 2 0 0 1-3.46 0" />
               </svg>
 
-              <span className="notification-label">Notification</span>
-
               {notifications.filter((n) => !n.read).length > 0 && (
-                <span className="notification-badge">
-                  {notifications.filter((n) => !n.read).length}
-                </span>
+                <span className="db__notification-dot" />
               )}
             </button>
 
@@ -1182,23 +1352,14 @@ const Dashboard = () => {
             )}
           </div>
 
+
+
+          {/* Profile */}
           <Link to="/" style={{ textDecoration: 'none' }}>
-            <button className="db__profile-btn" aria-label="Admin Profile" style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-              <div className="db__profile-avatar-img" style={{
-                backgroundColor: '#8b0030',
-                color: '#fff',
-                borderRadius: '50%',
-                width: '22px',
-                height: '22px',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                fontWeight: '600',
-                fontSize: '11px'
-              }}>
+            <button className="db__profile-btn" aria-label="Admin Profile">
+              <div className="db__profile-avatar-img">
                 {getUserInitials(adminName, 'A')}
               </div>
-              <span>{adminName}</span>
             </button>
           </Link>
         </div>
@@ -1209,11 +1370,14 @@ const Dashboard = () => {
 
         {/* Sidebar */}
         <aside className={`db__sidebar${sidebarOpen ? " db__sidebar--open" : ""}`}>
+          <div className="db__sidebar-brand">
+            <img src="/logo.png" alt="FAYWALK" className="db__brand-logo" style={{ borderRadius: 0 }} />
+          </div>
           <nav className="db__sidenav">
             {menuItems.map((item) => {
               const hasChildren = item.children && item.children.length > 0;
               const isOpen = openMenus[item.id];
-              const active = isActive(item.path);
+              const active = isActive(item.path) || (item.children && item.children.some((child) => isActive(child.path)));
 
               return (
                 <div key={item.id} className="db__menu-group">
@@ -1222,9 +1386,7 @@ const Dashboard = () => {
                     onClick={() => {
                       if (hasChildren) {
                         toggle(item.id);
-                        if (item.id !== "settings") {
-                          navigate(item.children[0].path);
-                        }
+                        navigate(item.children[0].path);
                       } else {
                         navigate(item.path);
                       }
@@ -1233,46 +1395,23 @@ const Dashboard = () => {
                     <span className="db__menu-icon">{sidebarIcons[item.id]}</span>
                     <span className="db__menu-label">
                       {item.label}
-                      {item.id === "settings" && <span className="db__menu-pro-badge">PRO</span>}
                     </span>
                     {hasChildren && <span className="db__chevron">{isOpen ? <ChevronUp /> : <ChevronDown />}</span>}
                   </button>
 
                   {hasChildren && isOpen && (
                     <div className="db__submenu">
-                      {item.id === "settings" && (
-                        <div className="db__pro-hint">
-                          <span className="db__pro-badge">PRO</span>
-                          <span>Pro to Enable Advance Settings</span>
-                        </div>
-                      )}
-                      {item.children.map((child) => {
-                        const isChildDisabled = item.id === "settings" && child.path !== "/admin/account" && child.path !== "/admin/shipping";
-                        return isChildDisabled ? (
-                          <div
-                            key={child.path}
-                            className="db__sub-item db__sub-item--disabled"
-                            title="Pro to Enable Advance Settings"
-                          >
-                            <img src={dropdownIcon} alt="" className="db__sub-item-icon" />
-                            <span style={{ flex: 1 }}>{child.label}</span>
-                            <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{ opacity: 0.4, flexShrink: 0 }}>
-                              <rect x="3" y="11" width="18" height="11" rx="2" ry="2" />
-                              <path d="M7 11V7a5 5 0 0 1 10 0v4" />
-                            </svg>
-                          </div>
-                        ) : (
-                          <Link
-                            key={child.path}
-                            to={child.path}
-                            className={`db__sub-item${currentPath === child.path ? " db__sub-item--active" : ""}`}
-                            onClick={() => setSidebarOpen(false)}
-                          >
-                            <img src={dropdownIcon} alt="" className="db__sub-item-icon" />
-                            {child.label}
-                          </Link>
-                        );
-                      })}
+                      {item.children.map((child) => (
+                        <Link
+                          key={child.path}
+                          to={child.path}
+                          className={`db__sub-item${currentPath === child.path ? " db__sub-item--active" : ""}`}
+                          onClick={() => setSidebarOpen(false)}
+                        >
+                          <img src={dropdownIcon} alt="" className="db__sub-item-icon" />
+                          {child.label}
+                        </Link>
+                      ))}
                     </div>
                   )}
                 </div>
@@ -1280,24 +1419,25 @@ const Dashboard = () => {
             })}
           </nav>
 
-          <div className="db__sidebar-socials">
-            <a href="https://www.instagram.com/anikafashionstore.jewellery/" target="_blank" rel="noopener noreferrer" aria-label="Instagram" className="db__social-btn db__social-btn--ig">
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <rect x="2" y="2" width="20" height="20" rx="5" ry="5" />
-                <path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z" />
-                <line x1="17.5" y1="6.5" x2="17.51" y2="6.5" />
-              </svg>
-            </a>
-            <a href="https://wa.me/919363631636" target="_blank" rel="noopener noreferrer" aria-label="WhatsApp" className="db__social-btn db__social-btn--wa">
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor">
-                <path d="M12.012 2c-5.506 0-9.989 4.478-9.99 9.984 0 1.764.459 3.487 1.334 5.005l-1.416 5.174 5.297-1.389c1.464.798 3.118 1.218 4.772 1.219h.004c5.505 0 9.988-4.478 9.989-9.985 0-2.668-1.038-5.176-2.925-7.062a9.927 9.927 0 0 0-7.065-2.946zm5.642 14.341c-.244.688-1.417 1.315-1.96 1.369-.51.051-1.157.078-3.418-.853-2.888-1.19-4.747-4.135-4.891-4.327-.143-.191-1.171-1.558-1.171-2.97 0-1.412.738-2.106 1.002-2.394.263-.287.574-.359.765-.359.191 0 .383.002.55.011.177.009.414-.067.647.493.243.585.829 2.022.901 2.169.072.146.12.316.024.507-.096.191-.144.311-.287.478-.144.168-.302.375-.431.504-.144.143-.294.301-.126.589.168.287.747 1.233 1.603 1.996 1.101.98 2.031 1.285 2.318 1.428.287.143.454.12.622-.072.168-.191.718-.838.909-1.125.191-.287.383-.239.646-.144.263.096 1.674.79 1.961.933.287.143.479.215.55.335.072.12.072.694-.172 1.382z" />
-              </svg>
-            </a>
-            <a href="https://www.facebook.com/people/anikafashionstore/100090910872220/?ref=1" target="_blank" rel="noopener noreferrer" aria-label="Facebook" className="db__social-btn db__social-btn--fb">
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor">
-                <path d="M22 12c0-5.523-4.477-10-10-10S2 6.477 2 12c0 4.991 3.657 9.128 8.438 9.878v-6.987h-2.54V12h2.54V9.797c0-2.506 1.492-3.89 3.777-3.89 1.094 0 2.238.195 2.238.195v2.46h-1.26c-1.243 0-1.63.771-1.63 1.562V12h2.773l-.443 2.891h-2.33v6.988C18.343 21.128 22 16.991 22 12z" />
-              </svg>
-            </a>
+          <div className="db__sidebar-footer">
+            <button
+              type="button"
+              className="db__logout-btn"
+              onClick={() => {
+                setSidebarOpen(false);
+                setShowLogoutModal(true);
+              }}
+              title="Logout"
+            >
+              <span className="db__menu-icon">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
+                  <polyline points="16 17 21 12 16 7" />
+                  <line x1="21" y1="12" x2="9" y2="12" />
+                </svg>
+              </span>
+              <span className="db__menu-label">Logout</span>
+            </button>
           </div>
         </aside>
 
@@ -1407,13 +1547,8 @@ const Dashboard = () => {
             <Route path="/coupons" element={<CouponManagement />} />
 
             {/* Settings */}
-            <Route path="/store" element={<StoreInfo />} />
-            <Route path="/contact" element={<Contact />} />
             <Route path="/shipping" element={<Shipping />} />
-            <Route path="/payment" element={<Payment />} />
             <Route path="/account" element={<AdminAccount />} />
-            <Route path="/notification" element={<Notification />} />
-            <Route path="/policies" element={<Policies />} />
             <Route path="/danger" element={<DangerZone />} />
 
             {/* Fallback */}
@@ -1421,6 +1556,13 @@ const Dashboard = () => {
           </Routes>
         </main>
       </div>
+
+      <LogoutModal
+        isOpen={showLogoutModal}
+        onClose={() => setShowLogoutModal(false)}
+        onConfirm={handleConfirmLogout}
+        loading={loggingOut}
+      />
     </div>
   );
 };
