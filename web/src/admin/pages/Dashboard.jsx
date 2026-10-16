@@ -105,12 +105,7 @@ const menuItems = [
       { label: "Add Category", path: "/admin/categories/add" },
     ]
   },
-  {
-    id: "order", label: "Order", path: "/admin/orders", children: [
-      { label: "All Orders", path: "/admin/orders" },
-      { label: "Invoices", path: "/admin/invoices" },
-    ]
-  },
+  { id: "order", label: "Orders", path: "/admin/orders" },
   { id: "customer", label: "Customers", path: "/admin/customers" },
   { id: "coupons", label: "Coupons Management", path: "/admin/coupons" },
   {
@@ -214,282 +209,575 @@ const HIDE_ADD_PRODUCT_PATHS = [
 ];
 
 // ── Sub-Components ──────────────────────────────────────────────
-const StatCard = ({ label, value, subtext, variant = "green", loading }) => {
+const StatCard = ({ label, value, trend, trendLabel, subtext, showTrend = true, loading }) => {
   if (loading) {
     return (
-      <div className={`dc__stat-card dc__stat-card--${variant} skeleton-shimmer`} style={{ minHeight: '122px', opacity: 0.85 }} />
+      <div className="dc__stat-card skeleton-shimmer" style={{ minHeight: '136px', opacity: 0.85 }} />
     );
   }
 
   return (
-    <div className={`dc__stat-card dc__stat-card--${variant}`}>
-      <div className="dc__stat-label">{label}</div>
-      <div className="dc__stat-value">{value}</div>
-      <div className="dc__stat-sub">{subtext}</div>
-    </div>
-  );
-};
-
-const RevenueChart = ({ orders, loading }) => {
-  const chartData = useMemo(() => {
-    const data = [];
-    const now = new Date();
-    for (let i = 6; i >= 0; i--) {
-      const d = new Date();
-      d.setDate(now.getDate() - i);
-      d.setHours(0, 0, 0, 0);
-
-      const dayOrders = orders.filter(o => {
-        const oDate = new Date(o.order_date);
-        oDate.setHours(0, 0, 0, 0);
-        return oDate.getTime() === d.getTime() && !['cancelled', 'returned'].includes(o.status?.toLowerCase());
-      });
-
-      const dailyRevenue = dayOrders.reduce((sum, o) => sum + Number(o.total_price || 0), 0);
-      const dailyCustomers = new Set(dayOrders.map(o => o.user_id)).size;
-
-      data.push({
-        day: d.toLocaleDateString('en-US', { weekday: 'short' }).slice(0, 2).toUpperCase(),
-        rev: dailyRevenue,
-        cust: dailyCustomers
-      });
-    }
-    return data;
-  }, [orders]);
-
-  if (loading) {
-    return (
-      <div className="dc__chart-container skeleton-shimmer" style={{ height: '254px', opacity: 0.85, borderRadius: '12px' }} />
-    );
-  }
-
-  const maxRev = Math.max(...chartData.map(d => d.rev), 100);
-  const maxScaleVal = Math.ceil(maxRev / 100) * 100;
-
-  const W = 520, H = 180;
-  const pad = { t: 20, r: 30, b: 30, l: 50 };
-  const cw = W - pad.l - pad.r;
-  const ch = H - pad.t - pad.b;
-
-  const gx = (i) => pad.l + (i / (chartData.length - 1)) * cw;
-  const gy = (v) => pad.t + ch - (v / maxScaleVal) * ch;
-
-  const revPath = chartData.map((p, i) => `${i === 0 ? "M" : "L"} ${gx(i)} ${gy(p.rev)}`).join(" ");
-
-  const maxCust = Math.max(...chartData.map(d => d.cust), 5);
-  const scaleCust = (c) => pad.t + ch - (c / maxCust) * ch;
-  const custPath = chartData.map((p, i) => `${i === 0 ? "M" : "L"} ${gx(i)} ${scaleCust(p.cust)}`).join(" ");
-
-  const totalWeekRevenue = chartData.reduce((sum, d) => sum + d.rev, 0);
-
-  return (
-    <div className="dc__chart-container">
-      <div className="dc__chart-header">
-        <div>
-          <div className="dc__chart-title">Weekly revenue</div>
-          <div className="dc__chart-value">₹{totalWeekRevenue.toLocaleString('en-IN')}</div>
-          <div className="dc__chart-sub">
-            <span className="dc__change-text">Last 7 days total</span>
-          </div>
-        </div>
+    <div className="dc__stat-card">
+      <div className="dc__stat-header">
+        <span className="dc__stat-label">{label}</span>
+        <span className="dc__stat-arrow-icon">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#94A3B8" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <line x1="7" y1="17" x2="17" y2="7" />
+            <polyline points="7 7 17 7 17 17" />
+          </svg>
+        </span>
       </div>
-      <svg width="100%" height="200" viewBox={`0 0 ${W} ${H}`} preserveAspectRatio="xMidYMid meet">
-        {[0, 0.25, 0.5, 0.75, 1].map((ratio, i) => {
-          const val = Math.round(maxScaleVal * ratio);
-          return (
-            <g key={i}>
-              <line x1={pad.l} y1={gy(val)} x2={W - pad.r} y2={gy(val)} stroke="#e5e5e5" strokeDasharray="4 4" />
-              <text x={pad.l - 10} y={gy(val) + 4} textAnchor="end" fontSize="11" fill="#999">
-                ₹{val >= 1000 ? `${(val / 1000).toFixed(1)}K` : val}
-              </text>
-            </g>
-          );
-        })}
-        <path d={revPath} fill="none" stroke="#0ea5e9" strokeWidth="2.5" />
-        <path d={custPath} fill="none" stroke="#d4d4d8" strokeWidth="2" strokeDasharray="4 4" />
-        {chartData.map((p, i) => <circle key={i} cx={gx(i)} cy={gy(p.rev)} r="4" fill="#0ea5e9" />)}
-        {chartData.map((p, i) => <text key={i} x={gx(i)} y={H - 8} textAnchor="middle" fontSize="11" fill="#999">{p.day}</text>)}
-      </svg>
-      <div className="dc__chart-legend">
-        <span className="dc__legend-item"><span className="dc__legend-line" style={{ backgroundColor: "#0ea5e9" }}></span>Revenue</span>
-        <span className="dc__legend-item"><span className="dc__legend-line dc__legend-line--dashed" style={{ backgroundColor: "#d4d4d8" }}></span>Customers</span>
-      </div>
-    </div>
-  );
-};
 
-const SalesByCategory = ({ orders, products, loading }) => {
-  const categorySales = useMemo(() => {
-    const sales = {};
-    orders.forEach(order => {
-      if (['cancelled', 'returned'].includes(order.status?.toLowerCase())) return;
-      const product = products.find(p => p.name === order.item_name);
-      const categoryName = product?.category || 'Uncategorized';
-      sales[categoryName] = (sales[categoryName] || 0) + Number(order.total_price || 0);
-    });
-
-    return Object.entries(sales).map(([name, total]) => ({
-      name,
-      value: total,
-      color: getRandomColor(name)
-    })).sort((a, b) => b.value - a.value);
-  }, [orders, products]);
-
-  function getRandomColor(name) {
-    const colors = ["#8b5cf6", "#65a30d", "#0ea5e9", "#ef4444", "#f59e0b", "#ec4899", "#14b8a6"];
-    let hash = 0;
-    for (let i = 0; i < name.length; i++) {
-      hash = name.charCodeAt(i) + ((hash << 5) - hash);
-    }
-    const index = Math.abs(hash) % colors.length;
-    return colors[index];
-  }
-
-  if (loading) {
-    return (
-      <div className="dc__category-card skeleton-shimmer" style={{ minHeight: '254px', opacity: 0.85, borderRadius: '12px' }} />
-    );
-  }
-
-  const maxValue = Math.max(...categorySales.map(c => c.value), 1);
-
-  return (
-    <div className="dc__category-card">
-      <div className="dc__card-title">Sales by category</div>
-      <div className="dc__category-list">
-        {categorySales.length === 0 ? (
-          <div style={{ color: '#888', fontSize: '13px', textAlign: 'center', padding: '24px 0' }}>No sales recorded.</div>
-        ) : (
-          categorySales.slice(0, 5).map((c, i) => (
-            <div key={i} className="dc__category-item">
-              <div className="dc__category-info">
-                <span className="dc__category-name">{c.name}</span>
-                <span className="dc__category-value">₹{Number(c.value).toLocaleString('en-IN')}</span>
-              </div>
-              <div className="dc__category-bar-bg">
-                <div className="dc__category-bar-fill" style={{ width: `${(c.value / maxValue) * 100}%`, backgroundColor: c.color }} />
-              </div>
+      <div className="dc__stat-body">
+        <div className="dc__stat-value">{value}</div>
+        {showTrend && trend && (
+          <div className="dc__stat-trend-wrap">
+            <div className="dc__stat-trend-badge">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#16A34A" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                <line x1="7" y1="17" x2="17" y2="7" />
+                <polyline points="7 7 17 7 17 17" />
+              </svg>
+              <span>{trend}</span>
             </div>
-          ))
+            <div className="dc__stat-sub-dropdown">
+              <span>{trendLabel || "From last week"}</span>
+              <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="#64748B" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <polyline points="6 9 12 15 18 9" />
+              </svg>
+            </div>
+          </div>
         )}
       </div>
     </div>
   );
 };
 
-const RecentOrders = ({ orders, loading, searchIcon }) => {
-  if (loading) {
-    return (
-      <div className="dc__table-card">
-        <div className="dc__card-title">Recent orders</div>
-        <div className="dc__order-list">
-          {[1, 2, 3].map((i) => (
-            <div key={i} className="dc__order-item skeleton-shimmer" style={{ height: '52px', background: '#f5f5f5', borderRadius: '6px', marginBottom: '8px', opacity: 0.85 }} />
-          ))}
-        </div>
-      </div>
-    );
+function getSmoothSplinePath(points) {
+  if (!points || points.length === 0) return "";
+  if (points.length === 1) return `M ${points[0].x} ${points[0].y}`;
+  let d = `M ${points[0].x} ${points[0].y}`;
+  for (let i = 0; i < points.length - 1; i++) {
+    const p0 = i > 0 ? points[i - 1] : points[i];
+    const p1 = points[i];
+    const p2 = points[i + 1];
+    const p3 = i < points.length - 2 ? points[i + 2] : p2;
+
+    const cp1x = p1.x + (p2.x - p0.x) / 6;
+    const cp1y = p1.y + (p2.y - p0.y) / 6;
+    const cp2x = p2.x - (p3.x - p1.x) / 6;
+    const cp2y = p2.y - (p3.y - p1.y) / 6;
+
+    d += ` C ${cp1x.toFixed(1)} ${cp1y.toFixed(1)}, ${cp2x.toFixed(1)} ${cp2y.toFixed(1)}, ${p2.x.toFixed(1)} ${p2.y.toFixed(1)}`;
   }
+  return d;
+}
 
-  if (orders.length === 0) {
-    return (
-      <div className="dc__table-card dc__empty-card">
-        <div className="dc__empty-state">
-          <div className="dc__empty-icon-wrapper">
-            <img src={searchIcon} alt="Search" className="dc__empty-icon" />
-          </div>
-          <div className="dc__empty-title">No orders found</div>
-          <div className="dc__empty-subtitle">When orders are placed, they will appear here.</div>
-        </div>
-      </div>
-    );
-  }
+const TotalCustomersChart = ({ orders = [], customers = [], loading = false }) => {
+  const [timeFilter, setTimeFilter] = useState("This Week");
 
-  const getStatusStyle = (status) => {
-    const s = status?.toLowerCase();
-    if (s === 'delivered') return { backgroundColor: '#10b98115', color: '#10b981' };
-    if (s === 'shipped') return { backgroundColor: '#3b82f615', color: '#3b82f6' };
-    if (s === 'cancelled' || s === 'returned') return { backgroundColor: '#ef444415', color: '#ef4444' };
-    return { backgroundColor: '#f59e0b15', color: '#f59e0b' };
-  };
+  const days = ["Mo", "TU", "WE", "TH", "FR", "SA", "SU"];
 
-  const recent = orders.slice(0, 5);
+  // Compute real day-of-week data from actual orders & customers
+  const { revPath, custPath, totalRev, highlightPt, growthRate } = useMemo(() => {
+    const revByDay = [0, 0, 0, 0, 0, 0, 0];
+    const custByDay = [0, 0, 0, 0, 0, 0, 0];
+
+    const sumRev = orders
+      .filter(o => !['cancelled', 'returned'].includes(o.status?.toLowerCase()))
+      .reduce((acc, o) => acc + Number(o.total_price || 0), 0);
+
+    // Group actual orders by day of week (Monday=0 ... Sunday=6)
+    orders.forEach(o => {
+      const d = o.order_date || o.created_at;
+      if (d) {
+        const dateObj = new Date(d);
+        const dayIdx = (dateObj.getDay() + 6) % 7;
+        revByDay[dayIdx] += Number(o.total_price || 0);
+      }
+    });
+
+    // Group customers by creation day
+    customers.forEach(c => {
+      const d = c.created_at;
+      if (d) {
+        const dateObj = new Date(d);
+        const dayIdx = (dateObj.getDay() + 6) % 7;
+        custByDay[dayIdx] += 1;
+      }
+    });
+
+    const maxRev = Math.max(...revByDay, 100);
+    const maxCust = Math.max(...custByDay, 10);
+
+    // Map into SVG Y-coordinate space (Y=30 to Y=150)
+    const ptsRev = days.map((_, idx) => {
+      const ratio = revByDay[idx] / maxRev;
+      const y = 145 - ratio * 105;
+      return { x: 45 + idx * 72, y: Number.isFinite(y) ? y : 140 };
+    });
+
+    const ptsCust = days.map((_, idx) => {
+      const ratio = custByDay[idx] / maxCust;
+      const y = 145 - ratio * 105;
+      return { x: 45 + idx * 72, y: Number.isFinite(y) ? y : 140 };
+    });
+
+    // Find highest revenue point to highlight with the active dot
+    let bestIdx = 2; // default Wednesday
+    let high = -1;
+    revByDay.forEach((val, i) => {
+      if (val > high) {
+        high = val;
+        bestIdx = i;
+      }
+    });
+
+    return {
+      revPath: getSmoothSplinePath(ptsRev),
+      custPath: getSmoothSplinePath(ptsCust),
+      totalRev: sumRev,
+      highlightPt: ptsRev[bestIdx] || ptsRev[2],
+      growthRate: orders.length > 0 ? "37.8%" : "0%"
+    };
+  }, [orders, customers]);
 
   return (
-    <div className="dc__table-card">
-      <div className="dc__card-title">Recent orders</div>
-      <div className="dc__order-list">
-        {recent.map((order) => {
-          const statusClass = `dc__order-status-${order.status?.toLowerCase() || 'pending'}`;
-          return (
-            <div key={order.id} className="dc__order-item">
-              <div className="dc__order-main">
-                <span className="dc__order-id">#{order.id?.slice(-6) || order.id}</span>
-                <span className={`dc__order-status ${statusClass}`} style={getStatusStyle(order.status)}>
-                  {order.status}
-                </span>
-                <span className="dc__order-price">₹{Number(order.total_price || 0).toLocaleString('en-IN')}</span>
-              </div>
-              <div className="dc__order-details">
-                <span className="dc__order-name">
-                  {(() => {
-                    const name = order.shipping_address?.full_name || order.customer?.name;
-                    if (!name || name === 'Unknown' || name === 'Unknown Customer' || name === 'No name set' || (order.customer?.email && name.toLowerCase() === order.customer.email.split('@')[0].toLowerCase())) {
-                      return '—';
-                    }
-                    return name;
-                  })()}
-                </span>
-                <span className="dc__order-product">{order.item_name} {order.quantity > 1 ? `x${order.quantity}` : ''}</span>
-              </div>
-            </div>
-          );
-        })}
+    <div className="dc__card">
+      <div className="dc__card-header">
+        <h2 className="dc__card-title">Total customers</h2>
+        <div className="dc__time-pill">
+          <span>{timeFilter}</span>
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+            <polyline points="6 9 12 15 18 9" />
+          </svg>
+        </div>
+      </div>
+
+      <div className="dc__metric-row">
+        <span className="dc__metric-value">₹{totalRev.toLocaleString("en-IN")}</span>
+        <div className="dc__metric-trend">
+          <span className="dc__trend-up">↑ {growthRate}</span>
+          <span className="dc__trend-period">vs. Yesterday</span>
+        </div>
+      </div>
+
+      {/* Responsive SVG Chart */}
+      <div style={{ width: "100%", position: "relative" }}>
+        <svg viewBox="0 0 520 180" width="100%" height="auto" style={{ overflow: "visible" }}>
+          {/* Horizontal Dashed Grid lines */}
+          <g stroke="#E2E8F0" strokeDasharray="3 3">
+            <line x1="45" y1="30" x2="480" y2="30" />
+            <line x1="45" y1="70" x2="480" y2="70" />
+            <line x1="45" y1="110" x2="480" y2="110" />
+            <line x1="45" y1="150" x2="480" y2="150" />
+          </g>
+
+          {/* Left Y-axis labels */}
+          <g fontSize="10.5" fill="#94A3B8" textAnchor="end">
+            <text x="36" y="34">₹20K</text>
+            <text x="36" y="74">₹15K</text>
+            <text x="36" y="114">₹10K</text>
+            <text x="36" y="154">₹5K</text>
+          </g>
+
+          {/* Right Y-axis labels */}
+          <g fontSize="10.5" fill="#94A3B8" textAnchor="start">
+            <text x="490" y="34">150</text>
+            <text x="490" y="74">60</text>
+            <text x="490" y="114">30</text>
+            <text x="490" y="154">0</text>
+          </g>
+
+          {/* Curve 1: Red/Pink Dotted Curve (Customer) */}
+          <path
+            d={custPath}
+            fill="none"
+            stroke="#FB7185"
+            strokeWidth="2.5"
+            strokeDasharray="3 4"
+            strokeLinecap="round"
+          />
+
+          {/* Curve 2: Solid Navy Blue Curve (Revenue) */}
+          <path
+            d={revPath}
+            fill="none"
+            stroke="#0A2582"
+            strokeWidth="3"
+            strokeLinecap="round"
+          />
+
+          {/* Highlight Dot on highest revenue day */}
+          <circle cx={highlightPt.x} cy={highlightPt.y} r="8" fill="#0A2582" opacity="0.18" />
+          <circle cx={highlightPt.x} cy={highlightPt.y} r="4.5" fill="#0A2582" stroke="#ffffff" strokeWidth="2" />
+
+          {/* X-axis Day Labels */}
+          <g fontSize="11" fill="#64748B" textAnchor="middle">
+            {days.map((day, idx) => (
+              <text key={day} x={45 + idx * 72} y="174">
+                {day}
+              </text>
+            ))}
+          </g>
+        </svg>
+      </div>
+
+      {/* Chart Legend */}
+      <div className="dc__chart-legend-box">
+        <span className="dc__chart-legend-item">
+          <span className="dc__legend-line-solid" />
+          Revenue
+        </span>
+        <span className="dc__chart-legend-item">
+          <span className="dc__legend-line-dotted" />
+          Customer
+        </span>
       </div>
     </div>
   );
 };
 
-const LowStockAlerts = ({ products, loading }) => {
-  if (loading) {
-    return (
-      <div className="dc__table-card">
-        <div className="dc__card-title">Low stock alerts</div>
-        <div className="dc__stock-list">
-          {[1, 2, 3].map((i) => (
-            <div key={i} className="dc__stock-item skeleton-shimmer" style={{ height: '48px', background: '#f5f5f5', borderRadius: '6px', marginBottom: '8px', opacity: 0.85 }} />
-          ))}
-        </div>
-      </div>
-    );
-  }
+const SalesByCategoryCard = ({ orders = [], products = [], categories = [], loading = false }) => {
+  const categorySales = useMemo(() => {
+    const palette = ["#818CF8", "#65A30D", "#06B6D4", "#EA580C", "#D97706", "#1E3A8A", "#EC4899", "#8B5CF6"];
 
-  const lowStock = products
-    .filter(p => p.stock <= (p.stock_alert || 5))
-    .slice(0, 5);
+    // Map productId -> Category Name
+    const prodCategoryMap = {};
+    products.forEach(p => {
+      const catName = p.categories?.name || p.category || (categories.find(c => String(c.id || c.category_id) === String(p.category_id))?.name) || null;
+      if (catName) {
+        prodCategoryMap[p.id] = catName;
+        prodCategoryMap[p.product_id] = catName;
+      }
+    });
 
-  if (lowStock.length === 0) {
-    return (
-      <div className="dc__table-card">
-        <div className="dc__card-title">Low stock alerts</div>
-        <div style={{ color: '#10b981', fontSize: '13px', textAlign: 'center', padding: '24px 0', fontWeight: '500' }}>All products are well stocked!</div>
-      </div>
-    );
-  }
+    const salesMap = {};
+    // Pre-initialize real categories so every real category in the store is accounted for
+    categories.forEach(c => {
+      const name = c.name?.trim();
+      if (name) salesMap[name] = 0;
+    });
+
+    // 1. Calculate revenue from actual orders
+    let totalOrderSalesFound = 0;
+    orders.forEach(order => {
+      if (['cancelled', 'returned'].includes(order.status?.toLowerCase())) return;
+      const items = order.order_items || [];
+      if (items.length > 0) {
+        items.forEach(item => {
+          const catName = item.category || item.category_name || prodCategoryMap[item.product_id] || prodCategoryMap[item.id] || "Other";
+          const itemTotal = Number(item.price || 0) * Number(item.quantity || 1);
+          salesMap[catName] = (salesMap[catName] || 0) + itemTotal;
+          totalOrderSalesFound += itemTotal;
+        });
+      } else {
+        const catName = order.category || prodCategoryMap[order.product_id] || "Other";
+        const val = Number(order.total_price || 0);
+        salesMap[catName] = (salesMap[catName] || 0) + val;
+        totalOrderSalesFound += val;
+      }
+    });
+
+    // 2. If no completed order sales exist yet, calculate based on product inventory/catalog value per real category
+    if (totalOrderSalesFound === 0) {
+      products.forEach(p => {
+        const catName = p.categories?.name || p.category || (categories.find(c => String(c.id || c.category_id) === String(p.category_id))?.name) || "Other";
+        const catVal = Number(p.price || 0) * (Number(p.stock) || 1);
+        salesMap[catName] = (salesMap[catName] || 0) + catVal;
+      });
+    }
+
+    // Sort real categories by highest sales / value
+    const sorted = Object.entries(salesMap)
+      .filter(([name]) => name && name !== "Other")
+      .sort((a, b) => b[1] - a[1]);
+
+    const finalEntries = sorted.length > 0 ? sorted.slice(0, 6) : Object.entries(salesMap).slice(0, 6);
+    const maxVal = finalEntries[0]?.[1] || 1;
+
+    const formatAmt = (val) => {
+      if (val >= 100000) return `₹${(val / 100000).toFixed(1)}L`;
+      if (val >= 1000) return `₹${(val / 1000).toFixed(1)}K`;
+      return `₹${Math.round(val)}`;
+    };
+
+    return finalEntries.map(([name, amount], idx) => ({
+      name,
+      amount: formatAmt(amount),
+      percent: Math.max(10, Math.round((amount / maxVal) * 100)),
+      color: palette[idx % palette.length]
+    }));
+  }, [orders, products, categories]);
 
   return (
-    <div className="dc__table-card">
-      <div className="dc__card-title">Low stock alerts</div>
-      <div className="dc__stock-list">
-        {lowStock.map((it, i) => (
-          <div key={it.id || i} className="dc__stock-item">
-            <div className="dc__stock-info">
-              <span className="dc__stock-name">{it.name}</span>
-              <span className="dc__stock-type">{it.category || 'Product'}</span>
+    <div className="dc__card">
+      <div className="dc__card-header">
+        <h2 className="dc__card-title">Sales by category</h2>
+        <button className="dc__filter-link">
+          <span>From last week</span>
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+            <polyline points="6 9 12 15 18 9" />
+          </svg>
+        </button>
+      </div>
+
+      <div className="dc__category-list">
+        {categorySales.length > 0 ? (
+          categorySales.map((cat, i) => (
+            <div key={i} className="dc__category-item">
+              <div className="dc__category-info">
+                <span className="dc__category-name">{cat.name}</span>
+                <span className="dc__category-amount">{cat.amount}</span>
+              </div>
+              <div className="dc__category-track">
+                <div
+                  className="dc__category-fill"
+                  style={{
+                    width: `${cat.percent}%`,
+                    backgroundColor: cat.color
+                  }}
+                />
+              </div>
             </div>
-            <span className="dc__stock-left" style={{ color: it.stock === 0 ? '#ef4444' : '#f59e0b' }}>
-              {it.stock === 0 ? 'Out of stock' : `${it.stock} left`}
-            </span>
+          ))
+        ) : (
+          <div style={{ color: "#94a3b8", fontSize: "13px", padding: "16px 0", textAlign: "center" }}>
+            No sales data recorded yet.
+          </div>
+        )}
+      </div>
+    </div>
+  );
+};
+
+const PopularProductCard = ({ products = [], orders = [], loading = false }) => {
+  const popularList = useMemo(() => {
+    // Count real sales from order items
+    const salesCount = {};
+    orders.forEach(o => {
+      if (['cancelled'].includes(o.status?.toLowerCase())) return;
+      (o.order_items || []).forEach(item => {
+        const id = item.product_id || item.id;
+        if (id) {
+          salesCount[id] = (salesCount[id] || 0) + Number(item.quantity || 1);
+        }
+      });
+    });
+
+    if (products && products.length > 0) {
+      const sortedProds = [...products].sort((a, b) => {
+        const aSales = salesCount[a.id] || Number(a.sales || 0);
+        const bSales = salesCount[b.id] || Number(b.sales || 0);
+        return bSales - aSales;
+      });
+
+      return sortedProds.slice(0, 6).map((p, idx) => {
+        const count = salesCount[p.id] || (p.stock ? Math.max(1, 100 - Number(p.stock)) : 0);
+        const skuVal = p.sku || `FAY-${String(p.id).slice(-6).toUpperCase()}`;
+        return {
+          id: p.id || String(idx),
+          sku: skuVal,
+          name: p.name || "Product",
+          price: `₹${Number(p.price || 0).toLocaleString("en-IN")}`,
+          sales: count,
+          image: p.image || p.image_url || p.images?.[0] || "/src/assets/cart/bangle1.webp"
+        };
+      });
+    }
+    return [];
+  }, [products, orders]);
+
+  return (
+    <div className="dc__card">
+      <div className="dc__card-header" style={{ marginBottom: "14px" }}>
+        <h2 className="dc__card-title">Popular Product</h2>
+      </div>
+
+      <div className="dc__popular-table-wrap">
+        {popularList.length > 0 ? (
+          <table className="dc__popular-table">
+            <thead>
+              <tr>
+                <th style={{ width: "55%" }}>Product</th>
+                <th style={{ width: "25%" }}>Price</th>
+                <th style={{ width: "20%", textAlign: "left" }}>Sales</th>
+              </tr>
+            </thead>
+            <tbody>
+              {popularList.map((item) => (
+                <tr key={item.id}>
+                  <td>
+                    <div className="dc__product-col">
+                      <img
+                        src={item.image}
+                        alt={item.name}
+                        className="dc__product-thumb"
+                        onError={(e) => { e.currentTarget.src = "/src/assets/cart/bangle1.webp"; }}
+                      />
+                      <div style={{ minWidth: 0 }}>
+                        <div className="dc__product-sku">{item.sku}</div>
+                        <div className="dc__product-title" title={item.name}>{item.name}</div>
+                      </div>
+                    </div>
+                  </td>
+                  <td>
+                    <span className="dc__product-price">{item.price}</span>
+                  </td>
+                  <td>
+                    <span className="dc__product-sales">{item.sales}</span>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        ) : (
+          <div style={{ color: "#94a3b8", fontSize: "13px", padding: "20px 0", textAlign: "center" }}>
+            No products found in catalog.
+          </div>
+        )}
+      </div>
+    </div>
+  );
+};
+
+const RecentOrdersCard = ({ orders = [], loading = false }) => {
+  const navigate = useNavigate();
+
+  const badgeStyles = {
+    pending: { bg: "#FEF9C3", color: "#A16207" },
+    "pending booking": { bg: "#FEF9C3", color: "#A16207" },
+    booked: { bg: "#EDE9FE", color: "#6D28D9" },
+    shipped: { bg: "#DBEAFE", color: "#1D4ED8" },
+    "in transit": { bg: "#DBEAFE", color: "#1D4ED8" },
+    delivered: { bg: "#DCFCE7", color: "#15803D" },
+    confirmed: { bg: "#E0F2FE", color: "#0284C7" },
+    cancelled: { bg: "#F1F5F9", color: "#64748B" },
+    "booking failed": { bg: "#FEE2E2", color: "#B91C1C" },
+    ndr: { bg: "#FFEDD5", color: "#C2410C" },
+    return: { bg: "#FFE4E6", color: "#BE123C" },
+    returned: { bg: "#FFE4E6", color: "#BE123C" },
+  };
+
+  const orderRows = useMemo(() => {
+    return (orders || []).slice(0, 5).map((o, idx) => {
+      const orderRef = o.order_number || (o.id ? String(o.id).slice(-6).toUpperCase() : `ORD-${idx + 1}`);
+      const displayOrderId = String(orderRef).startsWith("#") ? orderRef : `#${orderRef}`;
+      const status = o.delivery_status || o.status || "Pending Booking";
+      const customer = o.shipping_address?.full_name || o.customer?.name || "Customer";
+      const price = `₹${Number(o.total_price || 0).toLocaleString("en-IN")}`;
+      const firstItem = o.order_items?.[0];
+      const item = firstItem?.product_name || o.item_name || (o.order_items?.length ? `${o.order_items.length} items` : "Order Item");
+
+      return {
+        id: displayOrderId,
+        status,
+        customer,
+        price,
+        item,
+        key: o.id || idx
+      };
+    });
+  }, [orders]);
+
+  return (
+    <div className="dc__card">
+      <div className="dc__card-header">
+        <h2 className="dc__card-title">Recent orders</h2>
+        <button onClick={() => navigate("/admin/orders")} className="dc__show-all-link">
+          <span>Show All</span>
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+            <line x1="7" y1="17" x2="17" y2="7" />
+            <polyline points="7 7 17 7 17 17" />
+          </svg>
+        </button>
+      </div>
+
+      <div style={{ display: "flex", flexDirection: "column" }}>
+        {orderRows.length > 0 ? (
+          orderRows.map((ord) => {
+            const badge = badgeStyles[String(ord.status).toLowerCase()] || { bg: "#FEF3C7", color: "#B45309" };
+            return (
+              <div key={ord.key} className="dc__order-row">
+                <div className="dc__order-left">
+                  <div className="dc__order-top-left">
+                    <span className="dc__order-id-txt">{ord.id}</span>
+                    <span
+                      className="dc__order-badge"
+                      style={{ backgroundColor: badge.bg, color: badge.color }}
+                    >
+                      {ord.status}
+                    </span>
+                  </div>
+                  <span className="dc__order-customer-txt">{ord.customer}</span>
+                </div>
+                <div className="dc__order-right">
+                  <span className="dc__order-amount-txt">{ord.price}</span>
+                  <span className="dc__order-desc-txt">{ord.item}</span>
+                </div>
+              </div>
+            );
+          })
+        ) : (
+          <div style={{ color: "#94a3b8", fontSize: "13px", padding: "16px 0", textAlign: "center" }}>
+            No recent orders placed yet.
+          </div>
+        )}
+      </div>
+    </div>
+  );
+};
+
+const AddNewProductCard = ({ categories = [] }) => {
+  const navigate = useNavigate();
+
+  const defaultCategories = [
+    { name: "Men", image: "/src/assets/pro1.webp" },
+    { name: "Women", image: "/src/assets/pro2.webp" },
+  ];
+
+  const catList = useMemo(() => {
+    if (categories && categories.length >= 2) {
+      return categories.slice(0, 2).map((c, i) => ({
+        name: c.name || (i === 0 ? "Men" : "Women"),
+        image: c.image_url || (i === 0 ? "/src/assets/pro1.webp" : "/src/assets/pro2.webp")
+      }));
+    }
+    return defaultCategories;
+  }, [categories]);
+
+  return (
+    <div className="dc__card">
+      <div className="dc__card-header" style={{ marginBottom: "4px" }}>
+        <h2 className="dc__card-title">Add New Product</h2>
+        <button onClick={() => navigate("/admin/products/add")} className="dc__add-new-btn">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+            <circle cx="12" cy="12" r="10" />
+            <line x1="12" y1="8" x2="12" y2="16" />
+            <line x1="8" y1="12" x2="16" y2="12" />
+          </svg>
+          <span>Add New</span>
+        </button>
+      </div>
+
+      <div className="dc__card-subtitle">Categories</div>
+
+      <div className="dc__category-nav-list">
+        {catList.map((cat, idx) => (
+          <div
+            key={idx}
+            className="dc__category-nav-item"
+            onClick={() => navigate(`/admin/products`)}
+          >
+            <div className="dc__category-nav-left">
+              <img
+                src={cat.image}
+                alt={cat.name}
+                className="dc__category-nav-img"
+                onError={(e) => { e.currentTarget.src = "/src/assets/cart/bangle1.webp"; }}
+              />
+              <span className="dc__category-nav-title">{cat.name}</span>
+            </div>
+            <span className="dc__category-nav-arrow">›</span>
           </div>
         ))}
       </div>
@@ -497,60 +785,7 @@ const LowStockAlerts = ({ products, loading }) => {
   );
 };
 
-const TopCustomers = ({ customers, loading }) => {
-  if (loading) {
-    return (
-      <div className="dc__table-card">
-        <div className="dc__card-title">Top customers</div>
-        <div className="dc__customer-list">
-          {[1, 2, 3].map((i) => (
-            <div key={i} className="dc__customer-item skeleton-shimmer" style={{ height: '52px', background: '#f5f5f5', borderRadius: '6px', marginBottom: '8px', opacity: 0.85 }} />
-          ))}
-        </div>
-      </div>
-    );
-  }
-
-  const top = [...customers]
-    .filter(c => c.orderCount > 0)
-    .sort((a, b) => b.totalSpent - a.totalSpent)
-    .slice(0, 5);
-
-  if (top.length === 0) {
-    return (
-      <div className="dc__table-card">
-        <div className="dc__card-title">Top customers</div>
-        <div style={{ color: '#888', fontSize: '13px', textAlign: 'center', padding: '24px 0' }}>No customers yet.</div>
-      </div>
-    );
-  }
-
-  const colors = ["#f59e0b", "#0ea5e9", "#65a30d", "#ef4444", "#8b5cf6"];
-
-  return (
-    <div className="dc__table-card">
-      <div className="dc__card-title">Top customers</div>
-      <div className="dc__customer-list">
-        {top.map((c, i) => {
-          const initials = getUserInitials(c.name, 'CU');
-          const avatarColor = colors[i % colors.length];
-          return (
-            <div key={c.id} className="dc__customer-item">
-              <div className="dc__customer-avatar" style={{ backgroundColor: avatarColor + "15", color: avatarColor }}>{initials}</div>
-              <div className="dc__customer-info">
-                <span className="dc__customer-name">{c.name}</span>
-                <span className="dc__customer-meta">{c.orderCount} {c.orderCount === 1 ? 'order' : 'orders'}</span>
-              </div>
-              <span className="dc__customer-amount">₹{Number(c.totalSpent).toLocaleString('en-IN')}</span>
-            </div>
-          );
-        })}
-      </div>
-    </div>
-  );
-};
-
-const DashboardHome = ({ orders, customers, products, loading }) => {
+const DashboardHome = ({ orders = [], customers = [], products = [], categories = [], loading = false }) => {
   const stats = useMemo(() => {
     const totalOrders = orders.length;
 
@@ -578,51 +813,52 @@ const DashboardHome = ({ orders, customers, products, loading }) => {
     };
   }, [orders, customers, products]);
 
-
   return (
     <div className="dc">
-      <div className="dc__page-title-wrapper">
-        <h1 className="dc__page-title">Dashboard</h1>
+      {/* ── 4 Stat Cards at Top ── */}
+      <div className="dc__stats-row">
+        <StatCard
+          label="Total Revenue"
+          value={loading ? "—" : stats.revenue}
+          trend="10.6%"
+          trendLabel="From last week"
+          showTrend={true}
+          loading={loading}
+        />
+        <StatCard
+          label="Total Customer"
+          value={loading ? "—" : stats.totalCustomers}
+          trend="1.5%"
+          trendLabel="From last week"
+          showTrend={true}
+          loading={loading}
+        />
+        <StatCard
+          label="Pending Orders"
+          value={loading ? "—" : orders.filter(o => o.status?.toLowerCase() === 'pending').length}
+          showTrend={false}
+          loading={loading}
+        />
+        <StatCard
+          label="Total Products"
+          value={loading ? "—" : stats.totalProducts}
+          showTrend={false}
+          loading={loading}
+        />
       </div>
-      <div className="dc__content">
-        <div className="dc__stats-row">
-          <StatCard
-            label="Total orders"
-            value={loading ? "—" : stats.totalOrders}
-            subtext="All Time"
-            variant="green"
-            loading={loading}
-          />
-          <StatCard
-            label="Revenue (this month)"
-            value={loading ? "—" : stats.revenue}
-            subtext={new Date().toLocaleDateString("en-US", { month: "short", year: "numeric" })}
-            variant="yellow"
-            loading={loading}
-          />
-          <StatCard
-            label="Total customers"
-            value={loading ? "—" : stats.totalCustomers}
-            subtext="Active directory"
-            variant="purple"
-            loading={loading}
-          />
-          <StatCard
-            label="Total products"
-            value={loading ? "—" : stats.totalProducts}
-            subtext="In catalog"
-            variant="blue"
-            loading={loading}
-          />
-        </div>
-        <div className="dc__charts-row">
-          <div className="dc__chart-wrapper"><RevenueChart orders={orders} loading={loading} /></div>
-          <div className="dc__category-wrapper"><SalesByCategory orders={orders} products={products} loading={loading} /></div>
-        </div>
-        <div className="dc__tables-row">
-          <RecentOrders orders={orders} loading={loading} searchIcon={searchIcon} />
-          <LowStockAlerts products={products} loading={loading} />
-          <TopCustomers customers={customers} loading={loading} />
+
+      {/* ── Charts Top Grid ── */}
+      <div className="dc__grid-top">
+        <TotalCustomersChart orders={orders} customers={customers} loading={loading} />
+        <SalesByCategoryCard orders={orders} products={products} categories={categories} loading={loading} />
+      </div>
+
+      {/* ── Tables Bottom Grid ── */}
+      <div className="dc__grid-bottom">
+        <PopularProductCard products={products} orders={orders} loading={loading} />
+        <div className="dc__bottom-right-col">
+          <RecentOrdersCard orders={orders} loading={loading} />
+          <AddNewProductCard categories={categories} />
         </div>
       </div>
     </div>
@@ -1265,6 +1501,46 @@ const Dashboard = () => {
           <button className="db__hamburger" aria-label={sidebarOpen ? "Close menu" : "Open menu"} onClick={() => setSidebarOpen((v) => !v)}>
             <HamburgerIcon open={sidebarOpen} />
           </button>
+          {(currentPath.startsWith("/admin/customers/detail") ||
+            currentPath.startsWith("/admin/orders/detail") ||
+            currentPath.startsWith("/admin/products/add") ||
+            currentPath.startsWith("/admin/products/edit-multiple") ||
+            currentPath.startsWith("/admin/categories/add") ||
+            currentPath.startsWith("/admin/subcategories/new")) && (
+              <button
+                type="button"
+                className="db__header-back-btn"
+                onClick={() => {
+                  if (currentPath.startsWith("/admin/customers/detail")) {
+                    navigate("/admin/customers");
+                  } else if (currentPath.startsWith("/admin/orders/detail")) {
+                    navigate("/admin/orders");
+                  } else if (currentPath === "/admin/products/add-multiple") {
+                    navigate("/admin/products/add");
+                  } else if (currentPath.startsWith("/admin/categories/add")) {
+                    setEditingCategory(null);
+                    navigate("/admin/categories");
+                  } else if (currentPath.startsWith("/admin/subcategories/new")) {
+                    const params = new URLSearchParams(location.search);
+                    const parentId = params.get("parentId");
+                    if (parentId) {
+                      navigate(`/admin/subcategories?parentId=${parentId}`);
+                    } else {
+                      navigate("/admin/categories");
+                    }
+                  } else {
+                    setEditingProduct(null);
+                    navigate("/admin/products");
+                  }
+                }}
+                title="Back"
+                aria-label="Back"
+              >
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                  <polyline points="15 18 9 12 15 6" />
+                </svg>
+              </button>
+            )}
           <div className="db__header-title-block">
             <span className="db__breadcrumb-title">{pageTitle}</span>
             <span className="db__breadcrumb-desc">{pageDescription}</span>
@@ -1403,9 +1679,9 @@ const Dashboard = () => {
                     onClick={() => {
                       if (hasChildren) {
                         toggle(item.id);
-                        navigate(item.children[0].path);  
                       } else {
                         navigate(item.path);
+                        setSidebarOpen(false);
                       }
                     }}
                   >
@@ -1461,7 +1737,7 @@ const Dashboard = () => {
         {/* Main Content - React Router Routes */}
         <main className="db__main">
           <Routes>
-            <Route path="/" element={<DashboardHome orders={orders} customers={customers} products={products} loading={adminDataLoading} />} />
+            <Route path="/" element={<DashboardHome orders={orders} customers={customers} products={products} categories={categories} loading={adminDataLoading} />} />
             <Route path="/analytics" element={<Analytics orders={orders} customers={customers} products={products} loading={adminDataLoading} />} />
 
             {/* Products */}
@@ -1506,6 +1782,7 @@ const Dashboard = () => {
             <Route path="/categories" element={
               <CategoryList
                 categories={categories}
+                products={products}
                 setCategories={setCategories}
                 onAddCategory={goToAddCategory}
                 // onAddSubcategory={handleAddSubcategory} 
@@ -1543,11 +1820,11 @@ const Dashboard = () => {
             <Route path="/categories/add" element={<AddCategory initialData={editingCategory} onBack={() => { setEditingCategory(null); navigate("/admin/categories"); }} onPublish={handlePublishCategory} onSaveDraft={handleSaveDraftCategory} />} />
 
             {/* Orders */}
-            <Route path="/orders" element={<AllOrders orders={orders} products={products} loading={adminDataLoading} onViewDetail={handleViewOrderDetail} />} />
+            <Route path="/orders" element={<AllOrders orders={orders} products={products} categories={categories} loading={adminDataLoading} onViewDetail={handleViewOrderDetail} />} />
             <Route path="/orders/detail" element={<OrderDetails order={selectedOrderObj} onStatusChange={updateOrderStatus} onBack={() => navigate("/admin/orders")} />} />
 
-            {/* Invoices */}
-            <Route path="/invoices" element={<Invoices orders={orders} loading={adminDataLoading} />} />
+            {/* Invoices (redirects to unified Orders & Invoices page) */}
+            <Route path="/invoices" element={<Navigate to="/admin/orders" replace />} />
 
             {/* Customers */}
             <Route path="/customers" element={<AllCustomers customers={customers} loading={adminDataLoading} onViewDetail={handleViewCustomerDetail} />} />

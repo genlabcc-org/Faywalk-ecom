@@ -540,7 +540,7 @@ const Analytics = ({ orders = [], customers = [], products = [], loading = false
       .filter((p) => p.stock !== undefined && p.stock <= 5)
       .map((p) => ({
         name: p.name,
-        sku: p.sku || p.code || (p.id || p.product_id ? `SKU-${String(p.id || p.product_id).slice(-6).toUpperCase()}` : "N/A"),
+        sku: p.sku || p.code || (p.id || p.product_id ? `FAY-${String(p.id || p.product_id).slice(-6).toUpperCase()}` : "N/A"),
         category: p.category || "Jewelry",
         stock: p.stock,
         status: p.stock === 0 ? "out" : "low",

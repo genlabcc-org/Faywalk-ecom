@@ -524,7 +524,6 @@ export const useStore = create((set, get) => ({
       localStorage.setItem('anika_guest_cart', JSON.stringify(localCart));
     }
   },
-
   updateCartQty: async (itemId, qty) => {
     const user = get().user;
     if (user) {

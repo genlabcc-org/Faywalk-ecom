@@ -225,13 +225,11 @@ const AddCustomerModal = ({ onClose, onAdd }) => {
 
 /* ── Main Component ────────────────────────────────────────────── */
 const AllCustomers = ({ customers = [], loading, onViewDetail }) => {
-  const [selectedIds, setSelectedIds]       = useState([]);
-  const [statusFilter, setStatusFilter]     = useState("All Status");
-  const [customerFilter, setCustomerFilter] = useState("All Customers");
-  const [extraFilter, setExtraFilter]       = useState("Filter");
-  const [searchQuery, setSearchQuery]       = useState("");
-  const [currentPage, setCurrentPage]       = useState(1);
-  const [showModal, setShowModal]           = useState(false);
+  const [selectedIds, setSelectedIds]   = useState([]);
+  const [amountFilter, setAmountFilter] = useState("All Amounts");
+  const [searchQuery, setSearchQuery]   = useState("");
+  const [currentPage, setCurrentPage]   = useState(1);
+  const [showModal, setShowModal]       = useState(false);
   const [localCustomers, setLocalCustomers] = useState([]);
 
   // Merge local added customers (if any) with database customers
@@ -251,28 +249,16 @@ const AllCustomers = ({ customers = [], loading, onViewDetail }) => {
 
     if (!matchSearch) return false;
 
-    // Status Filter
-    if (statusFilter === "Confirmed" && (c.status && c.status !== "Confirmed")) return false;
-    if (statusFilter === "Disabled" && c.status !== "Disabled") return false;
-
-    // Customer Filter
-    if (customerFilter === "New this month") {
-      const now = new Date();
-      if (c.created_at) {
-        const d = new Date(c.created_at);
-        if (d.getMonth() !== now.getMonth() || d.getFullYear() !== now.getFullYear()) return false;
-      }
-    } else if (customerFilter === "Active Accounts") {
-      if (c.status === "Disabled") return false;
-    } else if (customerFilter === "Has Orders") {
-      if ((c.orderCount || c.orders || 0) <= 0) return false;
-    }
-
-    // Extra Filter
-    if (extraFilter === "High Spenders") {
-      if ((c.totalSpent || 0) < 5000) return false;
-    } else if (extraFilter === "Repeat Customers") {
-      if ((c.orderCount || c.orders || 0) < 2) return false;
+    // Amount Filter (Total Spent)
+    const spent = Number(c.totalSpent || 0);
+    if (amountFilter === "High Spenders") {
+      if (spent < 5000) return false;
+    } else if (amountFilter === "1000-5000") {
+      if (spent < 1000 || spent > 5000) return false;
+    } else if (amountFilter === "Under-1000") {
+      if (spent >= 1000 || spent <= 0) return false;
+    } else if (amountFilter === "No-Orders") {
+      if (spent > 0) return false;
     }
 
     return true;
@@ -430,45 +416,18 @@ const AllCustomers = ({ customers = [], loading, onViewDetail }) => {
       {/* ── Filter / Search Bar ── */}
       <div className="ac__toolbar-row">
         <div className="ac__toolbar-left">
-          {/* Status Dropdown */}
+          {/* Amount Filter Dropdown */}
           <div className="ac__select-pill-wrapper">
             <select
               className="ac__select-pill"
-              value={statusFilter}
-              onChange={(e) => { setStatusFilter(e.target.value); setCurrentPage(1); }}
+              value={amountFilter}
+              onChange={(e) => { setAmountFilter(e.target.value); setCurrentPage(1); }}
             >
-              <option value="All Status">All Status</option>
-              <option value="Confirmed">Active</option>
-              <option value="Disabled">Disabled</option>
-            </select>
-            <ChevronDown />
-          </div>
-
-          {/* Customer Group Dropdown */}
-          <div className="ac__select-pill-wrapper">
-            <select
-              className="ac__select-pill"
-              value={customerFilter}
-              onChange={(e) => { setCustomerFilter(e.target.value); setCurrentPage(1); }}
-            >
-              <option value="All Customers">All Customers</option>
-              <option value="New this month">New this month</option>
-              <option value="Active Accounts">Active Accounts</option>
-              <option value="Has Orders">Has Orders</option>
-            </select>
-            <ChevronDown />
-          </div>
-
-          {/* Extra Filter Dropdown */}
-          <div className="ac__select-pill-wrapper">
-            <select
-              className="ac__select-pill"
-              value={extraFilter}
-              onChange={(e) => { setExtraFilter(e.target.value); setCurrentPage(1); }}
-            >
-              <option value="Filter">Filter</option>
+              <option value="All Amounts">All Amounts</option>
               <option value="High Spenders">High Spenders (₹5k+)</option>
-              <option value="Repeat Customers">Repeat Customers (2+ orders)</option>
+              <option value="1000-5000">₹1,000 – ₹5,000</option>
+              <option value="Under-1000">Under ₹1,000</option>
+              <option value="No-Orders">No Orders (₹0)</option>
             </select>
             <ChevronDown />
           </div>
@@ -476,13 +435,29 @@ const AllCustomers = ({ customers = [], loading, onViewDetail }) => {
 
         {/* Search Input on Right */}
         <div className="ac__toolbar-right">
-          <input
-            type="text"
-            className="ac__search-input"
-            placeholder="Search namer,email,contact...."
-            value={searchQuery}
-            onChange={(e) => { setSearchQuery(e.target.value); setCurrentPage(1); }}
-          />
+          <div className="ac__search-box">
+            <svg
+              width="16"
+              height="16"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="#64748B"
+              strokeWidth="2"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              style={{ flexShrink: 0 }}
+            >
+              <circle cx="11" cy="11" r="8" />
+              <line x1="21" y1="21" x2="16.65" y2="16.65" />
+            </svg>
+            <input
+              type="text"
+              className="ac__search-input"
+              placeholder="Search name, email, contact..."
+              value={searchQuery}
+              onChange={(e) => { setSearchQuery(e.target.value); setCurrentPage(1); }}
+            />
+          </div>
         </div>
       </div>
 

@@ -124,7 +124,7 @@ const compressImage = async (file, maxWidth = 1200, quality = 0.8) => {
   });
 };
 
-const generateSKU = () => `ANK-${Math.floor(100000 + Math.random() * 900000)}`;
+const generateSKU = () => `FAY-${Math.floor(100000 + Math.random() * 900000)}`;
 
 export default function AddProduct({ onBack, onPublish, onSaveDraft, onAddVariant, initialData }) {
   const [searchParams] = useSearchParams();
@@ -563,9 +563,6 @@ export default function AddProduct({ onBack, onPublish, onSaveDraft, onAddVarian
     <div className="ap-page">
       {/* ── Header ── */}
       <div className="ap-header">
-        <button className="back-btn" onClick={onBack}>
-          <img src={back} alt="Back" />
-        </button>
         <h1>{isEditing ? "Edit Product" : "Add Product"}</h1>
         {!isEditing && (
           <button

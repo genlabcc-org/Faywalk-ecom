@@ -62,6 +62,8 @@ const Toggle = ({ checked, onChange }) => (
 );
 
 let variantSeq = 0;
+const generateVariantSKU = () => `FAY-${Math.floor(100000 + Math.random() * 900000)}`;
+
 const makeVariant = () => ({
   id: `v-${Date.now()}-${variantSeq++}`,
   sizeDimension: "",
@@ -70,7 +72,7 @@ const makeVariant = () => ({
   price: "",
   sellingPrice: "",
   color: null,
-  sku: "",
+  sku: generateVariantSKU(),
   media: [],
 });
 
@@ -130,7 +132,7 @@ const CreateMultipleProduct = ({
               price: String(v.compare_price ?? ""),
               sellingPrice: String(v.price ?? ""),
               color: v.color || null,
-              sku: v.sku || "",
+              sku: v.sku || generateVariantSKU(),
               images: v.images || [],
               media: [],
             }))
@@ -615,11 +617,11 @@ const CreateMultipleProduct = ({
                   <input
                     type="text"
                     className="cmp-input"
-                    placeholder="Input your text"
+                    placeholder="Auto Generated"
                     value={v.sku}
-                    onChange={(e) => updateVariant(v.id, "sku", e.target.value)}
+                    readOnly
                   />
-                  <span className="cmp-hint">Auto Generated Or Enter Manually</span>
+                  <span className="cmp-hint">Auto Generated</span>
                 </label>
               </div>
 

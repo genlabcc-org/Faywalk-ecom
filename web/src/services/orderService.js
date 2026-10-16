@@ -219,10 +219,10 @@ export const orderService = {
    */
   async cancelOrder(orderId) {
     const { data, error } = await supabase
-    .from('orders')
-    .update({ status: 'Cancelled', delivery_status: 'Cancelled' })
-    .eq('id', orderId)
-    .select();
+      .from('orders')
+      .update({ status: 'Cancelled', delivery_status: 'Cancelled' })
+      .eq('id', orderId)
+      .select();
     if (error) throw error;
     return data;
   },

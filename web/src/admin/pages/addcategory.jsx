@@ -1,6 +1,5 @@
 import React, { useState, useRef, useEffect } from "react";
 import { productService } from "../../services/productService";
-import back from "../../assets/admin/back.png";
 import "./addcategory.css";
 
 const EMPTY_FORM = {
@@ -248,9 +247,6 @@ export default function AddCategory({ onBack, onPublish, onSaveDraft, initialDat
     <div className="ap-page">
       {/* ── Header ── */}
       <div className="ap-header">
-        <button className="ap-back-btn" onClick={onBack}>
-          <img src={back} alt="Back" />
-        </button>
         <h1>{isEditing ? "Edit Category" : "Add Category"}</h1>
       </div>
 

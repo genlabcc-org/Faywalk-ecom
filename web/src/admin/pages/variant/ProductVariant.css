@@ -61,8 +61,9 @@
 /* Card */
 .cmp-card {
   background: #fff;
-  border-radius: 14px;
-  padding: 24px;
+  border: 1px solid #e8e8e8;
+  border-radius: 10px;
+  padding: 24px 28px;
   display: flex;
   flex-direction: column;
   gap: 18px;
@@ -107,6 +108,13 @@
 .cmp-select:focus,
 .cmp-textarea:focus {
   border-color: var(--admin-primary);
+}
+
+.cmp-input[readonly] {
+  background: #f3f4f6;
+  color: #6b7280;
+  cursor: not-allowed;
+  border-color: #e5e7eb;
 }
 
 .cmp-textarea {
@@ -165,8 +173,8 @@
 
 /* Variants */
 .cmp-variant {
-  border: 1px solid #eee;
-  border-radius: 12px;
+  border: 1px solid #e8e8e8;
+  border-radius: 10px;
   padding: 18px;
   display: flex;
   flex-direction: column;

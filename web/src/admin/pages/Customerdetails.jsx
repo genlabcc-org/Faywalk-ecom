@@ -22,19 +22,28 @@ const RingProductImage = () => (
 
 const StatusBadge = ({ status }) => {
   const map = {
-    Pending:   { bg: "#fff7ed", color: "#ea580c" },
+    Pending:   { bg: "#fef3c7", color: "#b45309" },
     Delivered: { bg: "#f0fdf4", color: "#16a34a" },
     Cancelled: { bg: "#fef2f2", color: "#dc2626" },
     Blocked:   { bg: "#fef2f2", color: "#dc2626" },
     Confirmed: { bg: "#f5f3ff", color: "#7c3aed" },
     Shipped:   { bg: "#fef9c3", color: "#a16207" }
   };
-  const s = map[status] || { bg: "#f5f5f5", color: "#666" };
+  const s = map[status] || { bg: "#fef3c7", color: "#b45309" };
   return (
-    <span className="cd__status-badge" style={{ background: s.bg, color: s.color }}>
-      {status}
+    <span className="cd__status-badge" style={{ background: s.bg, color: s.color, padding: "3px 12px", borderRadius: "16px" }}>
+      {status || "Pending"}
     </span>
   );
+};
+
+const formatJoinedDateTime = (dateVal) => {
+  if (!dateVal) return "N/A";
+  const d = new Date(dateVal);
+  if (isNaN(d.getTime())) return dateVal;
+  const dateStr = d.toLocaleDateString("en-GB", { day: "numeric", month: "long", year: "numeric" });
+  const timeStr = d.toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit", hour12: false });
+  return `${dateStr} at ${timeStr}`;
 };
 
 const CustomerDetails = ({ customer, onBack }) => {
@@ -133,22 +142,6 @@ const CustomerDetails = ({ customer, onBack }) => {
     };
   }, [orders]);
 
-  const recentActivity = useMemo(() => {
-    const activities = [];
-    if (c.created_at) {
-      activities.push({
-        color: "#10b981",
-        text: `Account created on ${new Date(c.created_at).toLocaleString("en-GB", { day: "numeric", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit" })}`
-      });
-    }
-    [...orders].reverse().forEach(order => {
-      activities.push({
-        color: order.status === 'Cancelled' ? '#ef4444' : order.status === 'Delivered' ? '#10b981' : '#f59e0b',
-        text: `Placed order #${order.id} — ${order.item_name} (Qty: ${order.quantity}, Total: ₹${Number(order.total_price).toLocaleString('en-IN')}) on ${new Date(order.order_date).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" })}`
-      });
-    });
-    return activities.reverse(); // Newest first
-  }, [c.created_at, orders]);
 
   const customerPhone = useMemo(() => {
     if (c.phone && c.phone !== "N/A" && String(c.phone).trim() !== "") return c.phone;
@@ -207,40 +200,42 @@ const CustomerDetails = ({ customer, onBack }) => {
   return (
     <div className="cd">
 
-      {/* ── Header ── */}
-      <div className="cd__header">
-        <button className="cd__back-btn" onClick={onBack}>
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-            <polyline points="15 18 9 12 15 6" />
-          </svg>
-          Customer Details
-        </button>
-        <div className="cd__header-meta">
-          <span className="cd__header-date">
-            Joined on {c.created_at ? new Date(c.created_at).toLocaleDateString("en-GB", { day: "numeric", month: "long", year: "numeric", hour: "2-digit", minute: "2-digit" }) : "N/A"}
-          </span>
-          <StatusBadge status="Active" />
-        </div>
-      </div>
-
-      {/* ── Profile Info ── */}
+      {/* ── Profile Info Grid ── */}
       <div className="cd__section cd__profile-grid">
+        {/* Left Profile Info Card */}
         <div className="cd__card">
           <div className="cd__card-title">Profile Info</div>
           <div className="cd__info-rows">
-            <div className="cd__info-row"><span className="cd__info-label">Full name</span><span className="cd__info-value">{c.name}</span></div>
-            <div className="cd__info-row"><span className="cd__info-label">Phone</span><span className="cd__info-value">{customerPhone}</span></div>
-            <div className="cd__info-row"><span className="cd__info-label">Email</span><span className="cd__info-value cd__info-value--email">{c.email || "N/A"}</span></div>
+            <div className="cd__info-row">
+              <span className="cd__info-label">Full name</span>
+              <span className="cd__info-value">{c.name || "Customer"}</span>
+            </div>
+            <div className="cd__info-row">
+              <span className="cd__info-label">Phone</span>
+              <span className="cd__info-value">{customerPhone}</span>
+            </div>
+            <div className="cd__info-row">
+              <span className="cd__info-label">Email</span>
+              <span className="cd__info-value cd__info-value--email">{c.email || "N/A"}</span>
+            </div>
             <div className="cd__info-row">
               <span className="cd__info-label">Account created</span>
               <span className="cd__info-value">
                 {c.created_at ? new Date(c.created_at).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" }) : "N/A"}
               </span>
             </div>
+            <div className="cd__info-row">
+              <span className="cd__info-label">Last login</span>
+              <span className="cd__info-value">
+                {stats.lastOrder !== "N/A" ? stats.lastOrder : (c.created_at ? new Date(c.created_at).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" }) : "N/A")}
+              </span>
+            </div>
           </div>
         </div>
+
+        {/* Right Profile Info Card */}
         <div className="cd__card">
-          <div className="cd__card-title">Order Summary</div>
+          <div className="cd__card-title">Profile Info</div>
           <div className="cd__info-rows">
             <div className="cd__info-row">
               <span className="cd__info-label">Total orders</span>
@@ -273,6 +268,12 @@ const CustomerDetails = ({ customer, onBack }) => {
               </span>
             </div>
             <div className="cd__info-row">
+              <span className="cd__info-label">Returns</span>
+              <span className="cd__info-value">
+                0
+              </span>
+            </div>
+            <div className="cd__info-row">
               <span className="cd__info-label">Avg. order value</span>
               <span className="cd__info-value">
                 {ordersLoading ? (
@@ -291,21 +292,32 @@ const CustomerDetails = ({ customer, onBack }) => {
         <div className="cd__section-title">Saved Addresses</div>
         {addressesLoading ? (
           <div className="cd__address-grid">
-            <div className="cd__card skeleton-shimmer" style={{ height: '120px', opacity: 0.85 }} />
-            <div className="cd__card skeleton-shimmer" style={{ height: '120px', opacity: 0.85 }} />
+            <div className="cd__card skeleton-shimmer" style={{ height: '140px', opacity: 0.85 }} />
+            <div className="cd__card skeleton-shimmer" style={{ height: '140px', opacity: 0.85 }} />
           </div>
         ) : addresses.length > 0 ? (
           <div className="cd__address-grid">
             {addresses.map((addr, i) => (
               <div key={i} className="cd__card">
-                <div className="cd__address-label">{addr.address_type || "Address"}{addr.is_default && " (Default)"}</div>
-                <div className="cd__address-name">{addr.full_name}</div>
+                <div className="cd__address-card-title">
+                  {addr.address_type 
+                    ? (addr.is_default ? `${addr.address_type} (Default)` : addr.address_type) 
+                    : (addr.is_default ? "Default Address" : `Address ${i + 1}`)}
+                </div>
                 <div className="cd__address-lines">
-                  <span>{addr.address_line1}</span>
-                  {addr.address_line2 && <span>{addr.address_line2}</span>}
-                  <span>{addr.city}, {addr.state} — {addr.postal_code}</span>
-                  <span>{addr.country}</span>
-                  <span>Phone: {addr.phone_number}</span>
+                  <div>{addr.full_name || c.name || "Customer"}</div>
+                  {addr.address_line1 && <div>{addr.address_line1}</div>}
+                  {addr.address_line2 && <div>{addr.address_line2}</div>}
+                  {(addr.city || addr.state || addr.postal_code) && (
+                    <div>
+                      {[addr.city, addr.state].filter(Boolean).join(", ")}
+                      {addr.postal_code ? ` — ${addr.postal_code}` : ""}
+                    </div>
+                  )}
+                  {addr.country && <div>{addr.country}</div>}
+                  {(addr.phone_number || addr.phone || customerPhone) && (
+                    <div className="cd__address-phone">{addr.phone_number || addr.phone || customerPhone}</div>
+                  )}
                 </div>
               </div>
             ))}
@@ -319,207 +331,162 @@ const CustomerDetails = ({ customer, onBack }) => {
 
       {/* ── Order History ── */}
       <div className="cd__section">
-        <div className="cd__section-title">Order History</div>
-        <div className="cd__card cd__card--no-pad">
+        <div className="cd__card" style={{ padding: '24px 26px' }}>
+          <div className="cd__card-title" style={{ fontSize: '18px', fontWeight: '700', marginBottom: '22px' }}>
+            Order History
+          </div>
+
           {ordersLoading ? (
-            <>
-              <div className="cd__order-row skeleton-shimmer" style={{ height: '72px', opacity: 0.85 }} />
-              <div className="cd__order-row skeleton-shimmer" style={{ height: '72px', opacity: 0.85 }} />
-            </>
-          ) : orders.length > 0 ? (
-            orders.map((order, i) => {
-              const orderItems = order.order_items && order.order_items.length > 0
-                ? order.order_items
-                : [{
-                    product_id: order.product_id || null,
-                    product_name: order.item_name,
-                    quantity: order.quantity || 1,
-                    price: order.total_price || 0,
-                    size: null,
-                    color: null,
-                    image_url: null,
-                    sku: order.sku || null
-                  }];
-              
-              return (
-                <div 
-                  key={order.id} 
-                  className="cd__order-block" 
-                  style={{ 
-                    borderBottom: i < orders.length - 1 ? '1px solid var(--cd-border)' : 'none', 
-                    padding: '16px',
-                    display: 'flex',
-                    flexDirection: 'column',
-                    gap: '12px'
-                  }}
-                >
-                  {/* Order header information */}
-                  <div className="cd__order-header" style={{ display: 'flex', justifyContent: 'space-between', flexWrap: 'wrap', gap: '8px' }}>
-                    <div>
-                      <span style={{ fontWeight: '600', color: 'var(--cd-text-primary)', fontSize: '13.5px' }}>Order Ref: #{order.id?.slice(-8) || order.id}</span>
-                      <span style={{ color: '#aaa', margin: '0 8px' }}>·</span>
-                      <span style={{ fontSize: '12px', color: 'var(--cd-text-muted)' }}>
-                        {order.order_date ? new Date(order.order_date).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit" }) : "N/A"}
-                      </span>
-                    </div>
-                    <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
-                      <span style={{ fontSize: '13.5px', fontWeight: '600', color: 'var(--cd-text-primary)' }}>₹{Number(order.total_price).toLocaleString("en-IN")}</span>
-                      <span style={{ fontSize: '11px', color: '#888', background: '#f5f5f5', padding: '2px 6px', borderRadius: '4px' }}>{order.payment}</span>
-                      <StatusBadge status={order.status} />
-                    </div>
-                  </div>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+              <div className="skeleton-shimmer" style={{ height: '64px', borderRadius: '8px' }} />
+              <div className="skeleton-shimmer" style={{ height: '64px', borderRadius: '8px' }} />
+              <div className="skeleton-shimmer" style={{ height: '64px', borderRadius: '8px' }} />
+            </div>
+          ) : (
+            <div className="cd__order-history-list">
+              {(() => {
+                const allRows = orders.flatMap((order) => {
+                  const orderItems = order.order_items && order.order_items.length > 0
+                    ? order.order_items
+                    : [{
+                        product_id: order.product_id || null,
+                        product_name: order.item_name || "Order Item",
+                        quantity: order.quantity || 1,
+                        price: order.total_price || 0,
+                        sku: order.sku || null
+                      }];
 
-                  {/* Items inside this order */}
-                  <div className="cd__order-items" style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                    {orderItems.map((item, idx) => {
-                      const image = item.image_url || '/src/assets/cart/bangle1.webp';
-                      const isClickable = !!item.product_id;
-                      const resolvedSku =
-                        item.sku && item.sku !== 'N/A' && item.sku !== 'undefined' ? item.sku : null;
+                  const orderRef = order.order_number || (order.id ? (String(order.id).length > 8 ? order.id.slice(-8).toUpperCase() : order.id) : "N/A");
+                  const displayOrderId = String(orderRef).startsWith("#") ? orderRef : `#${orderRef}`;
 
-                      return (
-                        <div 
-                          key={idx} 
-                          className="cd__order-item-row" 
-                          onClick={() => isClickable && handleItemClick(item)}
+                  return orderItems.map((item, idx) => {
+                    const image = item.image_url || '/src/assets/cart/bangle1.webp';
+                    const skuVal = item.sku || order.sku || (item.product_id ? (String(item.product_id).length > 8 ? item.product_id.slice(-8).toUpperCase() : item.product_id) : null);
+                    const displaySku = skuVal ? (String(skuVal).startsWith("#") ? skuVal : `#${skuVal}`) : displayOrderId;
+
+                    return {
+                      order,
+                      item,
+                      key: `${order.id}-${idx}`,
+                      image,
+                      displayOrderId,
+                      displaySku
+                    };
+                  });
+                });
+
+                if (allRows.length === 0) {
+                  return (
+                    <div style={{ padding: '24px 0', textAlign: 'center', color: '#94a3b8', fontStyle: 'italic', fontSize: '13.5px' }}>
+                      No orders placed by this customer yet.
+                    </div>
+                  );
+                }
+
+                return allRows.map((row) => {
+                  const isClickable = !!row.item.product_id;
+
+                  return (
+                    <div
+                      key={row.key}
+                      className={`cd__order-history-row ${isClickable ? 'is-clickable' : ''}`}
+                      onClick={() => isClickable && handleItemClick(row.item)}
+                    >
+                      {/* Left: Product image + details */}
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '16px', minWidth: 0, flex: 1 }}>
+                        <div
                           style={{
+                            width: '60px',
+                            height: '60px',
+                            borderRadius: '6px',
+                            overflow: 'hidden',
+                            background: '#f9fafb',
+                            flexShrink: 0,
                             display: 'flex',
                             alignItems: 'center',
-                            gap: '12px',
-                            padding: '8px',
-                            borderRadius: '8px',
-                            cursor: isClickable ? 'pointer' : 'default',
-                            background: '#fafafa',
-                            border: '1px solid #f0f0f0',
-                            transition: 'background-color 0.2s ease',
+                            justifyContent: 'center',
                           }}
                         >
-                          <div className="cd__product-img" style={{ width: '40px', height: '40px', flexShrink: 0, overflow: 'hidden', display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#fff', border: '1px solid #ebebeb' }}>
-                            {image ? (
-                              <img src={image} alt={item.product_name} style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: '6px' }} />
-                            ) : (
-                              "✨"
-                            )}
+                          {row.image ? (
+                            <img
+                              src={row.image}
+                              alt={row.item.product_name}
+                              style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: '6px' }}
+                            />
+                          ) : (
+                            <span style={{ fontSize: '24px' }}>🛍️</span>
+                          )}
+                        </div>
+
+                        <div style={{ minWidth: 0, flex: 1 }}>
+                          <div
+                            style={{
+                              fontSize: '14.5px',
+                              fontWeight: '600',
+                              color: '#111827',
+                              marginBottom: '4px',
+                              lineHeight: '1.3',
+                              whiteSpace: 'nowrap',
+                              overflow: 'hidden',
+                              textOverflow: 'ellipsis',
+                            }}
+                          >
+                            {row.item.product_name}
                           </div>
-                          <div style={{ flex: 1, minWidth: 0 }}>
-                            <div style={{ fontSize: '12.5px', fontWeight: '500', display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
-                              <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{item.product_name}</span>
-                              {resolvedSku ? (
-                                <span
-                                  style={{
-                                    fontSize: '11px',
-                                    fontWeight: '600',
-                                    color: '#475569',
-                                    backgroundColor: '#f1f5f9',
-                                    padding: '1px 7px',
-                                    borderRadius: '4px',
-                                    border: '1px solid #e2e8f0',
-                                    letterSpacing: '0.3px',
-                                    display: 'inline-flex',
-                                    alignItems: 'center',
-                                    lineHeight: '1.4',
-                                    flexShrink: 0
-                                  }}
-                                >
-                                  SKU: {resolvedSku}
-                                </span>
-                              ) : (
-                                <span
-                                  style={{
-                                    fontSize: '11px',
-                                    fontWeight: '500',
-                                    color: '#94a3b8',
-                                    backgroundColor: '#f8fafc',
-                                    padding: '1px 7px',
-                                    borderRadius: '4px',
-                                    border: '1px solid #e2e8f0',
-                                    letterSpacing: '0.3px',
-                                    display: 'inline-flex',
-                                    alignItems: 'center',
-                                    lineHeight: '1.4',
-                                    flexShrink: 0
-                                  }}
-                                >
-                                  SKU: N/A
-                                </span>
-                              )}
-                              {isClickable && (
-                                <span style={{ fontSize: '10px', color: '#8b0030', fontWeight: 'normal', flexShrink: 0 }}>(View)</span>
-                              )}
-                            </div>
-                            <div style={{ fontSize: '11px', color: '#888', marginTop: '2px', display: 'flex', alignItems: 'center', gap: '5px', flexWrap: 'wrap' }}>
-                              <span>Qty: {item.quantity}</span>
-                              {item.size && (
-                                <>
-                                  <span>·</span>
-                                  <span>Size: {item.size}</span>
-                                </>
-                              )}
-                              {item.color && (
-                                <>
-                                  <span>·</span>
-                                  <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
-                                    Color:
-                                    <span
-                                      style={{
-                                        display: 'inline-block',
-                                        width: '9px',
-                                        height: '9px',
-                                        borderRadius: '50%',
-                                        backgroundColor: item.color,
-                                        border: '1px solid rgba(0,0,0,0.15)',
-                                        flexShrink: 0
-                                      }}
-                                    />
-                                    <span>{getColorName(item.color)}</span>
-                                  </span>
-                                </>
-                              )}
-                            </div>
+                          <div
+                            style={{
+                              fontSize: '12.5px',
+                              color: '#374151',
+                              marginBottom: '3px',
+                              lineHeight: '1.25',
+                              display: 'flex',
+                              alignItems: 'center',
+                              gap: '16px',
+                              flexWrap: 'wrap',
+                            }}
+                          >
+                            <span>Order ID : {row.displayOrderId}</span>
+                            <span>Qty :{row.item.quantity || 1}</span>
                           </div>
-                          <div style={{ fontSize: '12.5px', fontWeight: '600', color: 'var(--cd-text-primary)', textAlign: 'right' }}>
-                            ₹{Number(item.price || 0).toLocaleString('en-IN')}
+                          <div style={{ fontSize: '12.5px', color: '#374151', lineHeight: '1.25' }}>
+                            Product SKU : {row.displaySku}
                           </div>
                         </div>
-                      );
-                    })}
-                  </div>
-                </div>
-              );
-            })
-          ) : (
-            <div style={{ padding: '24px', textAlign: 'center', color: 'var(--cd-text-muted)', fontStyle: 'italic', fontSize: '13.5px' }}>
-              No order history found.
+                      </div>
+
+                      {/* Right: Price + Status Badge */}
+                      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '4px', flexShrink: 0 }}>
+                        <span style={{ fontSize: '15px', fontWeight: '600', color: '#111827', lineHeight: '1.2' }}>
+                          ₹{Number(row.item.price || row.order.total_price || 0).toLocaleString('en-IN')}
+                        </span>
+                        <span
+                          style={{
+                            display: 'inline-block',
+                            background: '#fef3c7',
+                            color: '#d97706',
+                            padding: '3px 12px',
+                            borderRadius: '12px',
+                            fontSize: '12px',
+                            fontWeight: '500'
+                          }}
+                        >
+                          {row.order.status || 'Pending'}
+                        </span>
+                      </div>
+                    </div>
+                  );
+                });
+              })()}
             </div>
           )}
         </div>
       </div>
 
 
-      {/* ── Recent Activity ── */}
-      <div className="cd__section">
-        <div className="cd__section-title">Recent activity</div>
-        <div className="cd__card">
-          {ordersLoading ? (
-            <div className="skeleton-shimmer" style={{ height: '80px', borderRadius: '6px' }} />
-          ) : recentActivity.length > 0 ? (
-            recentActivity.map((act, i) => (
-              <div key={i} className="cd__activity-row">
-                <span className="cd__activity-dot" style={{ background: act.color }} />
-                <span className="cd__activity-text">{act.text}</span>
-              </div>
-            ))
-          ) : (
-            <div style={{ color: 'var(--cd-text-muted)', fontStyle: 'italic', fontSize: '13.5px' }}>
-              No recent activity recorded.
-            </div>
-          )}
-        </div>
-      </div>
 
       {/* ── Account Controls ── */}
       <div className="cd__section">
-        <div className="cd__section-title">Account controls</div>
+        <div className="cd__section-title">Account Controls</div>
         <div className="cd__card cd__controls-card">
           <div className="cd__controls-warning">
             <span className="cd__warning-dot" />

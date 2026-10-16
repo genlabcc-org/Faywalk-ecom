@@ -12,15 +12,105 @@ import { getColorName } from "../../utils/colorUtils";
 import "./Orderdetails.css";
 
 const STATUS_CONFIG = {
-  "Order Placed": { bg: "#e0f2fe", color: "#0369a1", dot: "#0284c7" },
-  Delivered: { bg: "#dcfce7", color: "#16a34a", dot: "#22c55e" },
-  Shipped: { bg: "#fef9c3", color: "#a16207", dot: "#eab308" },
-  Pending: { bg: "#dbeafe", color: "#1d4ed8", dot: "#3b82f6" },
-  Cancelled: { bg: "#fee2e2", color: "#dc2626", dot: "#ef4444" },
-  Returned: { bg: "#fee2e2", color: "#dc2626", dot: "#ef4444" },
-  Confirmed: { bg: "#f3e8ff", color: "#7c3aed", dot: "#8b5cf6" },
-  "Refund Completed": { bg: "#ecfdf5", color: "#047857", dot: "#10b981" }
+  "Order Placed": { bg: "#E0F2FE", color: "#0284C7", border: "#BAE6FD", dot: "#0284C7" },
+  Delivered: { bg: "#DCFCE7", color: "#15803D", border: "#BBF7D0", dot: "#22C55E" },
+  Shipped: { bg: "#DBEAFE", color: "#1D4ED8", border: "#BFDBFE", dot: "#3B82F6" },
+  Pending: { bg: "#FEF9C3", color: "#A16207", border: "#FEF08A", dot: "#EAB308" },
+  "Pending Booking": { bg: "#FEF9C3", color: "#A16207", border: "#FEF08A", dot: "#EAB308" },
+  Cancelled: { bg: "#F1F5F9", color: "#64748B", border: "#E2E8F0", dot: "#94A3B8" },
+  Returned: { bg: "#FFE4E6", color: "#BE123C", border: "#FECDD3", dot: "#F43F5E" },
+  Confirmed: { bg: "#EDE9FE", color: "#6D28D9", border: "#DDD6FE", dot: "#8B5CF6" },
+  Booked: { bg: "#EDE9FE", color: "#6D28D9", border: "#DDD6FE", dot: "#8B5CF6" },
+  "Refund Completed": { bg: "#ECFDF5", color: "#047857", border: "#A7F3D0", dot: "#10B981" }
 };
+
+/* ── SVG Icons (No Emojis) ── */
+const IconSync = ({ size = 14, className = "" }) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" className={className}>
+    <path d="M21.5 2v6h-6M2.5 22v-6h6M2 11.5a10 10 0 0 1 18.8-4.3M22 12.5a10 10 0 0 1-18.8 4.2" />
+  </svg>
+);
+
+const IconEye = ({ size = 14, className = "" }) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}>
+    <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" />
+    <circle cx="12" cy="12" r="3" />
+  </svg>
+);
+
+const IconPrinter = ({ size = 14, className = "" }) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}>
+    <polyline points="6 9 6 2 18 2 18 9" />
+    <path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2" />
+    <rect x="6" y="14" width="12" height="8" rx="1" />
+  </svg>
+);
+
+const IconTag = ({ size = 13, className = "" }) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}>
+    <path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z" />
+    <line x1="7" y1="7" x2="7.01" y2="7" />
+  </svg>
+);
+
+const IconCalendar = ({ size = 13, className = "" }) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}>
+    <rect x="3" y="4" width="18" height="18" rx="2" ry="2" />
+    <line x1="16" y1="2" x2="16" y2="6" />
+    <line x1="8" y1="2" x2="8" y2="6" />
+    <line x1="3" y1="10" x2="21" y2="10" />
+  </svg>
+);
+
+const IconPin = ({ size = 13, className = "" }) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}>
+    <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z" />
+    <circle cx="12" cy="10" r="3" />
+  </svg>
+);
+
+const IconPhone = ({ size = 13, className = "" }) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}>
+    <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z" />
+  </svg>
+);
+
+const IconAlertTriangle = ({ size = 14, className = "" }) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}>
+    <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z" />
+    <line x1="12" y1="9" x2="12" y2="13" />
+    <line x1="12" y1="17" x2="12.01" y2="17" />
+  </svg>
+);
+
+const IconCross = ({ size = 14, className = "" }) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className={className}>
+    <line x1="18" y1="6" x2="6" y2="18" />
+    <line x1="6" y1="6" x2="18" y2="18" />
+  </svg>
+);
+
+const IconCheck = ({ size = 13, className = "" }) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className={className}>
+    <polyline points="20 6 9 17 4 12" />
+  </svg>
+);
+
+const IconExternalLink = ({ size = 12, className = "" }) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}>
+    <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6" />
+    <polyline points="15 3 21 3 21 9" />
+    <line x1="10" y1="14" x2="21" y2="3" />
+  </svg>
+);
+
+const IconPackage = ({ size = 20, className = "" }) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="#94a3b8" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" className={className}>
+    <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z" />
+    <polyline points="3.29 7 12 12 20.71 7" />
+    <line x1="12" y1="22" x2="12" y2="12" />
+  </svg>
+);
 
 const StatusBadge = ({ status }) => {
   const normStatus = Object.keys(STATUS_CONFIG).find(
@@ -28,7 +118,14 @@ const StatusBadge = ({ status }) => {
   );
   const cfg = STATUS_CONFIG[normStatus] || STATUS_CONFIG[status] || STATUS_CONFIG.Pending;
   return (
-    <span className="od__status-badge" style={{ backgroundColor: cfg.bg, color: cfg.color }}>
+    <span
+      className="od__status-badge"
+      style={{
+        backgroundColor: cfg.bg,
+        color: cfg.color,
+        border: `1px solid ${cfg.border || 'transparent'}`
+      }}
+    >
       <span className="od__status-dot" style={{ backgroundColor: cfg.dot }} />
       {status}
     </span>
@@ -49,6 +146,7 @@ const OrderDetails = ({ order, onBack }) => {
   const [retryingBooking, setRetryingBooking] = useState(false);
   const [loadingLabel, setLoadingLabel] = useState(false);
   const [cancellingShipment, setCancellingShipment] = useState(false);
+  const [trackingLoading, setTrackingLoading] = useState(false);
   const invoiceRef = useRef(null);
 
   const setSelectedProduct = useStore(state => state.setSelectedProduct);
@@ -293,8 +391,58 @@ const OrderDetails = ({ order, onBack }) => {
     }
   };
 
+  const handleRefreshTracking = async () => {
+    if (!o?.id) return;
+    try {
+      setTrackingLoading(true);
+      const res = await icarryService.track(o.id);
+      if (res && res.error) {
+        showToast("iCarry tracking note: " + res.error, "info");
+      } else {
+        const newStatus =
+          res?.shipment_status ||
+          res?.current_status ||
+          res?.delivery_status ||
+          res?.status ||
+          res?.tracking_status;
+
+        if (newStatus) {
+          try {
+            const updates = {
+              delivery_status: String(newStatus),
+            };
+            const sLower = String(newStatus).toLowerCase();
+            if (sLower.includes("cancel") || sLower === "voided" || sLower === "7" || sLower === "16") {
+              updates.status = "Cancelled";
+              updates.delivery_status = "Cancelled";
+            } else if (sLower === "delivered" || sLower === "21") {
+              updates.status = "Delivered";
+              updates.delivery_status = "Delivered";
+              updates.delivered_at = new Date().toISOString();
+            } else if (sLower === "shipped" || sLower === "3") {
+              updates.status = "Shipped";
+              updates.delivery_status = "Shipped";
+            }
+            await supabase
+              .from("orders")
+              .update(updates)
+              .eq("id", o.id);
+          } catch (dbErr) {
+            console.warn("Could not save tracking status in DB:", dbErr);
+          }
+        }
+        showToast("iCarry shipment status synced successfully!", "success");
+        await fetchFreshOrder();
+      }
+    } catch (err) {
+      showToast("iCarry sync: " + (err.message || "Failed contacting iCarry"), "warning");
+    } finally {
+      setTrackingLoading(false);
+    }
+  };
+
   const orderItems = (o.order_items && o.order_items.length > 0) ? o.order_items : [{
-    product_name: o.item_name,
+    product_name: o.item_name || "Product",
     quantity: o.quantity || 1,
     price: o.total_price || 0,
     size: null,
@@ -304,7 +452,35 @@ const OrderDetails = ({ order, onBack }) => {
   }];
 
   const uniqueProducts = orderItems.length;
-  const totalCount = orderItems.reduce((sum, item) => sum + (item.quantity || 1), 0);
+  const totalCount = orderItems.reduce((sum, item) => sum + (Number(item.quantity || item.qty || 1)), 0);
+
+  // Real items subtotal calculated from individual line items
+  const calculatedItemsSubtotal = orderItems.reduce(
+    (sum, item) => sum + (Number(item.price || 0) * Number(item.quantity || item.qty || 1)),
+    0
+  );
+
+  const grandTotal = Number(o.total_price || 0);
+
+  // Stored shipping / delivery fee on the order
+  const storedShippingFee =
+    o.shipping_fee !== undefined && o.shipping_fee !== null ? Number(o.shipping_fee) :
+      o.shippingFee !== undefined && o.shippingFee !== null ? Number(o.shippingFee) :
+        o.delivery_charge !== undefined && o.delivery_charge !== null ? Number(o.delivery_charge) :
+          o.shipping_charge !== undefined && o.shipping_charge !== null ? Number(o.shipping_charge) :
+            null;
+
+  // Actual delivery fee
+  const deliveryFee = storedShippingFee !== null && !isNaN(storedShippingFee)
+    ? storedShippingFee
+    : (grandTotal > calculatedItemsSubtotal && calculatedItemsSubtotal > 0
+      ? grandTotal - calculatedItemsSubtotal
+      : 0);
+
+  // Items Subtotal: if items had valid prices use that, otherwise grandTotal - deliveryFee
+  const itemsSubtotal = calculatedItemsSubtotal > 0 && calculatedItemsSubtotal !== grandTotal
+    ? calculatedItemsSubtotal
+    : (deliveryFee > 0 ? Math.max(0, grandTotal - deliveryFee) : grandTotal);
 
   // Dynamic order timeline based strictly on database status (only completed in green, real-time sync)
   const getTimelineSteps = () => {
@@ -476,69 +652,125 @@ const OrderDetails = ({ order, onBack }) => {
 
   const timelineSteps = getTimelineSteps();
 
+  const orderShortId = o.order_number || (o.id ? (String(o.id).length > 8 ? String(o.id).slice(-8).toUpperCase() : o.id) : "N/A");
+
   return (
     <div className="od">
       {/* Header */}
       <div className="od__header">
-        <button className="od__back-btn" onClick={onBack}>
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-            <polyline points="15 18 9 12 15 6" />
-          </svg>
-          Order Details
-        </button>
-        <div className="od__header-row">
-          <h1 className="od__title">Order Details</h1>
-          <StatusBadge status={isOrderCancelled ? "Cancelled" : o.status} />
+        <div className="od__header-main">
+          <div className="od__title-block">
+            <div className="od__title">Order #{orderShortId}</div>
+            <StatusBadge status={isOrderCancelled ? "Cancelled" : (o.delivery_status || o.status)} />
+          </div>
+
+          <div className="od__header-actions">
+            {(o.waybill || o.shipment_id || o.icarry_awb || o.icarry_shipment_id) && (
+              <button
+                onClick={handleRefreshTracking}
+                disabled={trackingLoading}
+                className="od__btn-sync admin-btn-with-spinner"
+                title="Sync live tracking update directly from iCarry"
+              >
+                {trackingLoading ? (
+                  <>
+                    <span className="admin-btn-spinner admin-btn-spinner--dark" /> Syncing iCarry...
+                  </>
+                ) : (
+                  <>
+                    <IconSync /> Sync iCarry
+                  </>
+                )}
+              </button>
+            )}
+            <button
+              className="od__btn-secondary"
+              onClick={() => setShowInvoiceModal(true)}
+            >
+              <IconEye /> Preview Invoice
+            </button>
+            <button
+              onClick={handlePrintInvoice}
+              disabled={printing}
+              className="od__btn-primary admin-btn-with-spinner"
+            >
+              {printing ? (
+                <>
+                  <span className="admin-btn-spinner" /> Printing...
+                </>
+              ) : invoicePrinted ? (
+                <><IconCheck /> Print Again (Printed)</>
+              ) : (
+                <><IconPrinter /> Print Invoice</>
+              )}
+            </button>
+          </div>
         </div>
-        <p className="od__date-placed">Placed on {o.order_date ? new Date(o.order_date).toLocaleString("en-GB", { day: "numeric", month: "long", year: "numeric", hour: "2-digit", minute: "2-digit" }) : "N/A"}</p>
+        <p className="od__date-placed">
+          <IconCalendar /> Placed on {o.order_date ? new Date(o.order_date).toLocaleString("en-GB", { day: "numeric", month: "long", year: "numeric", hour: "2-digit", minute: "2-digit" }) : "N/A"}
+        </p>
       </div>
 
       {/* Top two-column: Customer + Shipping */}
       <div className="od__top-grid">
         {/* Customer Details */}
         <div className="od__card">
-          <div className="od__card-title">Customer details</div>
+          <div className="od__card-title">Customer Details</div>
           <div className="od__info-grid">
-            <span className="od__info-label">Name</span>
-            <span className="od__info-value">{o.customer?.name || "Unknown"}</span>
+            <span className="od__info-label">Customer Name</span>
+            <span className="od__info-value">{o.customer?.name || "Unknown Customer"}</span>
             <span className="od__info-label">Phone</span>
             <span className="od__info-value">{o.customer?.phone || "N/A"}</span>
             <span className="od__info-label">Email</span>
             <span className="od__info-value od__info-value--wrap">{o.customer?.email || "N/A"}</span>
-            <span className="od__info-label">Joined</span>
+            <span className="od__info-label">Customer Since</span>
             <span className="od__info-value">
               {o.customer?.created_at ? new Date(o.customer.created_at).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" }) : "N/A"}
             </span>
-            <span className="od__info-label">Total products</span>
+            <span className="od__info-label">Total Products</span>
             <span className="od__info-value">{uniqueProducts} ({totalCount} {totalCount === 1 ? "item" : "items"})</span>
           </div>
         </div>
 
         {/* Shipping Address */}
         <div className="od__card">
-          <div className="od__card-title">Shipping Address</div>
+          <div className="od__card-title">
+            <span>Shipping Address</span>
+            <span className="od__address-badge"><IconPin /> Destination</span>
+          </div>
           {addressLoading ? (
-            <div className="skeleton-shimmer" style={{ width: '100%', height: '80px', borderRadius: '6px' }} />
+            <div className="skeleton-shimmer" style={{ width: '100%', height: '80px', borderRadius: '8px' }} />
           ) : address ? (
             <>
-              <div className="od__address-name" style={{ fontWeight: '600', marginBottom: '8px' }}>{address.full_name}</div>
-              <div className="od__address-lines" style={{ color: '#555', fontSize: '13.5px', lineHeight: '1.5' }}>
+              <div className="od__address-name">{address.full_name || o.customer?.name}</div>
+              <div className="od__address-lines">
                 <div>{address.address_line1}</div>
                 {address.address_line2 && <div>{address.address_line2}</div>}
                 <div>{address.city}, {address.state} — {address.postal_code}</div>
-                <div>{address.country}</div>
-                <div style={{ marginTop: '8px', fontWeight: '500' }}>Phone: {address.phone_number}</div>
+                <div>{address.country || "India"}</div>
+                {(address.phone_number || o.customer?.phone) && (
+                  <div className="od__address-phone">
+                    <IconPhone /> Phone: {address.phone_number || o.customer?.phone}
+                  </div>
+                )}
               </div>
             </>
           ) : (
-            <div style={{ color: '#888', fontSize: '13.5px', fontStyle: 'italic' }}>No shipping address provided or found.</div>
+            <div style={{ color: '#888', fontSize: '13.5px', fontStyle: 'italic', padding: '12px 0' }}>
+              No shipping address provided or found.
+            </div>
           )}
         </div>
       </div>
 
       {/* Order Details */}
       <div className="od__card od__card--section">
-        <div className="od__card-title">Order Details</div>
+        <div className="od__card-title">
+          <span>Ordered Items ({totalCount})</span>
+          <span style={{ fontSize: '12.5px', color: '#64748b', fontWeight: '500' }}>
+            {uniqueProducts} unique {uniqueProducts === 1 ? 'product' : 'products'}
+          </span>
+        </div>
         <div className="od__items-list">
           {orderItems.map((item, idx) => {
             const image = item.image_url || '/src/assets/cart/bangle1.webp';
@@ -560,7 +792,7 @@ const OrderDetails = ({ order, onBack }) => {
                       style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: '8px' }}
                     />
                   ) : (
-                    "✨"
+                    <IconPackage size={22} />
                   )}
                 </div>
                 <div className="od__item-info">
@@ -569,40 +801,12 @@ const OrderDetails = ({ order, onBack }) => {
                     {resolvedSku ? (
                       <span
                         className="od__item-sku-tag"
-                        style={{
-                          fontSize: '11px',
-                          fontWeight: '600',
-                          color: '#475569',
-                          backgroundColor: '#f1f5f9',
-                          padding: '1px 7px',
-                          borderRadius: '4px',
-                          border: '1px solid #e2e8f0',
-                          letterSpacing: '0.3px',
-                          display: 'inline-flex',
-                          alignItems: 'center',
-                          lineHeight: '1.4',
-                          flexShrink: 0
-                        }}
                       >
                         SKU: {resolvedSku}
                       </span>
                     ) : (
                       <span
                         className="od__item-sku-tag"
-                        style={{
-                          fontSize: '11px',
-                          fontWeight: '500',
-                          color: '#94a3b8',
-                          backgroundColor: '#f8fafc',
-                          padding: '1px 7px',
-                          borderRadius: '4px',
-                          border: '1px solid #e2e8f0',
-                          letterSpacing: '0.3px',
-                          display: 'inline-flex',
-                          alignItems: 'center',
-                          lineHeight: '1.4',
-                          flexShrink: 0
-                        }}
                       >
                         SKU: N/A
                       </span>
@@ -652,18 +856,103 @@ const OrderDetails = ({ order, onBack }) => {
             );
           })}
         </div>
+
+        {/* Order Summary */}
+        <div className="od__summary-card">
+          <div className="od__summary-row">
+            <span>Items Subtotal ({totalCount} {totalCount === 1 ? 'item' : 'items'})</span>
+            <span style={{ fontWeight: '600', color: '#0f172a' }}>
+              ₹{itemsSubtotal.toLocaleString('en-IN')}
+            </span>
+          </div>
+          <div className="od__summary-row">
+            <span>Shipping & Delivery</span>
+            {deliveryFee > 0 ? (
+              <span style={{ fontWeight: '600', color: '#0f172a' }}>
+                ₹{deliveryFee.toLocaleString('en-IN')}
+              </span>
+            ) : (
+              <span style={{ color: '#16a34a', fontWeight: '600' }}>Free</span>
+            )}
+          </div>
+          <div className="od__summary-row od__summary-row--total">
+            <span>Total Amount</span>
+            <span className="od__summary-total-val">
+              ₹{grandTotal.toLocaleString('en-IN')}
+            </span>
+          </div>
+        </div>
       </div>
 
       {/* Payment + Update Status */}
       <div className="od__mid-grid">
         {/* Payment Details */}
         <div className="od__card">
-          <div className="od__card-title">Payment Details</div>
+          <div className="od__card-title">
+            <span>Payment Details</span>
+            <span
+              style={{
+                fontSize: '11.5px',
+                padding: '2px 8px',
+                borderRadius: '12px',
+                fontWeight: '600',
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '4px',
+                backgroundColor: (o.payment || '').toUpperCase() === 'PAID' || o.payment_id || o.razorpay_payment_id ? '#dcfce7' : '#fef3c7',
+                color: (o.payment || '').toUpperCase() === 'PAID' || o.payment_id || o.razorpay_payment_id ? '#15803d' : '#b45309',
+                border: `1px solid ${(o.payment || '').toUpperCase() === 'PAID' || o.payment_id || o.razorpay_payment_id ? '#bbf7d0' : '#fde68a'}`
+              }}
+            >
+              {(o.payment || '').toUpperCase() === 'PAID' || o.payment_id || o.razorpay_payment_id ? (
+                <>
+                  <IconCheck size={11} /> PAID
+                </>
+              ) : (
+                'PENDING'
+              )}
+            </span>
+          </div>
           <div className="od__info-grid">
-            <span className="od__info-label">Method</span>
-            <span className="od__info-value">{o.payment}</span>
+            <span className="od__info-label">Payment Method</span>
+            <span className="od__info-value">
+              <span
+                style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '5px',
+                  padding: '2px 8px',
+                  borderRadius: '6px',
+                  fontSize: '12px',
+                  fontWeight: '600',
+                  backgroundColor: (o.payment || '').toLowerCase().includes('razorpay') || o.payment_id ? '#eff6ff' : '#f8fafc',
+                  color: (o.payment || '').toLowerCase().includes('razorpay') || o.payment_id ? '#1d4ed8' : '#334155',
+                  border: `1px solid ${(o.payment || '').toLowerCase().includes('razorpay') || o.payment_id ? '#bfdbfe' : '#e2e8f0'}`
+                }}
+              >
+                {o.payment || "Online Payment"}
+              </span>
+            </span>
             <span className="od__info-label">Total Amount</span>
-            <span className="od__info-value" style={{ fontWeight: '600' }}>₹{Number(o.total_price || 0).toLocaleString('en-IN')}</span>
+            <span className="od__info-value" style={{ fontWeight: '700', fontSize: '16px', color: '#0f172a' }}>
+              ₹{Number(o.total_price || 0).toLocaleString('en-IN')}
+            </span>
+            {(o.razorpay_payment_id || o.payment_id) && (
+              <>
+                <span className="od__info-label">Payment ID</span>
+                <span className="od__info-value od__info-value--wrap" style={{ fontFamily: 'monospace', fontSize: '12px', color: '#475569' }}>
+                  {o.razorpay_payment_id || o.payment_id}
+                </span>
+              </>
+            )}
+            {(o.razorpay_order_id) && (
+              <>
+                <span className="od__info-label">Order Ref</span>
+                <span className="od__info-value od__info-value--wrap" style={{ fontFamily: 'monospace', fontSize: '12px', color: '#475569' }}>
+                  {o.razorpay_order_id}
+                </span>
+              </>
+            )}
           </div>
         </div>
 
@@ -672,23 +961,23 @@ const OrderDetails = ({ order, onBack }) => {
           <div className="od__card-title">Logistics & Delivery</div>
           <div className="od__info-grid">
             <span className="od__info-label">Carrier</span>
-            <span className="od__info-value">{o.courier_name || o.delivery_provider || "iCarry"}</span>
-            <span className="od__info-label">Status</span>
+            <span className="od__info-value">{o.icarry_courier_name || o.courier_name || o.delivery_provider || "iCarry"}</span>
+            <span className="od__info-label">iCarry Status</span>
             <span
               className="od__info-value"
               style={{
                 fontWeight: '600',
                 color:
-                  o.delivery_status === 'Booked' || o.delivery_status === 'Delivered'
+                  (o.icarry_status || o.delivery_status) === 'Booked' || (o.icarry_status || o.delivery_status) === 'Delivered'
                     ? '#16a34a'
-                    : o.delivery_status === 'Booking Failed' || o.delivery_status === 'Cancelled'
+                    : (o.icarry_status || o.delivery_status) === 'Booking Failed' || (o.icarry_status || o.delivery_status) === 'Cancelled'
                       ? '#dc2626'
-                      : o.delivery_status?.toUpperCase()?.startsWith('NDR')
+                      : (o.icarry_status || o.delivery_status)?.toUpperCase()?.startsWith('NDR')
                         ? '#ea580c'
                         : '#d97706'
               }}
             >
-              {o.delivery_status || "Pending Booking"}
+              {o.icarry_status || o.delivery_status || (o.waybill || o.icarry_awb ? "Booked" : "Pending Booking")}
             </span>
             {o.waybill && (
               <>
@@ -699,9 +988,9 @@ const OrderDetails = ({ order, onBack }) => {
                       href={o.tracking_url}
                       target="_blank"
                       rel="noopener noreferrer"
-                      style={{ color: '#8b0030', textDecoration: 'underline', fontWeight: '600' }}
+                      style={{ color: '#8b0030', textDecoration: 'underline', fontWeight: '600', display: 'inline-flex', alignItems: 'center', gap: '4px' }}
                     >
-                      {o.waybill} ↗
+                      {o.waybill} <IconExternalLink />
                     </a>
                   ) : (
                     <span>{o.waybill}</span>
@@ -719,7 +1008,7 @@ const OrderDetails = ({ order, onBack }) => {
                     rel="noopener noreferrer"
                     style={{ color: '#C42049', textDecoration: 'none', fontWeight: '600', display: 'inline-flex', alignItems: 'center', gap: '4px' }}
                   >
-                    Track Package ↗
+                    Track Package <IconExternalLink />
                   </a>
                 </span>
               </>
@@ -750,14 +1039,14 @@ const OrderDetails = ({ order, onBack }) => {
 
           {o.delivery_status?.toUpperCase()?.startsWith('NDR') && (
             <div style={{ marginTop: '12px', padding: '9px 12px', background: '#fffbeb', border: '1px solid #fde68a', borderRadius: '6px', color: '#92400e', fontSize: '12.5px', display: 'flex', alignItems: 'center', gap: '8px' }}>
-              <span>⚠️</span>
+              <IconAlertTriangle size={15} />
               <span><strong>Delivery Exception (NDR):</strong> The carrier reported: <em>{o.delivery_status}</em>. Please review or coordinate with the customer.</span>
             </div>
           )}
 
           {o.delivery_status === 'Cancelled' && (
             <div style={{ marginTop: '12px', padding: '9px 12px', background: '#fef2f2', border: '1px solid #fecaca', borderRadius: '6px', color: '#b91c1c', fontSize: '12.5px', display: 'flex', alignItems: 'center', gap: '8px' }}>
-              <span>✕</span>
+              <IconCross size={15} />
               <span><strong>Shipment Cancelled:</strong> The shipping order has been cancelled with the carrier.</span>
             </div>
           )}
@@ -777,7 +1066,10 @@ const OrderDetails = ({ order, onBack }) => {
                   padding: '7px 14px',
                   fontSize: '12.5px',
                   fontWeight: '600',
-                  cursor: retryingBooking ? 'not-allowed' : 'pointer'
+                  cursor: retryingBooking ? 'not-allowed' : 'pointer',
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '5px'
                 }}
               >
                 {retryingBooking ? (
@@ -785,66 +1077,100 @@ const OrderDetails = ({ order, onBack }) => {
                     <span className="admin-btn-spinner" /> Retrying Booking...
                   </>
                 ) : (
-                  '🔄 Retry Booking'
+                  <>
+                    <IconSync size={13} /> Retry Booking
+                  </>
                 )}
               </button>
             )}
 
             {o.waybill && o.delivery_status !== 'Cancelled' && (
-              <>
-                <button
-                  onClick={handlePrintLabel}
-                  disabled={loadingLabel}
-                  className="admin-btn-with-spinner"
-                  style={{
-                    backgroundColor: '#eff6ff',
-                    color: 'var(--admin-primary, #002277)',
-                    border: 'none',
-                    borderRadius: '8px',
-                    padding: '8px 16px',
-                    fontSize: '12.5px',
-                    fontWeight: '600',
-                    cursor: loadingLabel ? 'not-allowed' : 'pointer',
-                    display: 'inline-flex',
-                    alignItems: 'center',
-                    gap: '4px'
-                  }}
-                >
-                  {loadingLabel ? (
-                    <>
-                      <span className="admin-btn-spinner admin-btn-spinner--dark" /> Loading Label...
-                    </>
-                  ) : (
-                    '🏷️ Print Label'
-                  )}
-                </button>
-
-                {!isDelivered && !isOrderCancelled && (
-                  <button
-                    onClick={handleCancelShipment}
-                    disabled={cancellingShipment}
-                    className="admin-btn-with-spinner"
-                    style={{
-                      backgroundColor: '#fff',
-                      color: '#dc2626',
-                      border: '1px solid #fca5a5',
-                      borderRadius: '6px',
-                      padding: '7px 14px',
-                      fontSize: '12.5px',
-                      fontWeight: '600',
-                      cursor: cancellingShipment ? 'not-allowed' : 'pointer'
-                    }}
-                  >
-                    {cancellingShipment ? (
-                      <>
-                        <span className="admin-btn-spinner admin-btn-spinner--dark" /> Cancelling...
-                      </>
-                    ) : (
-                      'Cancel Shipment'
-                    )}
-                  </button>
+              <button
+                onClick={handlePrintLabel}
+                disabled={loadingLabel}
+                className="admin-btn-with-spinner"
+                style={{
+                  backgroundColor: '#eff6ff',
+                  color: 'var(--admin-primary, #002277)',
+                  border: 'none',
+                  borderRadius: '8px',
+                  padding: '8px 16px',
+                  fontSize: '12.5px',
+                  fontWeight: '600',
+                  cursor: loadingLabel ? 'not-allowed' : 'pointer',
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '5px'
+                }}
+              >
+                {loadingLabel ? (
+                  <>
+                    <span className="admin-btn-spinner admin-btn-spinner--dark" /> Loading Label...
+                  </>
+                ) : (
+                  <>
+                    <IconTag size={13} /> Print Label
+                  </>
                 )}
-              </>
+              </button>
+            )}
+
+            {(o.waybill || o.shipment_id || o.icarry_awb || o.icarry_shipment_id) && (
+              <button
+                onClick={handleRefreshTracking}
+                disabled={trackingLoading}
+                className="admin-btn-with-spinner"
+                style={{
+                  backgroundColor: '#f8fafc',
+                  color: '#1d4ed8',
+                  border: '1px solid #bfdbfe',
+                  borderRadius: '8px',
+                  padding: '8px 16px',
+                  fontSize: '12.5px',
+                  fontWeight: '600',
+                  cursor: trackingLoading ? 'not-allowed' : 'pointer',
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '5px'
+                }}
+                title="Check live delivery tracking update directly from iCarry"
+              >
+                {trackingLoading ? (
+                  <>
+                    <span className="admin-btn-spinner admin-btn-spinner--dark" /> Syncing iCarry...
+                  </>
+                ) : (
+                  <>
+                    <IconSync size={13} /> Sync iCarry
+                  </>
+                )}
+              </button>
+            )}
+
+            {!isDelivered && !isOrderCancelled && (
+              <button
+                onClick={handleCancelShipment}
+                disabled={cancellingShipment}
+                className="admin-btn-with-spinner"
+                style={{
+                  backgroundColor: '#fff',
+                  color: '#dc2626',
+                  border: '1px solid #fca5a5',
+                  borderRadius: '6px',
+                  padding: '7px 14px',
+                  fontSize: '12.5px',
+                  fontWeight: '600',
+                  cursor: cancellingShipment ? 'not-allowed' : 'pointer'
+                }}
+              >
+                {cancellingShipment ? (
+                  <>
+                    <span className="admin-btn-spinner admin-btn-spinner--dark" /> Cancelling...
+                  </>
+                ) : (
+                  'Cancel Shipment'
+                )}
+              </button>
             )}
           </div>
         </div>
@@ -873,22 +1199,11 @@ const OrderDetails = ({ order, onBack }) => {
                   className={`od__tl-circle ${isCancelled ? "od__tl-circle--cancelled" : isDone ? "od__tl-circle--done" : ""} ${isWarning ? "od__tl-circle--warning" : ""}`}
                 >
                   {isCancelled ? (
-                    <span style={{ fontSize: "14px", fontWeight: "900", color: "#ffffff" }}>✕</span>
+                    <IconCross size={14} />
                   ) : isWarning ? (
-                    <span style={{ fontSize: "14px" }}>⚠️</span>
+                    <IconAlertTriangle size={14} />
                   ) : isDone ? (
-                    <svg
-                      width="14"
-                      height="14"
-                      viewBox="0 0 24 24"
-                      fill="none"
-                      stroke="#fff"
-                      strokeWidth="3"
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                    >
-                      <polyline points="20 6 9 17 4 12" />
-                    </svg>
+                    <IconCheck size={14} />
                   ) : (
                     <span className="od__tl-num">{String(i + 1).padStart(2, "0")}</span>
                   )}
@@ -957,54 +1272,26 @@ const OrderDetails = ({ order, onBack }) => {
       </div> */}
 
       {/* Footer Actions */}
-      <div className="od__footer" style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px', marginTop: '20px' }}>
-        <button className="od__cancel-btn" onClick={onBack} style={{ background: '#f8f9fa', border: 'none', borderRadius: '8px', padding: '10px 20px', cursor: 'pointer', fontWeight: '600', color: '#374151' }}>Close</button>
+      <div className="od__footer">
         <button
+          className="od__btn-secondary"
           onClick={() => setShowInvoiceModal(true)}
-          style={{
-            backgroundColor: '#eff6ff',
-            color: 'var(--admin-primary, #002277)',
-            border: 'none',
-            borderRadius: '8px',
-            padding: '10px 18px',
-            cursor: 'pointer',
-            fontWeight: '600',
-            fontSize: '13px',
-            display: 'flex',
-            alignItems: 'center',
-            gap: '6px'
-          }}
         >
-          <span>👁️</span> Preview Invoice
+          <IconEye /> Preview Invoice
         </button>
         <button
           onClick={handlePrintInvoice}
           disabled={printing}
-          className="admin-btn-with-spinner"
-          style={{
-            backgroundColor: invoicePrinted ? '#eff6ff' : 'var(--admin-primary, #002277)',
-            color: invoicePrinted ? 'var(--admin-primary, #002277)' : '#fff',
-            border: 'none',
-            borderRadius: '8px',
-            padding: '10px 20px',
-            cursor: printing ? 'not-allowed' : 'pointer',
-            fontWeight: '600',
-            fontSize: '13px',
-            display: 'flex',
-            alignItems: 'center',
-            gap: '6px',
-            opacity: printing ? 0.7 : 1,
-            transition: 'all 0.2s'
-          }}
+          className="od__btn-primary admin-btn-with-spinner"
         >
           {printing ? (
             <>
               <span className="admin-btn-spinner" /> Printing...
             </>
           ) : invoicePrinted ? (
-            <><span>🖨️</span> Print Again (Printed ✓)</>
+            <><IconCheck /> Print Again (Printed)</>
           ) : (
-            <><span>🖨️</span> Print Invoice</>
+            <><IconPrinter /> Print Invoice</>
           )}
         </button>
       </div>
@@ -1025,7 +1312,7 @@ const OrderDetails = ({ order, onBack }) => {
                 onClick={() => setShowInvoiceModal(false)}
                 aria-label="Close invoice preview"
               >
-                ✕
+                <IconCross size={16} />
               </button>
             </div>
 
@@ -1049,11 +1336,11 @@ const OrderDetails = ({ order, onBack }) => {
               >
                 {printing ? (
                   <>
-                    <span className="inv__spin">⏳</span> Printing...
+                    <span className="admin-btn-spinner" /> Printing...
                   </>
                 ) : (
                   <>
-                    <span>🖨️</span> {invoicePrinted ? "Print Again" : "Print Invoice"}
+                    <IconPrinter size={14} /> {invoicePrinted ? "Print Again" : "Print Invoice"}
                   </>
                 )}
               </button>

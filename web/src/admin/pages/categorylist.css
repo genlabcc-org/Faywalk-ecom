@@ -1,0 +1,345 @@
+/* ── Category List Page ── */
+.cat-page {
+  padding: 24px 32px 60px;
+  background: #ffffff;
+  min-height: 100vh;
+  font-family: var(--admin-font, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif);
+}
+
+/* ── Top Bar ── */
+.cat-topbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 24px;
+  flex-wrap: wrap;
+}
+
+.cat-topbar-left {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.cat-search-wrap {
+  position: relative;
+  width: 260px;
+}
+
+.cat-search-icon {
+  position: absolute;
+  left: 11px;
+  top: 50%;
+  transform: translateY(-50%);
+  pointer-events: none;
+  color: #9ca3af;
+}
+
+.cat-search-input {
+  width: 100%;
+  height: 38px;
+  padding: 0 14px 0 34px;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  font-size: 13px;
+  color: #1f2937;
+  outline: none;
+  background: #fff;
+  transition: border-color 0.15s ease;
+  box-sizing: border-box;
+}
+
+.cat-search-input:focus {
+  border-color: var(--admin-primary, #002277);
+}
+
+.cat-add-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 38px;
+  padding: 0 18px;
+  background: var(--admin-primary, #002277);
+  color: #ffffff;
+  border: none;
+  border-radius: 8px;
+  font-size: 13.5px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: opacity 0.15s ease;
+}
+
+.cat-add-btn:hover {
+  opacity: 0.92;
+}
+
+/* ── Section ── */
+.cat-section {
+  margin-bottom: 36px;
+}
+
+.cat-section-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 16px;
+}
+
+.cat-section-title {
+  font-size: 22px;
+  font-weight: 700;
+  color: #111827;
+  margin: 0;
+  letter-spacing: -0.3px;
+}
+
+.cat-section-add-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  background: transparent;
+  border: 1px dashed #d1d5db;
+  color: #4b5563;
+  padding: 6px 14px;
+  border-radius: 6px;
+  font-size: 12.5px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.cat-section-add-btn:hover {
+  border-color: var(--admin-primary, #002277);
+  color: var(--admin-primary, #002277);
+  background: #f8fafc;
+}
+
+/* ── Card Grid ── */
+.cat-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 20px;
+}
+
+@media (min-width: 1400px) {
+  .cat-grid {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 1024px) {
+  .cat-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 16px;
+  }
+}
+
+@media (max-width: 600px) {
+  .cat-grid {
+    grid-template-columns: 1fr;
+    gap: 16px;
+  }
+  .cat-page {
+    padding: 16px 16px 40px;
+  }
+}
+
+/* ── Single Category Card ── */
+.cat-card {
+  background: #ffffff;
+  border: 1px solid #f0f0f0;
+  border-radius: 12px;
+  padding: 10px 10px 14px 10px;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.02);
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+  position: relative;
+  display: flex;
+  flex-direction: column;
+}
+
+.cat-card:hover {
+  border-color: #d1d5db;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.03);
+}
+
+.cat-card-img-wrap {
+  width: 100%;
+  aspect-ratio: 1 / 1;
+  border-radius: 8px;
+  overflow: hidden;
+  background: #f4f4f4;
+  position: relative;
+  cursor: pointer;
+}
+
+.cat-card-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.cat-card-body {
+  padding: 10px 4px 0 4px;
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+}
+
+.cat-card-head-row {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 8px;
+  position: relative;
+}
+
+.cat-card-info {
+  min-width: 0;
+  flex: 1;
+}
+
+.cat-card-title {
+  font-size: 15px;
+  font-weight: 700;
+  color: #111827;
+  margin: 0;
+  line-height: 1.25;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  cursor: pointer;
+}
+
+.cat-card-title:hover {
+  color: var(--admin-primary, #002277);
+}
+
+.cat-card-qty {
+  font-size: 12px;
+  font-weight: 500;
+  color: #6b7280;
+  margin-top: 3px;
+}
+
+/* ── More Action Button (...) ── */
+.cat-card-more-btn {
+  width: 32px;
+  height: 22px;
+  background: #f3f4f6;
+  border: none;
+  border-radius: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  color: #9ca3af;
+  font-size: 14px;
+  line-height: 1;
+  letter-spacing: 1.5px;
+  font-weight: bold;
+  padding: 0 4px;
+  transition: background-color 0.15s ease, color 0.15s ease;
+  flex-shrink: 0;
+}
+
+.cat-card-more-btn:hover {
+  background: #e5e7eb;
+  color: #374151;
+}
+
+/* ── Dropdown Menu ── */
+.cat-dropdown {
+  position: absolute;
+  top: 100%;
+  right: 0;
+  margin-top: 4px;
+  width: 155px;
+  background: #ffffff;
+  border: 1px solid #e5e7eb;
+  border-radius: 6px;
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.09);
+  z-index: 50;
+  padding: 4px 0;
+  text-align: left;
+}
+
+.cat-dropdown-item {
+  width: 100%;
+  padding: 8px 14px;
+  background: none;
+  border: none;
+  font-size: 13px;
+  color: #374151;
+  text-align: left;
+  cursor: pointer;
+  display: block;
+  font-family: inherit;
+  transition: background-color 0.12s ease, color 0.12s ease;
+}
+
+.cat-dropdown-item:hover {
+  background: #f9fafb;
+  color: #111827;
+}
+
+.cat-dropdown-item--delete {
+  color: #ef4444;
+}
+
+.cat-dropdown-item--delete:hover {
+  background: #fef2f2;
+  color: #dc2626;
+}
+
+/* ── Attributes Row (Waistband / Material) ── */
+.cat-card-attrs {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  margin-top: 14px;
+}
+
+.cat-attr-col {
+  flex: 1;
+  min-width: 0;
+}
+
+.cat-attr-label {
+  font-size: 11px;
+  font-weight: 500;
+  color: #4b5563;
+  margin-bottom: 2px;
+  line-height: 1.3;
+}
+
+.cat-attr-val {
+  font-size: 11px;
+  color: #6b7280;
+  line-height: 1.35;
+  word-break: break-word;
+}
+
+/* ── Empty State ── */
+.cat-empty {
+  text-align: center;
+  padding: 48px 24px;
+  background: #fafafa;
+  border-radius: 12px;
+  border: 1px dashed #e5e7eb;
+  color: #6b7280;
+}
+
+.cat-empty-title {
+  font-size: 15px;
+  font-weight: 600;
+  color: #374151;
+  margin-bottom: 6px;
+}
+
+.cat-empty-desc {
+  font-size: 13px;
+  color: #9ca3af;
+  margin-bottom: 16px;
+}

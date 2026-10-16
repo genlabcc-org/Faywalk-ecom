@@ -45,12 +45,6 @@
   justify-content: space-between;
   min-height: 122px;
   box-sizing: border-box;
-  transition: transform 0.15s ease, box-shadow 0.15s ease;
-}
-
-.ac__stat-card:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.04);
 }
 
 /* Pastel Variants */
@@ -145,29 +139,42 @@
 .ac__toolbar-right {
   flex: 1;
   max-width: 380px;
-  min-width: 260px;
+  min-width: 240px;
 }
 
+.ac__search-box {
+  display: flex !important;
+  align-items: center !important;
+  gap: 10px !important;
+  background: #F0F4FA !important;
+  border: 1px solid transparent !important;
+  border-radius: 10px !important;
+  padding: 0 14px !important;
+  height: 40px !important;
+  width: 100% !important;
+  box-sizing: border-box !important;
+  transition: all 0.15s ease !important;
+}
+
+.ac__search-box:focus-within {
+  border-color: #CBD5E1 !important;
+  background: #E8EDF5 !important;
+}
+
+.ac__search-box .ac__search-input,
 .ac__search-input {
-  width: 100%;
-  background: #ffffff;
-  border: 1px solid #E2E8F0;
-  border-radius: 10px;
-  padding: 9px 16px;
-  font-size: 13.5px;
-  color: #1E293B;
-  outline: none;
-  box-sizing: border-box;
-  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+  background: transparent !important;
+  border: none !important;
+  outline: none !important;
+  font-size: 13.5px !important;
+  color: #1E293B !important;
+  width: 100% !important;
+  padding: 0 !important;
+  box-sizing: border-box !important;
 }
 
 .ac__search-input::placeholder {
-  color: #94A3B8;
-}
-
-.ac__search-input:hover,
-.ac__search-input:focus {
-  border-color: #94A3B8;
+  color: #94A3B8 !important;
 }
 
 /* ── Custom Checkbox ────────────────────────────────────────────── */
