@@ -12,12 +12,54 @@
   font-family: var(--admin-font, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif);
 }
 
-/* Header */
+/* Header & Top Action Bar */
+.cpm-top-header,
 .cpm-header {
   display: flex;
   align-items: center;
-  justify-content: space-between;
+  justify-content: flex-end;
   gap: 16px;
+  flex-wrap: wrap;
+  padding: 4px 0;
+}
+
+.cpm-top-meta {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.cpm-meta-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: #f1f5f9;
+  color: #1e293b;
+  font-size: 13px;
+  font-weight: 600;
+  padding: 4px 12px;
+  border-radius: 999px;
+  border: 1px solid #e2e8f0;
+}
+
+.cpm-meta-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: #16a34a;
+}
+
+.cpm-meta-sub {
+  font-size: 13px;
+  color: #64748b;
+  font-weight: 400;
+}
+
+.cpm-controls-right {
+  display: flex;
+  align-items: center;
+  gap: 12px;
   flex-wrap: wrap;
 }
 
@@ -128,63 +170,91 @@
   letter-spacing: -0.01em;
 }
 
-/* Controls Bar (Tabs & Search) */
+/* Controls Bar (Filter & Search - Minimal Toolbar) */
 .cpm-controls-bar {
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 16px;
   flex-wrap: wrap;
-  background: #ffffff;
-  padding: 10px 14px;
-  border-radius: 10px;
-  border: 1px solid #e2e8f0;
+  background: transparent;
+  padding: 0;
+  border: none;
 }
 
-.cpm-tabs {
+.cpm-controls-left {
   display: flex;
   align-items: center;
-  gap: 4px;
+  gap: 12px;
 }
 
-.cpm-tab-btn {
-  padding: 6px 12px;
-  border-radius: 6px;
+.cpm-select-wrapper {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+}
+
+.cpm-select-icon {
+  position: absolute;
+  left: 11px;
+  color: #64748b;
+  pointer-events: none;
+}
+
+.cpm-filter-select {
+  appearance: none;
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  background: #ffffff;
+  color: #1e293b;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  padding: 8px 32px 8px 34px;
   font-size: 13px;
   font-weight: 500;
-  color: #64748b;
-  background: transparent;
-  border: none;
+  font-family: inherit;
   cursor: pointer;
-  transition: all 0.12s ease;
+  transition: all 0.15s ease;
+  min-width: 180px;
+  outline: none;
 }
 
-.cpm-tab-btn:hover {
-  background: #f1f5f9;
-  color: #0f172a;
+.cpm-filter-select:hover {
+  border-color: #cbd5e1;
 }
 
-.cpm-tab-btn.is-active {
-  background: #0f172a;
-  color: #ffffff;
-  font-weight: 600;
+.cpm-filter-select:focus {
+  border-color: var(--admin-primary, #002277);
+  box-shadow: 0 0 0 3px rgba(0, 34, 119, 0.08);
+}
+
+.cpm-select-chevron {
+  position: absolute;
+  right: 11px;
+  color: #64748b;
+  pointer-events: none;
+  transition: color 0.15s ease;
+}
+
+.cpm-select-wrapper:focus-within .cpm-select-chevron {
+  color: var(--admin-primary, #002277);
 }
 
 .cpm-search-box {
   display: flex;
   align-items: center;
   gap: 8px;
-  background: #f8fafc;
-  border: 1px solid #cbd5e1;
-  border-radius: 6px;
-  padding: 6px 12px;
-  min-width: 260px;
-  transition: border-color 0.15s ease, background 0.15s ease;
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  padding: 7px 12px;
+  min-width: 280px;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
 }
 
 .cpm-search-box:focus-within {
-  border-color: #002277;
-  background: #ffffff;
+  border-color: var(--admin-primary, #002277);
+  box-shadow: 0 0 0 3px rgba(0, 34, 119, 0.08);
 }
 
 .cpm-search-box svg {
@@ -274,17 +344,17 @@
 
 .cpm-code-badge {
   font-family: inherit;
-  font-size: 13.5px;
+  font-size: 13px;
   font-weight: 600;
-  color: #0F172A;
-  background: #F1F5F9;
+  color: #1e293b;
+  background: #f1f5f9;
   padding: 3px 8px;
   border-radius: 6px;
   letter-spacing: 0.02em;
-  border: 1px solid #E2E8F0;
+  border: none;
   display: inline-flex;
   align-items: center;
-  gap: 5px;
+  gap: 6px;
 }
 
 .cpm-copy-btn {
@@ -786,3 +856,19 @@
   from { opacity: 0; }
   to { opacity: 1; }
 }
+
+@media (max-width: 640px) {
+  .cpm-controls-bar {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  .cpm-controls-left,
+  .cpm-controls-right,
+  .cpm-select-wrapper,
+  .cpm-filter-select,
+  .cpm-search-box {
+    width: 100%;
+    min-width: 0;
+  }
+}
+

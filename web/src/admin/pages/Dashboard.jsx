@@ -1506,7 +1506,8 @@ const Dashboard = () => {
             currentPath.startsWith("/admin/products/add") ||
             currentPath.startsWith("/admin/products/edit-multiple") ||
             currentPath.startsWith("/admin/categories/add") ||
-            currentPath.startsWith("/admin/subcategories/new")) && (
+            currentPath.startsWith("/admin/subcategories/new") ||
+            currentPath.startsWith("/admin/banners/add")) && (
               <button
                 type="button"
                 className="db__header-back-btn"
@@ -1528,6 +1529,9 @@ const Dashboard = () => {
                     } else {
                       navigate("/admin/categories");
                     }
+                  } else if (currentPath.startsWith("/admin/banners/add")) {
+                    setEditingBanner(null);
+                    navigate("/admin/banners");
                   } else {
                     setEditingProduct(null);
                     navigate("/admin/products");

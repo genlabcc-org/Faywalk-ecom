@@ -49,7 +49,7 @@
 
 /* ── Body ────────────────────────────────────────────────────────────── */
 .ab__body {
-  padding: 0 24px 24px;
+  padding: 32px 36px 40px;
   display: flex;
   flex-direction: column;
   gap: 0;
@@ -159,7 +159,7 @@
 .ab__upload-zone {
   border: 1.5px dashed #d1d5db;
   border-radius: 10px;
-  background: #fafafa;
+  background: #ffffff;
   min-height: 120px;
   display: flex;
   align-items: center;
@@ -171,7 +171,7 @@
 
 .ab__upload-zone:hover {
   border-color: #9ca3af;
-  background: #f3f4f6;
+  background: #f8fafc;
 }
 
 .ab__upload-zone--dragging {
@@ -382,31 +382,160 @@
   transform: translateX(20px);
 }
 
-/* ── Preview Box ─────────────────────────────────────────────────────── */
-.ab__preview-box {
-  border-radius: 10px;
-  overflow: hidden;
-  background: #1a1a2e;
-  min-height: 140px;
+/* ── Preview Header & Toggle ─────────────────────────────────────────── */
+.ab__preview-header {
   display: flex;
   align-items: center;
-  justify-content: center;
+  justify-content: space-between;
+  margin-bottom: 18px;
+  gap: 16px;
+  flex-wrap: wrap;
 }
 
-.ab__preview-img {
+.ab__preview-subtitle {
+  font-size: 12.5px;
+  color: #64748b;
+  margin-top: 3px;
+}
+
+.ab__view-toggle {
+  display: inline-flex;
+  align-items: center;
+  background: #f1f5f9;
+  padding: 3px;
+  border-radius: 9px;
+  gap: 2px;
+}
+
+.ab__toggle-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 14px;
+  font-size: 12.5px;
+  font-weight: 500;
+  color: #64748b;
+  border-radius: 7px;
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  font-family: inherit;
+}
+
+.ab__toggle-btn:hover {
+  color: #0f172a;
+}
+
+.ab__toggle-btn--active {
+  background: #ffffff;
+  color: #0A2582;
+  font-weight: 600;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+}
+
+/* ── Storefront Hero Preview Stage ───────────────────────────────────── */
+.ab__preview-stage {
   width: 100%;
-  height: 160px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: 8px 0;
+  transition: all 0.3s ease;
+}
+
+.ab__hero-preview {
+  position: relative;
+  border-radius: 20px;
+  overflow: hidden;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+  background: #f8fafc;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* Desktop Hero Preview */
+.ab__hero-preview--desktop {
+  width: 100%;
+  max-width: 1600px;
+  height: 480px;
+}
+
+@media (max-width: 1200px) {
+  .ab__hero-preview--desktop {
+    height: 380px;
+  }
+}
+
+@media (max-width: 768px) {
+  .ab__hero-preview--desktop {
+    height: 240px;
+  }
+}
+
+/* Mobile Hero Preview */
+.ab__hero-preview--mobile {
+  width: 380px;
+  max-width: 100%;
+  height: 520px;
+}
+
+.ab__hero-img-wrap {
+  width: 100%;
+  height: 100%;
+  position: relative;
+  line-height: 0;
+}
+
+.ab__hero-img {
+  width: 100%;
+  height: 100%;
   object-fit: cover;
+  object-position: center center;
   display: block;
+  border-radius: 20px;
+}
+
+.ab__hero-preview--mobile .ab__hero-img {
+  object-position: center top;
+}
+
+/* Storefront pagination dots */
+.ab__hero-dots {
+  position: absolute;
+  bottom: 14px;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  z-index: 10;
+}
+
+.ab__hero-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #ffffff;
+  opacity: 0.6;
+  display: inline-block;
+  transition: background 0.2s, opacity 0.2s;
+}
+
+.ab__hero-dot--active {
+  background: #8b0030;
+  opacity: 1;
 }
 
 .ab__preview-placeholder {
+  height: 100%;
+  min-height: 240px;
   display: flex;
   flex-direction: column;
   align-items: center;
+  justify-content: center;
   gap: 8px;
-  color: #64748b;
-  font-size: 12.5px;
+  color: #94a3b8;
+  font-size: 13.5px;
   padding: 32px;
 }
 
@@ -417,7 +546,7 @@
   justify-content: flex-end;
   gap: 10px;
   padding: 14px 24px;
-  background: #f5f5f5;
+  background: transparent;
   margin-top: 8px;
 }
 
@@ -474,7 +603,7 @@
   }
 
   .ab__body {
-    padding: 0 12px 24px;
+    padding: 20px 14px 24px;
   }
 
   .ab__section,
@@ -500,13 +629,8 @@
   }
 
   /* Preview fills width nicely */
-  .ab__preview-img,
   .ab__upload-preview {
     height: 140px;
-  }
-
-  .ab__preview-box {
-    min-height: 120px;
   }
 
   /* Footer */
@@ -535,7 +659,7 @@
   }
 
   .ab__body {
-    padding: 0 20px 24px;
+    padding: 24px 20px 24px;
   }
 
   /* Still stack the two-col row so inputs aren't cramped */
@@ -566,7 +690,7 @@
   }
 
   .ab__body {
-    padding: 0 32px 32px;
+    padding: 28px 32px 32px;
   }
 
   /* Restore two-col layout */
@@ -580,13 +704,8 @@
     min-height: 200px;
   }
 
-  .ab__upload-preview,
-  .ab__preview-img {
+  .ab__upload-preview {
     height: 200px;
-  }
-
-  .ab__preview-box {
-    min-height: 180px;
   }
 
   .ab__footer {
@@ -616,7 +735,7 @@
   }
 
   .ab__body {
-    padding: 0 40px 40px;
+    padding: 32px 40px 40px;
   }
 
   .ab__section,
@@ -654,13 +773,8 @@
     min-height: 220px;
   }
 
-  .ab__upload-preview,
-  .ab__preview-img {
+  .ab__upload-preview {
     height: 220px;
-  }
-
-  .ab__preview-box {
-    min-height: 200px;
   }
 
   .ab__footer {
@@ -682,7 +796,7 @@
   }
 
   .ab__body {
-    padding: 0 48px 48px;
+    padding: 36px 48px 48px;
   }
 
   .ab__footer {

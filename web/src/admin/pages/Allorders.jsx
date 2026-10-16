@@ -1770,8 +1770,8 @@ const AllOrders = ({ orders = [], products = [], categories: categoriesProp = []
         )}
       </div>
 
-      {/* ── Invoice Preview Modal (Thermal 4x6) ── */}
-      {previewOrder && (
+      {/* ── Invoice Preview Modal (Thermal 4x6) — Portal to document.body ── */}
+      {previewOrder && typeof document !== "undefined" && createPortal(
         <div className="ao__modal-overlay" onClick={() => setPreviewOrder(null)}>
           <div className="ao__modal-content" onClick={(e) => e.stopPropagation()}>
             <div className="ao__modal-header">
@@ -1841,7 +1841,8 @@ const AllOrders = ({ orders = [], products = [], categories: categoriesProp = []
               </button>
             </div>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
 
       {/* ── Hidden Print Area for Physical Printer ── */}

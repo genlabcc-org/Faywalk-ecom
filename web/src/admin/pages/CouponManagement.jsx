@@ -115,11 +115,18 @@ export default function CouponManagement() {
 
   // Auto-generate Random Coupon Code
   const handleGenerateCode = () => {
-    const prefixes = ["FAY", "SAVE", "DEAL", "SPECIAL", "OFFER", "VIP"];
-    const prefix = prefixes[Math.floor(Math.random() * prefixes.length)];
-    const val = formData.discount_value ? Math.round(Number(formData.discount_value)) : 20;
-    const randomSuffix = Math.floor(100 + Math.random() * 900);
-    const newCode = `${prefix}${val}_${randomSuffix}`.toUpperCase();
+    const prefixes = ["FAY", "SAVE", "DEAL", "SPECIAL", "OFFER", "VIP", "FLAT", "MEGA", "FESTIVE", "WALK"];
+    const val = formData.discount_value && Number(formData.discount_value) > 0
+      ? Math.round(Number(formData.discount_value))
+      : 20;
+
+    // Filter out prefixes that would collide with existing coupon codes
+    const existingCodes = new Set(coupons.map((c) => (c.code || "").toUpperCase()));
+    const available = prefixes.filter((p) => !existingCodes.has(`${p}${val}`));
+    const pool = available.length > 0 ? available : prefixes;
+    const prefix = pool[Math.floor(Math.random() * pool.length)];
+
+    const newCode = `${prefix}${val}`.toUpperCase();
     setFormData((prev) => ({ ...prev, code: newCode }));
   };
 
@@ -185,7 +192,8 @@ export default function CouponManagement() {
     ).length;
     const totalRedeemed = coupons.reduce((sum, c) => sum + (c.used_count || 0), 0);
     const expired = coupons.filter((c) => c.expiry_date && new Date(c.expiry_date) < now).length;
-    return { total, active, totalRedeemed, expired };
+    const inactive = coupons.filter((c) => !c.is_active).length;
+    return { total, active, totalRedeemed, expired, inactive };
   }, [coupons]);
 
   // Filtered & Searched List
@@ -213,24 +221,18 @@ export default function CouponManagement() {
 
   return (
     <div className="ao cpm-container">
-      {/* ── Header ── */}
-      <div className="ao__page-header cpm-header">
-        <div className="ao__page-title-block">
-          <h1 className="ao__title">Coupons Management</h1>
-          <p className="ao__subtitle">
-            Create, monitor, and manage discount promotional coupons for your customers.
-          </p>
-        </div>
+      {/* ── Top Action Header (Always visible) ── */}
+      <div className="cpm-top-header">
         <button
           type="button"
           className="cpm-create-btn"
           onClick={handleOpenCreate}
         >
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
             <line x1="12" y1="5" x2="12" y2="19" />
             <line x1="5" y1="12" x2="19" y2="12" />
           </svg>
-          Create Coupon
+          Add Coupon
         </button>
       </div>
 
@@ -291,59 +293,73 @@ export default function CouponManagement() {
 
       {/* ── Filter & Search Bar ── */}
       <div className="cpm-controls-bar">
-        <div className="cpm-tabs">
-          <button
-            type="button"
-            className={`cpm-tab-btn ${activeTab === "all" ? "is-active" : ""}`}
-            onClick={() => setActiveTab("all")}
-          >
-            All ({coupons.length})
-          </button>
-          <button
-            type="button"
-            className={`cpm-tab-btn ${activeTab === "active" ? "is-active" : ""}`}
-            onClick={() => setActiveTab("active")}
-          >
-            Active ({stats.active})
-          </button>
-          <button
-            type="button"
-            className={`cpm-tab-btn ${activeTab === "inactive" ? "is-active" : ""}`}
-            onClick={() => setActiveTab("inactive")}
-          >
-            Inactive
-          </button>
-          <button
-            type="button"
-            className={`cpm-tab-btn ${activeTab === "expired" ? "is-active" : ""}`}
-            onClick={() => setActiveTab("expired")}
-          >
-            Expired ({stats.expired})
-          </button>
+        <div className="cpm-controls-left">
+          <div className="cpm-select-wrapper">
+            <svg
+              className="cpm-select-icon"
+              width="15"
+              height="15"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            >
+              <polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3" />
+            </svg>
+            <select
+              id="coupon-status-filter"
+              className="cpm-filter-select"
+              value={activeTab}
+              onChange={(e) => setActiveTab(e.target.value)}
+              aria-label="Filter coupons by status"
+            >
+              <option value="all">All Coupons ({coupons.length})</option>
+              <option value="active">Active ({stats.active})</option>
+              <option value="inactive">Inactive ({stats.inactive})</option>
+              <option value="expired">Expired ({stats.expired})</option>
+            </select>
+            <svg
+              className="cpm-select-chevron"
+              width="14"
+              height="14"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            >
+              <polyline points="6 9 12 15 18 9" />
+            </svg>
+          </div>
         </div>
 
-        <div className="ao__search-box cpm-search-box">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-            <circle cx="11" cy="11" r="8" />
-            <line x1="21" y1="21" x2="16.65" y2="16.65" />
-          </svg>
-          <input
-            type="text"
-            className="ao__search-input cpm-search-input"
-            placeholder="Search coupon code or description..."
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-          />
-          {searchQuery && (
-            <button
-              type="button"
-              className="cpm-copy-btn"
-              onClick={() => setSearchQuery("")}
-              title="Clear search"
-            >
-              ✕
-            </button>
-          )}
+        <div className="cpm-controls-right">
+          <div className="ao__search-box cpm-search-box">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <circle cx="11" cy="11" r="8" />
+              <line x1="21" y1="21" x2="16.65" y2="16.65" />
+            </svg>
+            <input
+              type="text"
+              className="ao__search-input cpm-search-input"
+              placeholder="Search coupon code or description..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+            />
+            {searchQuery && (
+              <button
+                type="button"
+                className="cpm-copy-btn"
+                onClick={() => setSearchQuery("")}
+                title="Clear search"
+              >
+                ✕
+              </button>
+            )}
+          </div>
         </div>
       </div>
 

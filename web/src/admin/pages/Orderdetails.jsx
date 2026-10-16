@@ -132,10 +132,40 @@ const StatusBadge = ({ status }) => {
   );
 };
 
+const parseAddressData = (raw) => {
+  if (!raw) return null;
+  let parsed = raw;
+  if (typeof raw === "string") {
+    try {
+      parsed = JSON.parse(raw);
+    } catch (_) {
+      return { address_line1: raw };
+    }
+  }
+  if (Array.isArray(parsed)) {
+    parsed = parsed[0] || null;
+  }
+  if (!parsed || typeof parsed !== "object") return null;
+  return parsed;
+};
+
+const getExistingOrderAddress = (orderObj) => {
+  if (!orderObj) return null;
+  return (
+    parseAddressData(orderObj.addresses) ||
+    parseAddressData(orderObj.shipping_address) ||
+    parseAddressData(orderObj.address) ||
+    parseAddressData(orderObj.shipping_details) ||
+    parseAddressData(orderObj.destination) ||
+    parseAddressData(orderObj.customer?.address) ||
+    null
+  );
+};
+
 const OrderDetails = ({ order, onBack }) => {
   const [currentOrder, setCurrentOrder] = useState(order || null);
   const [adminNote, setAdminNote] = useState(order?.admin_notes || "");
-  const [address, setAddress] = useState(null);
+  const [address, setAddress] = useState(() => getExistingOrderAddress(order));
   const [addressLoading, setAddressLoading] = useState(false);
   const [savingNote, setSavingNote] = useState(false);
   const [toast, setToast] = useState({ message: "", type: "" });
@@ -242,22 +272,72 @@ const OrderDetails = ({ order, onBack }) => {
   }, [o.admin_notes]);
 
   useEffect(() => {
-    if (o.user_id) {
-      const fetchAddress = async () => {
-        try {
-          setAddressLoading(true);
-          const data = await orderService.getAddresses(o.user_id);
-          const defaultAddr = data.find(a => a.is_default) || data[0];
-          setAddress(defaultAddr || null);
-        } catch (err) {
-          console.error("Error fetching shipping address:", err);
-        } finally {
+    const existing = getExistingOrderAddress(o) || getExistingOrderAddress(order) || getExistingOrderAddress(currentOrder);
+    if (existing) {
+      setAddress(existing);
+      return;
+    }
+
+    let isMounted = true;
+    const fetchAddress = async () => {
+      try {
+        setAddressLoading(true);
+
+        // Tier 1: Try fetching by address_id if order has one
+        if (o.address_id) {
+          const addrById = await orderService.getAddressById(o.address_id);
+          if (isMounted && addrById) {
+            setAddress(addrById);
+            setAddressLoading(false);
+            return;
+          }
+        }
+
+        // Tier 2: Try fetching by user_id
+        if (o.user_id) {
+          const userAddrs = await orderService.getAddresses(o.user_id);
+          if (isMounted && userAddrs && userAddrs.length > 0) {
+            const matched = (o.address_id && userAddrs.find(a => String(a.address_id) === String(o.address_id)))
+              || userAddrs.find(a => a.is_default)
+              || userAddrs[0];
+            if (matched) {
+              setAddress(matched);
+              setAddressLoading(false);
+              return;
+            }
+          }
+
+          // Fallback: Check users table
+          const { data: userRec } = await supabase
+            .from("users")
+            .select("address, phone, name")
+            .eq("id", o.user_id)
+            .maybeSingle();
+          if (isMounted && userRec?.address) {
+            setAddress(parseAddressData(userRec.address));
+            setAddressLoading(false);
+            return;
+          }
+        }
+
+        if (isMounted && o.customer?.address) {
+          setAddress(parseAddressData(o.customer.address));
+        }
+      } catch (err) {
+        console.error("Error fetching shipping address in Orderdetails:", err);
+      } finally {
+        if (isMounted) {
           setAddressLoading(false);
         }
-      };
-      fetchAddress();
-    }
-  }, [o.user_id]);
+      }
+    };
+
+    fetchAddress();
+
+    return () => {
+      isMounted = false;
+    };
+  }, [o.id, o.address_id, o.user_id, o.addresses, o.shipping_address, o.address]);
 
   const handleSaveNote = async () => {
     if (!o?.id) return;
@@ -654,6 +734,73 @@ const OrderDetails = ({ order, onBack }) => {
 
   const orderShortId = o.order_number || (o.id ? (String(o.id).length > 8 ? String(o.id).slice(-8).toUpperCase() : o.id) : "N/A");
 
+  const resolvedAddress = parseAddressData(address) || getExistingOrderAddress(o);
+
+  const displayFullName =
+    resolvedAddress?.full_name ||
+    resolvedAddress?.name ||
+    resolvedAddress?.customer_name ||
+    o.customer?.name ||
+    "Customer";
+
+  const displayLine1 =
+    resolvedAddress?.address_line1 ||
+    resolvedAddress?.line1 ||
+    resolvedAddress?.flat ||
+    resolvedAddress?.street ||
+    resolvedAddress?.address ||
+    "";
+
+  const displayLine2 =
+    resolvedAddress?.address_line2 ||
+    resolvedAddress?.line2 ||
+    resolvedAddress?.area ||
+    resolvedAddress?.landmark ||
+    "";
+
+  const displayCity =
+    resolvedAddress?.city ||
+    resolvedAddress?.town ||
+    resolvedAddress?.district ||
+    "";
+
+  const displayState =
+    resolvedAddress?.state ||
+    resolvedAddress?.province ||
+    resolvedAddress?.region ||
+    "";
+
+  const displayPin =
+    resolvedAddress?.postal_code ||
+    resolvedAddress?.pincode ||
+    resolvedAddress?.pinCode ||
+    resolvedAddress?.zip ||
+    resolvedAddress?.zipcode ||
+    resolvedAddress?.postalCode ||
+    "";
+
+  const displayCityStatePin = (() => {
+    const loc = [displayCity, displayState].filter(Boolean).join(", ");
+    if (loc && displayPin) return `${loc} — ${displayPin}`;
+    if (loc) return loc;
+    if (displayPin) return `PIN: ${displayPin}`;
+    return "";
+  })();
+
+  const displayCountry = resolvedAddress?.country || "India";
+
+  const displayPhone =
+    resolvedAddress?.phone_number ||
+    resolvedAddress?.phone ||
+    resolvedAddress?.mobile ||
+    resolvedAddress?.contact ||
+    o.customer?.phone ||
+    "";
+
+  const hasAddressInfo = Boolean(
+    displayLine1 || displayLine2 || displayCityStatePin || (resolvedAddress && (displayCity || displayState || displayPin))
+  );
+
   return (
     <div className="od">
       {/* Header */}
@@ -740,17 +887,17 @@ const OrderDetails = ({ order, onBack }) => {
           </div>
           {addressLoading ? (
             <div className="skeleton-shimmer" style={{ width: '100%', height: '80px', borderRadius: '8px' }} />
-          ) : address ? (
+          ) : hasAddressInfo ? (
             <>
-              <div className="od__address-name">{address.full_name || o.customer?.name}</div>
+              <div className="od__address-name">{displayFullName}</div>
               <div className="od__address-lines">
-                <div>{address.address_line1}</div>
-                {address.address_line2 && <div>{address.address_line2}</div>}
-                <div>{address.city}, {address.state} — {address.postal_code}</div>
-                <div>{address.country || "India"}</div>
-                {(address.phone_number || o.customer?.phone) && (
+                {displayLine1 && <div>{displayLine1}</div>}
+                {displayLine2 && <div>{displayLine2}</div>}
+                {displayCityStatePin && <div>{displayCityStatePin}</div>}
+                <div>{displayCountry}</div>
+                {displayPhone && (
                   <div className="od__address-phone">
-                    <IconPhone /> Phone: {address.phone_number || o.customer?.phone}
+                    <IconPhone /> Phone: {displayPhone}
                   </div>
                 )}
               </div>
@@ -1296,8 +1443,8 @@ const OrderDetails = ({ order, onBack }) => {
         </button>
       </div>
 
-      {/* Invoice Preview Modal */}
-      {showInvoiceModal && (
+      {/* Invoice Preview Modal — Teleported to document.body for full-screen centering */}
+      {showInvoiceModal && typeof document !== "undefined" && createPortal(
         <div className="inv__modal-overlay" onClick={() => setShowInvoiceModal(false)}>
           <div className="inv__modal-content" onClick={(e) => e.stopPropagation()}>
             <div className="inv__modal-header">
@@ -1317,7 +1464,7 @@ const OrderDetails = ({ order, onBack }) => {
             </div>
 
             <div className="inv__modal-body">
-              <ThermalInvoice order={o} address={address} isPreview={true} />
+              <ThermalInvoice order={o} address={resolvedAddress || address} isPreview={true} />
             </div>
 
             <div className="inv__modal-footer">
@@ -1346,13 +1493,14 @@ const OrderDetails = ({ order, onBack }) => {
               </button>
             </div>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
 
       {/* Thermal Invoice container for print — teleported to document.body */}
       {typeof document !== "undefined" && createPortal(
         <div className="thermal-print-area">
-          <ThermalInvoice ref={invoiceRef} order={o} address={address} />
+          <ThermalInvoice ref={invoiceRef} order={o} address={resolvedAddress || address} />
         </div>,
         document.body
       )}

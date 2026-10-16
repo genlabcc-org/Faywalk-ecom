@@ -16,12 +16,17 @@ export default function TopBar({ text: defaultPropText }) {
     return null;
   }
 
-  const displayText = topbarData?.text || defaultPropText || "Diwali Sale - Everything Is Off By 50%";
+  const displayText = (topbarData?.text ?? defaultPropText ?? "").trim();
+  if (!displayText) {
+    return null;
+  }
+
+  const destination = topbarData?.link_url || "/products";
 
   return (
     <aside className="topbar" aria-label="Store announcement">
       <div className="topbar-content">
-        <Link to="/products" className="topbar-link">
+        <Link to={destination} className="topbar-link">
           <span className="topbar-text">{displayText}</span>
         </Link>
       </div>

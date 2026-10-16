@@ -32,6 +32,21 @@ const TrashIcon = () => (
   </svg>
 );
 
+const DesktopIcon = () => (
+  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <rect x="2" y="3" width="20" height="14" rx="2" />
+    <line x1="8" y1="21" x2="16" y2="21" />
+    <line x1="12" y1="17" x2="12" y2="21" />
+  </svg>
+);
+
+const MobileIcon = () => (
+  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <rect x="5" y="2" width="14" height="20" rx="2" />
+    <line x1="12" y1="18" x2="12" y2="18.01" />
+  </svg>
+);
+
 const AddBanner = ({ onBack, onPublish, initialData }) => {
   const location = useLocation();
   const bannerData = location.state?.banner || initialData;
@@ -188,13 +203,7 @@ const AddBanner = ({ onBack, onPublish, initialData }) => {
         onChange={handleMobileFileChange}
       />
 
-      {/* Header */}
-      <div className="ab__header">
-        <button className="ab__back-btn" onClick={onBack} aria-label="Go back">
-          <BackIcon />
-        </button>
-        <h1 className="ab__title">{isEditing ? "Edit Banner" : "Add Banner"}</h1>
-      </div>
+
 
       <div className="ab__body">
         {errorMsg && (
@@ -310,66 +319,64 @@ const AddBanner = ({ onBack, onPublish, initialData }) => {
 
         {/* Home Page Hero Preview */}
         <div className="ab__section">
-          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "12px" }}>
-            <label className="ab__label" style={{ margin: 0 }}>Home Page Hero Preview</label>
-            <div style={{ display: "flex", gap: "6px" }}>
+          <div className="ab__preview-header">
+            <div>
+              <label className="ab__label" style={{ margin: 0, fontWeight: 700, fontSize: "15px" }}>Home Page Hero Preview</label>
+              <div className="ab__preview-subtitle">
+                Interactive preview of storefront hero banner
+              </div>
+            </div>
+            <div className="ab__view-toggle" role="tablist" aria-label="Hero preview viewport">
               <button
                 type="button"
-                className={`ab__mode-btn${previewMode === 'desktop' ? ' ab__mode-btn--active' : ''}`}
-                onClick={() => setPreviewMode('desktop')}
-                style={{
-                  padding: "4px 12px",
-                  borderRadius: "6px",
-                  fontSize: "12px",
-                  fontWeight: "500",
-                  border: previewMode === 'desktop' ? "1px solid #111827" : "1px solid #e5e7eb",
-                  background: previewMode === 'desktop' ? "#111827" : "#fff",
-                  color: previewMode === 'desktop' ? "#fff" : "#374151",
-                  cursor: "pointer"
-                }}
+                role="tab"
+                aria-selected={previewMode === "desktop"}
+                className={`ab__toggle-btn ${previewMode === "desktop" ? "ab__toggle-btn--active" : ""}`}
+                onClick={() => setPreviewMode("desktop")}
               >
-                Desktop View
+                <DesktopIcon />
+                <span>Desktop</span>
               </button>
               <button
                 type="button"
-                className={`ab__mode-btn${previewMode === 'mobile' ? ' ab__mode-btn--active' : ''}`}
-                onClick={() => setPreviewMode('mobile')}
-                style={{
-                  padding: "4px 12px",
-                  borderRadius: "6px",
-                  fontSize: "12px",
-                  fontWeight: "500",
-                  border: previewMode === 'mobile' ? "1px solid #111827" : "1px solid #e5e7eb",
-                  background: previewMode === 'mobile' ? "#111827" : "#fff",
-                  color: previewMode === 'mobile' ? "#fff" : "#374151",
-                  cursor: "pointer"
-                }}
+                role="tab"
+                aria-selected={previewMode === "mobile"}
+                className={`ab__toggle-btn ${previewMode === "mobile" ? "ab__toggle-btn--active" : ""}`}
+                onClick={() => setPreviewMode("mobile")}
               >
-                Mobile View
+                <MobileIcon />
+                <span>Mobile</span>
               </button>
             </div>
           </div>
 
-          <div className="ab__preview-box" style={{ position: "relative", minHeight: previewMode === 'mobile' ? "240px" : "180px", maxWidth: previewMode === 'mobile' ? "320px" : "100%", margin: "0 auto", borderRadius: "12px", overflow: "hidden" }}>
-            {((previewMode === 'mobile' ? previewMobileImage || previewImage : previewImage)) ? (
-              <div style={{ position: "relative", width: "100%", height: previewMode === 'mobile' ? "240px" : "180px" }}>
-                <img
-                  src={previewMode === 'mobile' ? previewMobileImage || previewImage : previewImage}
-                  alt="Hero preview"
-                  className="ab__preview-img"
-                  style={{ width: "100%", height: "100%", objectFit: "cover" }}
-                />
-              </div>
-            ) : (
-              <div className="ab__preview-placeholder">
-                <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="#cbd5e1" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-                  <rect x="3" y="3" width="18" height="18" rx="2" />
-                  <circle cx="8.5" cy="8.5" r="1.5" />
-                  <polyline points="21 15 16 10 5 21" />
-                </svg>
-                <span>Upload an image to see Hero preview</span>
-              </div>
-            )}
+          <div className={`ab__preview-stage ab__preview-stage--${previewMode}`}>
+            <div className={`ab__hero-preview ab__hero-preview--${previewMode}`}>
+              {((previewMode === 'mobile' ? previewMobileImage || previewImage : previewImage)) ? (
+                <div className="ab__hero-img-wrap">
+                  <img
+                    src={previewMode === 'mobile' ? previewMobileImage || previewImage : previewImage}
+                    alt="Hero preview"
+                    className="ab__hero-img"
+                  />
+                  {/* Storefront pagination dots */}
+                  <div className="ab__hero-dots">
+                    <span className="ab__hero-dot ab__hero-dot--active" />
+                    <span className="ab__hero-dot" />
+                    <span className="ab__hero-dot" />
+                  </div>
+                </div>
+              ) : (
+                <div className="ab__preview-placeholder">
+                  <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="#cbd5e1" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                    <rect x="3" y="3" width="18" height="18" rx="2" />
+                    <circle cx="8.5" cy="8.5" r="1.5" />
+                    <polyline points="21 15 16 10 5 21" />
+                  </svg>
+                  <span>Upload an image to see Hero preview</span>
+                </div>
+              )}
+            </div>
           </div>
         </div>
       </div>

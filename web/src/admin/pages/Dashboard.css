@@ -1083,6 +1083,7 @@
 }
 
 @media (max-width: 1100px) {
+
   .dc__grid-top,
   .dc__grid-bottom {
     grid-template-columns: 1fr;
@@ -1093,6 +1094,7 @@
   .dc {
     padding: 16px;
   }
+
   .dc__card {
     padding: 16px;
   }
@@ -2069,4 +2071,4 @@
 button:disabled {
   opacity: 0.68;
   cursor: not-allowed !important;
-}
+}

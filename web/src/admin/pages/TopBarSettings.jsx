@@ -1,15 +1,8 @@
 import React, { useState, useEffect } from "react";
+import { createPortal } from "react-dom";
 import { topbarService } from "../../services/topbarService";
 import { useStore } from "../../hooks/useStore";
 import "./TopBarSettings.css";
-
-const PRESETS = [
-  "Diwali Sale - Everything Is Off By 50%",
-  "Free Express Shipping on all prepaid orders!",
-  "Flat 20% OFF on your first purchase — Use code FIRST20",
-  "Mega Clearance Sale: Up to 70% Off on Selected Styles",
-  "Festival Special Offers Live Now — Limited Time Only!",
-];
 
 export default function TopBarSettings() {
   const storeTopbarData = useStore((s) => s.topbarData);
@@ -17,12 +10,24 @@ export default function TopBarSettings() {
 
   const [topbarId, setTopbarId] = useState(null);
   const [text, setText] = useState("");
+  const [linkUrl, setLinkUrl] = useState("/products");
   const [isActive, setIsActive] = useState(true);
 
   const [loading, setLoading] = useState(true);
+  const [toast, setToast] = useState(null); // { message, type }
+
+  // Modal State
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [editText, setEditText] = useState("");
+  const [editLink, setEditLink] = useState("/products");
+  const [editActive, setEditActive] = useState(true);
   const [saving, setSaving] = useState(false);
-  const [saveSuccess, setSaveSuccess] = useState(false);
-  const [errorMessage, setErrorMessage] = useState("");
+  const [formError, setFormError] = useState("");
+
+  const showToast = (message, type = "success") => {
+    setToast({ message, type });
+    setTimeout(() => setToast(null), 3500);
+  };
 
   // Load existing TopBar data from DB
   useEffect(() => {
@@ -35,18 +40,19 @@ export default function TopBarSettings() {
           if (data) {
             setTopbarId(data.id || null);
             setText(data.text || "");
+            setLinkUrl(data.link_url || "/products");
             setIsActive(data.is_active !== false);
             setTopBarData(data);
           } else {
-            // Default initial state
-            setText("Diwali Sale - Everything Is Off By 50%");
+            setText("");
+            setLinkUrl("/products");
             setIsActive(true);
           }
         }
       } catch (err) {
         console.error("Failed to load topbar:", err);
         if (isMounted) {
-          setErrorMessage("Failed to load topbar settings from database.");
+          showToast("Failed to load topbar settings from database.", "error");
         }
       } finally {
         if (isMounted) setLoading(false);
@@ -59,49 +65,73 @@ export default function TopBarSettings() {
     };
   }, [setTopBarData]);
 
-  const handleApplyPreset = (presetText) => {
-    setText(presetText);
-  };
-
-  const handleReset = () => {
-    if (storeTopbarData) {
-      setText(storeTopbarData.text || "");
-      setIsActive(storeTopbarData.is_active !== false);
+  // Toggle active directly from list row
+  const handleToggleActiveInList = async () => {
+    const nextActive = !isActive;
+    setIsActive(nextActive);
+    try {
+      const payload = {
+        id: topbarId,
+        text: text,
+        link_url: linkUrl || "/products",
+        is_active: nextActive,
+      };
+      const result = await topbarService.saveTopBar(payload);
+      if (result) {
+        setTopBarData(result);
+      }
+      showToast(
+        nextActive
+          ? "TopBar banner is now Active on storefront"
+          : "TopBar banner is now Inactive (hidden from store)"
+      );
+    } catch (err) {
+      console.error("Failed to toggle topbar status:", err);
+      setIsActive(!nextActive); // revert
+      showToast("Failed to update status: " + err.message, "error");
     }
-    setErrorMessage("");
   };
 
-  const handleSave = async (e) => {
-    if (e) e.preventDefault();
+  // Open Edit Modal
+  const handleOpenEdit = () => {
+    setEditText(text);
+    setEditLink(linkUrl || "/products");
+    setEditActive(isActive);
+    setFormError("");
+    setIsModalOpen(true);
+  };
 
-    if (!text.trim() && isActive) {
-      setErrorMessage("Announcement text cannot be empty when TopBar is enabled.");
+  // Save from Modal
+  const handleSaveModal = async (e) => {
+    e.preventDefault();
+    if (!editText.trim() && editActive) {
+      setFormError("Announcement text cannot be empty when TopBar is enabled.");
       return;
     }
 
+    setSaving(true);
+    setFormError("");
     try {
-      setSaving(true);
-      setErrorMessage("");
-
       const payload = {
         id: topbarId,
-        text: text.trim(),
-        link_url: "/products",
-        is_active: isActive,
+        text: editText.trim(),
+        link_url: editLink.trim() || "/products",
+        is_active: editActive,
       };
 
       const result = await topbarService.saveTopBar(payload);
-
       if (result) {
         setTopbarId(result.id);
+        setText(result.text);
+        setLinkUrl(result.link_url || "/products");
+        setIsActive(result.is_active !== false);
         setTopBarData(result);
       }
-
-      setSaveSuccess(true);
-      setTimeout(() => setSaveSuccess(false), 3000);
+      setIsModalOpen(false);
+      showToast("TopBar announcement updated successfully!");
     } catch (err) {
       console.error("Error saving topbar:", err);
-      setErrorMessage(err.message || "Failed to save TopBar text in database.");
+      setFormError(err.message || "Failed to save TopBar announcement.");
     } finally {
       setSaving(false);
     }
@@ -109,34 +139,33 @@ export default function TopBarSettings() {
 
   return (
     <div className="tbs-container">
-      {/* Page Header */}
+      {/* Toast Notification */}
+      {toast && (
+        <div className={`tbs-toast tbs-toast--${toast.type}`}>
+          <div className="tbs-toast-icon">
+            {toast.type === "error" ? "✕" : "✓"}
+          </div>
+          <span>{toast.message}</span>
+        </div>
+      )}
+
+      {/* Page Header (No active badge here - active is in list only) */}
       <div className="tbs-header">
         <div>
-          <h1 className="tbs-title">TopBar Announcement</h1>
+          <h1 className="tbs-title">TopBar Content</h1>
           <p className="tbs-subtitle">
-            Configure the announcement text and visibility. Clicking the topbar banner redirects customers directly to the All Products page.
+            Manage the announcement banner displayed at the very top of your storefront.
           </p>
-        </div>
-
-        <div className="tbs-header-status">
-          <span
-            className={`tbs-status-badge ${
-              isActive ? "tbs-status-badge--active" : "tbs-status-badge--inactive"
-            }`}
-          >
-            <span className="tbs-status-dot" />
-            {isActive ? "Currently Live" : "Hidden from Store"}
-          </span>
         </div>
       </div>
 
-      {/* Live Preview Card */}
+      {/* Live Storefront Preview */}
       <div className="tbs-preview-card">
         <div className="tbs-preview-header">
           <div className="tbs-preview-title">
             <svg
-              width="16"
-              height="16"
+              width="15"
+              height="15"
               viewBox="0 0 24 24"
               fill="none"
               stroke="currentColor"
@@ -150,7 +179,7 @@ export default function TopBarSettings() {
             Live Storefront Preview
           </div>
           <span className="tbs-preview-tag">
-            Redirects to: <strong>/products</strong>
+            Links to: <strong>{linkUrl || "/products"}</strong>
           </span>
         </div>
 
@@ -164,132 +193,201 @@ export default function TopBarSettings() {
 
         {!isActive && (
           <div className="tbs-preview-overlay-notice">
-            ⚠️ TopBar is currently turned off and will not appear on customer-facing pages.
+            TopBar is currently turned off in the list below and will not appear on storefront.
           </div>
         )}
       </div>
 
-      {/* Form Settings Card */}
-      <div className="tbs-form-card">
+      {/* UNIFIED LIST TABLE: Active status shows in list only */}
+      <div className="tbs-table-card">
+        <div className="tbs-table-header">
+          <div>
+            <h2 className="tbs-table-title">Announcement Message</h2>
+            <p className="tbs-table-desc">
+              Toggle visibility or edit the message shown across all store pages.
+            </p>
+          </div>
+        </div>
+
         {loading ? (
           <div className="tbs-loading-state">
             <div className="tbs-spinner" />
-            <p>Loading TopBar settings from database...</p>
+            <p>Loading TopBar announcement...</p>
           </div>
         ) : (
-          <form onSubmit={handleSave} className="tbs-form">
-            {/* Active Toggle */}
-            <div className="tbs-toggle-section">
-              <div className="tbs-toggle-info">
-                <label className="tbs-toggle-label" htmlFor="tbs-active-toggle">
-                  Enable TopBar Banner
-                </label>
-                <p className="tbs-toggle-help">
-                  Turn this switch on to display the banner on the storefront. Turn off to hide it completely.
-                </p>
-              </div>
-              <label className="tbs-switch" htmlFor="tbs-active-toggle">
-                <input
-                  id="tbs-active-toggle"
-                  type="checkbox"
-                  checked={isActive}
-                  onChange={(e) => setIsActive(e.target.checked)}
-                />
-                <span className="tbs-slider" />
-              </label>
-            </div>
-
-            <hr className="tbs-divider" />
-
-            {/* Announcement Text Input */}
-            <div className="tbs-field">
-              <div className="tbs-field-header">
-                <label className="tbs-label" htmlFor="tbs-text-input">
-                  Announcement Text <span className="tbs-required">*</span>
-                </label>
-                <span className="tbs-counter">{text.length} characters</span>
-              </div>
-              <input
-                id="tbs-text-input"
-                type="text"
-                className="tbs-input"
-                placeholder="e.g. Diwali Sale - Everything Is Off By 50%"
-                value={text}
-                onChange={(e) => setText(e.target.value)}
-                maxLength={200}
-                required={isActive}
-              />
-              <p className="tbs-hint">
-                Keep the message clear and concise. Clicking this banner on any store page will redirect customers directly to <strong>/products</strong> (All Products).
-              </p>
-            </div>
-
-            {/* Preset Suggestions */}
-            <div className="tbs-presets">
-              <span className="tbs-presets-title">Quick Presets:</span>
-              <div className="tbs-preset-chips">
-                {PRESETS.map((preset, idx) => (
-                  <button
-                    key={idx}
-                    type="button"
-                    className="tbs-preset-chip"
-                    onClick={() => handleApplyPreset(preset)}
-                  >
-                    {preset}
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            {/* Feedback Messages */}
-            {errorMessage && (
-              <div className="tbs-alert tbs-alert--error">
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                  <circle cx="12" cy="12" r="10" />
-                  <line x1="12" y1="8" x2="12" y2="12" />
-                  <line x1="12" y1="16" x2="12.01" y2="16" />
-                </svg>
-                <span>{errorMessage}</span>
-              </div>
-            )}
-
-            {saveSuccess && (
-              <div className="tbs-alert tbs-alert--success">
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                  <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14" />
-                  <polyline points="22 4 12 14.01 9 11.01" />
-                </svg>
-                <span>TopBar settings saved successfully to the database! Storefront updated.</span>
-              </div>
-            )}
-
-            {/* Actions */}
-            <div className="tbs-actions">
-              <button
-                type="button"
-                className="tbs-btn tbs-btn--secondary"
-                onClick={handleReset}
-                disabled={saving}
-              >
-                Reset
-              </button>
-              <button
-                type="submit"
-                className={`tbs-btn tbs-btn--primary admin-btn-with-spinner ${saving ? "tbs-btn--loading" : ""}`}
-                disabled={saving}
-              >
-                {saving ? (
-                  <>
-                    <span className="admin-btn-spinner" /> Saving to Database...
-                  </>
-                ) : (
-                  "Save Changes"
-                )}
-              </button>
-            </div>
-          </form>
+          <div className="tbs-table-wrap">
+            <table className="tbs-table">
+              <thead>
+                <tr>
+                  <th>Announcement Message</th>
+                  <th>Destination</th>
+                  <th>Status</th>
+                  <th style={{ textAlign: "right" }}>Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td>
+                    <div className="tbs-text-cell">
+                      <span className="tbs-text-main">
+                        {text.trim() || "(Empty announcement text)"}
+                      </span>
+                      <span className="tbs-text-sub">Store header announcement banner</span>
+                    </div>
+                  </td>
+                  <td>
+                    <span className="tbs-link-pill">
+                      {linkUrl || "/products"}
+                    </span>
+                  </td>
+                  <td>
+                    <div className="tbs-status-toggle-wrap">
+                      <label className="tbs-toggle">
+                        <input
+                          type="checkbox"
+                          checked={isActive}
+                          onChange={handleToggleActiveInList}
+                        />
+                        <span className="tbs-toggle-track">
+                          <span className="tbs-toggle-thumb" />
+                        </span>
+                      </label>
+                      <span className={`tbs-badge ${isActive ? "tbs-badge--active" : "tbs-badge--inactive"}`}>
+                        {isActive ? "Active" : "Inactive"}
+                      </span>
+                    </div>
+                  </td>
+                  <td style={{ textAlign: "right" }}>
+                    <div className="tbs-actions-cell">
+                      <button
+                        type="button"
+                        className="tbs-action-btn tbs-action-btn--edit"
+                        onClick={handleOpenEdit}
+                        title="Edit Announcement"
+                      >
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                          <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
+                          <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" />
+                        </svg>
+                        Edit
+                      </button>
+                    </div>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
         )}
       </div>
+
+      {/* EDIT MODAL: Centered in Screen via createPortal */}
+      {isModalOpen && typeof document !== "undefined" && createPortal(
+        <div className="tbs-modal-backdrop" onClick={() => !saving && setIsModalOpen(false)}>
+          <div className="tbs-modal-dialog" onClick={(e) => e.stopPropagation()}>
+            <div className="tbs-modal-header">
+              <h2 className="tbs-modal-title">Edit TopBar Announcement</h2>
+              <button
+                type="button"
+                className="tbs-modal-close"
+                onClick={() => !saving && setIsModalOpen(false)}
+                aria-label="Close"
+              >
+                ✕
+              </button>
+            </div>
+
+            <form onSubmit={handleSaveModal}>
+              <div className="tbs-modal-body">
+                {formError && (
+                  <div className="tbs-alert tbs-alert--error">
+                    <span>{formError}</span>
+                  </div>
+                )}
+
+                {/* Announcement Text */}
+                <div className="tbs-form-group">
+                  <div className="tbs-field-top">
+                    <label className="tbs-form-label">
+                      Announcement Text <span className="tbs-required">*</span>
+                    </label>
+                    <span className="tbs-counter">{editText.length}/200</span>
+                  </div>
+                  <input
+                    type="text"
+                    className="tbs-input"
+                    placeholder="Enter announcement message..."
+                    value={editText}
+                    onChange={(e) => setEditText(e.target.value)}
+                    maxLength={200}
+                    required={editActive}
+                    autoFocus
+                  />
+                </div>
+
+                {/* Destination Link */}
+                <div className="tbs-form-group">
+                  <label className="tbs-form-label">
+                    Redirect Destination Link
+                  </label>
+                  <input
+                    type="text"
+                    className="tbs-input"
+                    placeholder="/products"
+                    value={editLink}
+                    onChange={(e) => setEditLink(e.target.value)}
+                  />
+                  <span className="tbs-field-hint">
+                    Default is /products (redirects customer to All Products collection).
+                  </span>
+                </div>
+
+                {/* Active Toggle Switch */}
+                <div className="tbs-modal-toggle-row">
+                  <div>
+                    <span className="tbs-form-label">Show on Storefront</span>
+                    <span className="tbs-field-hint">Display this banner at the top of store pages</span>
+                  </div>
+                  <label className="tbs-toggle">
+                    <input
+                      type="checkbox"
+                      checked={editActive}
+                      onChange={(e) => setEditActive(e.target.checked)}
+                    />
+                    <span className="tbs-toggle-track">
+                      <span className="tbs-toggle-thumb" />
+                    </span>
+                  </label>
+                </div>
+              </div>
+
+              <div className="tbs-modal-footer">
+                <button
+                  type="button"
+                  className="tbs-btn-cancel"
+                  onClick={() => setIsModalOpen(false)}
+                  disabled={saving}
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  className="tbs-btn-save admin-btn-with-spinner"
+                  disabled={saving}
+                >
+                  {saving ? (
+                    <>
+                      <span className="admin-btn-spinner" /> Saving...
+                    </>
+                  ) : (
+                    "Save Announcement"
+                  )}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>,
+        document.body
+      )}
     </div>
   );
 }
