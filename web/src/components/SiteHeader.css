@@ -459,31 +459,40 @@
   transform: translateY(-7px) rotate(-45deg);
 }
 
+/* ─── Lock Background Website Scrolling on Mobile ─── */
+html.menu-open,
+body.menu-open {
+  overflow: hidden !important;
+  touch-action: none !important;
+  overscroll-behavior: none !important;
+}
+
 /* ─── Mobile Drawer Menu ─── */
 .mobile-menu {
   display: none;
   position: fixed;
-  top: 72px;
   left: 0;
   width: 100%;
-  height: calc(100vh - 72px);
   background: #ffffff;
   overflow-y: auto;
-  padding: 20px 24px 60px;
+  -webkit-overflow-scrolling: touch;
+  touch-action: pan-y;
+  padding: 10px 16px 20px;
   box-sizing: border-box;
   z-index: 999;
   border-top: 1px solid #f3f4f6;
+  overscroll-behavior: contain;
 }
 
 .mobile-menu.open {
   display: block;
-  animation: navPopupFade 0.2s ease-out;
+  animation: navPopupFade 0.15s ease-out;
 }
 
 .mobile-nav-links {
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: 2px;
 }
 
 .mobile-nav-link {
@@ -491,12 +500,12 @@
   align-items: center;
   justify-content: space-between;
   width: 100%;
-  padding: 13px 8px;
+  padding: 9px 8px;
   background: none;
   border: none;
-  border-bottom: 1px solid #f3f4f6;
+  border-bottom: 1px solid #f8fafc;
   font-family: var(--font-body);
-  font-size: 16px;
+  font-size: 14.5px;
   font-weight: 500;
   color: #111827;
   cursor: pointer;
@@ -514,19 +523,19 @@
 
 .mobile-nav-submenu {
   background: #f8fafc;
-  border-radius: 8px;
-  padding: 6px 0;
-  margin: 4px 0 8px;
+  border-radius: 6px;
+  padding: 4px 0;
+  margin: 2px 0 6px;
 }
 
 .mobile-nav-subitem {
   display: block;
   width: 100%;
-  padding: 10px 16px;
+  padding: 7px 14px;
   background: none;
   border: none;
   text-align: left;
-  font-size: 14px;
+  font-size: 13.5px;
   color: #4b5563;
   cursor: pointer;
 }
@@ -540,23 +549,90 @@
 }
 
 .mobile-extra-link {
-  font-size: 15px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 14.5px;
   font-weight: 600;
-  color: var(--blue-accent);
+  color: #1e293b;
   text-decoration: none;
-  padding: 6px 8px;
+  padding: 10px 14px;
+  background: #f8fafc;
+  border-radius: 8px;
+  transition: background-color 0.15s, color 0.15s;
 }
 
-.mobile-extra-link.mobile-admin-link {
-  color: #b45309 !important;
-  font-weight: 700 !important;
-  background: #fef3c7;
-  border-radius: 6px;
-  display: inline-block;
-  margin-top: 4px;
+.mobile-extra-link:hover {
+  background: #f1f5f9;
+  color: var(--blue-accent);
 }
 
-/* ─── Admin Quick Pill in Header Actions ─── */
+.mobile-extra-icon {
+  font-size: 16px;
+  display: inline-flex;
+  align-items: center;
+}
+
+/* ─── Minimal Mobile Sidebar Admin Button (In Sidebar Only) ─── */
+.mobile-sidebar-admin-box {
+  margin-top: 10px;
+  padding-top: 10px;
+  border-top: 1px solid #f1f5f9;
+}
+
+.mobile-sidebar-admin-btn {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background-color: #092c85;
+  border: none;
+  color: #ffffff !important;
+  padding: 9px 14px;
+  border-radius: 7px;
+  text-decoration: none;
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: 0.2px;
+  transition: background-color 0.15s ease, transform 0.1s ease;
+}
+
+.mobile-sidebar-admin-btn:hover {
+  background-color: #061f5c;
+  color: #ffffff !important;
+}
+
+.mobile-sidebar-admin-btn:active {
+  transform: scale(0.99);
+}
+
+.mobile-sidebar-admin-btn-left {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: inherit;
+}
+
+.mobile-sidebar-admin-btn svg {
+  color: #ffffff;
+  stroke: #ffffff;
+  flex-shrink: 0;
+  transition: opacity 0.15s;
+}
+
+.admin-arrow-icon {
+  opacity: 0.8;
+}
+
+/* ─── Desktop vs Mobile Visibility Helpers ─── */
+.desktop-only {
+  display: inline-flex;
+}
+
+.mobile-only {
+  display: none;
+}
+
+/* ─── Admin Quick Pill in Header Actions (Desktop) ─── */
 .header-admin-pill {
   display: inline-flex;
   align-items: center;
@@ -597,25 +673,165 @@
 }
 
 @media (max-width: 960px) {
+  /* Hide desktop-only navigation and pills */
   .desktop-nav {
-    display: none;
+    display: none !important;
+  }
+
+  .desktop-only {
+    display: none !important;
+  }
+
+  .header-admin-pill {
+    display: none !important;
+  }
+
+  /* Show mobile controls */
+  .mobile-only {
+    display: flex !important;
   }
 
   .burger-btn {
-    display: flex;
+    display: flex !important;
+    align-items: center;
+    justify-content: center;
+    padding: 6px 8px;
+    margin-left: 2px;
+    background: none;
+    border: none;
+    cursor: pointer;
   }
 
+  /* Header container: Logo on LEFT, Actions on RIGHT */
   .header-container {
-    padding: 0 20px;
-    height: 64px;
+    padding: 0 16px;
+    height: 60px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    width: 100%;
+    box-sizing: border-box;
+  }
+
+  /* 1. Logo placed on LEFT */
+  .header-logo {
+    display: flex;
+    align-items: center;
+    margin-right: auto;
+    flex-shrink: 0;
   }
 
   .header-logo-img {
-    height: 36px;
+    height: 32px;
+    max-width: 140px;
+    width: auto;
+    object-fit: contain;
   }
 
+  /* 2. Actions on RIGHT: Search, Profile, Cart, Hamburger */
+  .header-actions {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    margin-left: auto;
+    flex-shrink: 0;
+  }
+
+  .header-action-btn {
+    padding: 6px;
+    color: #111827;
+  }
+
+  .header-action-btn svg {
+    width: 20px;
+    height: 20px;
+  }
+
+  .header-avatar-circle {
+    width: 26px;
+    height: 26px;
+    font-size: 11px;
+  }
+
+  .header-cart-action-btn {
+    display: inline-flex !important;
+    padding: 6px;
+    position: relative;
+  }
+
+  .burger-icon {
+    width: 20px;
+    height: 15px;
+  }
+
+  .login-dropdown {
+    right: -30px;
+  }
+
+  .header-search-bar {
+    padding: 10px 16px;
+  }
+
+  /* Mobile menu drawer */
   .mobile-menu {
-    top: 64px;
-    height: calc(100vh - 64px);
+    left: 0;
+    width: 100%;
+    background: #ffffff;
+    box-sizing: border-box;
+    padding: 10px 16px 20px;
+  }
+}
+
+@media (max-width: 480px) {
+  .header-container {
+    padding: 0 10px;
+    height: 56px;
+  }
+
+  .header-logo-img {
+    height: 28px;
+    max-width: 115px;
+  }
+
+  .header-actions {
+    gap: 3px;
+  }
+
+  .header-action-btn {
+    padding: 4px;
+  }
+
+  .header-action-btn svg {
+    width: 19px;
+    height: 19px;
+  }
+
+  .header-avatar-circle {
+    width: 24px;
+    height: 24px;
+    font-size: 10px;
+  }
+
+  .header-cart-action-btn {
+    padding: 4px;
+  }
+
+  .burger-btn {
+    padding: 4px;
+    margin-left: 0;
+  }
+
+  .burger-icon {
+    width: 18px;
+    height: 14px;
+  }
+
+  .login-dropdown {
+    right: -40px;
+    min-width: 190px;
+  }
+
+  .header-search-bar {
+    padding: 8px 12px;
   }
 }

@@ -337,6 +337,7 @@ export default function SiteHeader({ activeLink = "", onLinkClick }) {
   const searchContainerRef = useRef(null);
   const navigate = useNavigate();
 
+  const user = useStore((state) => state.user);
   const cartItems = useStore((state) => state.cartItems);
   const categories = useStore((state) => state.categories);
   const fetchCategories = useStore((state) => state.fetchCategories);
@@ -345,6 +346,23 @@ export default function SiteHeader({ activeLink = "", onLinkClick }) {
   const cartCount = cartItems.reduce((acc, item) => acc + item.qty, 0);
 
   const [isScrolled, setIsScrolled] = useState(false);
+  const headerRef = useRef(null);
+  const [headerBottom, setHeaderBottom] = useState(60);
+
+  useEffect(() => {
+    const updateHeaderHeight = () => {
+      if (headerRef.current) {
+        setHeaderBottom(headerRef.current.getBoundingClientRect().bottom);
+      }
+    };
+    updateHeaderHeight();
+    window.addEventListener("resize", updateHeaderHeight);
+    window.addEventListener("scroll", updateHeaderHeight, { passive: true });
+    return () => {
+      window.removeEventListener("resize", updateHeaderHeight);
+      window.removeEventListener("scroll", updateHeaderHeight);
+    };
+  }, [menuOpen, isScrolled]);
 
   useEffect(() => {
     const handleScroll = () => {
@@ -378,14 +396,37 @@ export default function SiteHeader({ activeLink = "", onLinkClick }) {
     return false;
   };
 
-  // Lock body scroll when mobile menu is open
+  // Lock body scroll completely when mobile menu is open
   useEffect(() => {
     if (menuOpen) {
+      if (headerRef.current) {
+        setHeaderBottom(headerRef.current.getBoundingClientRect().bottom);
+      }
+      const scrollY = window.scrollY;
+      document.documentElement.classList.add("menu-open");
+      document.body.classList.add("menu-open");
+      document.body.style.position = "fixed";
+      document.body.style.top = `-${scrollY}px`;
+      document.body.style.width = "100%";
       document.body.style.overflow = "hidden";
     } else {
+      const scrollY = document.body.style.top;
+      document.documentElement.classList.remove("menu-open");
+      document.body.classList.remove("menu-open");
+      document.body.style.position = "";
+      document.body.style.top = "";
+      document.body.style.width = "";
       document.body.style.overflow = "";
+      if (scrollY) {
+        window.scrollTo(0, parseInt(scrollY || "0", 10) * -1);
+      }
     }
     return () => {
+      document.documentElement.classList.remove("menu-open");
+      document.body.classList.remove("menu-open");
+      document.body.style.position = "";
+      document.body.style.top = "";
+      document.body.style.width = "";
       document.body.style.overflow = "";
     };
   }, [menuOpen]);
@@ -466,22 +507,8 @@ export default function SiteHeader({ activeLink = "", onLinkClick }) {
 
   return (
     <>
-      <header className={`header${isScrolled ? " header--scrolled" : ""}`}>
+      <header ref={headerRef} className={`header${isScrolled ? " header--scrolled" : ""}`}>
         <div className="header-container">
-          {/* Mobile hamburger button */}
-          <button
-            type="button"
-            className="burger-btn mobile-only"
-            onClick={() => setMenuOpen(!menuOpen)}
-            aria-label="Menu"
-          >
-            <div className={`burger-icon ${menuOpen ? "open" : ""}`}>
-              <span></span>
-              <span></span>
-              <span></span>
-            </div>
-          </button>
-
           {/* Left: Brand Logo */}
           <div
             className="header-logo"
@@ -504,12 +531,12 @@ export default function SiteHeader({ activeLink = "", onLinkClick }) {
             ))}
           </nav>
 
-          {/* Right: Actions (Search, Account, Cart) */}
+          {/* Right: Actions (Search, Admin, Account on desktop; Cart & Hamburger on mobile) */}
           <div className="header-actions">
-            {/* Search Icon Button */}
+            {/* Search Icon Button (Mobile & Desktop) */}
             <button
               type="button"
-              className="header-action-btn"
+              className="header-action-btn header-search-action-btn"
               aria-label="Search"
               onClick={(e) => {
                 e.preventDefault();
@@ -531,20 +558,22 @@ export default function SiteHeader({ activeLink = "", onLinkClick }) {
               </svg>
             </button>
 
-            {/* Admin Quick Button (visible to admins) */}
+            {/* Admin Quick Button (Desktop only - mobile shown in sidebar only) */}
             {isAdmin && (
-              <Link to="/admin" className="header-admin-pill" title="Go to Admin Panel">
+              <Link to="/admin" className="header-admin-pill desktop-only" title="Go to Admin Panel">
                 Admin
               </Link>
             )}
 
-            {/* User Account / Profile Dropdown */}
-            <LoginDropdown />
+            {/* User Account / Profile Dropdown (Mobile & Desktop) */}
+            <div className="header-account-action-wrap">
+              <LoginDropdown />
+            </div>
 
-            {/* Shopping Cart Button */}
+            {/* Shopping Cart Button (Mobile & Desktop) */}
             <button
               type="button"
-              className="header-action-btn"
+              className="header-action-btn header-cart-action-btn"
               aria-label="Cart"
               onClick={(e) => {
                 e.preventDefault();
@@ -569,6 +598,20 @@ export default function SiteHeader({ activeLink = "", onLinkClick }) {
               {cartCount > 0 && (
                 <span className="cart-badge-count">{cartCount}</span>
               )}
+            </button>
+
+            {/* Mobile hamburger button (Rightmost on Mobile) */}
+            <button
+              type="button"
+              className="burger-btn mobile-only"
+              onClick={() => setMenuOpen(!menuOpen)}
+              aria-label="Menu"
+            >
+              <div className={`burger-icon ${menuOpen ? "open" : ""}`}>
+                <span></span>
+                <span></span>
+                <span></span>
+              </div>
             </button>
           </div>
         </div>
@@ -629,8 +672,14 @@ export default function SiteHeader({ activeLink = "", onLinkClick }) {
         )}
       </header>
 
-      {/* ─── Mobile Drawer Menu ─── */}
-      <div className={`mobile-menu ${menuOpen ? "open" : ""}`}>
+      {/* ─── Mobile Drawer Menu (Sidebar) ─── */}
+      <div
+        className={`mobile-menu ${menuOpen ? "open" : ""}`}
+        style={{
+          top: `${headerBottom}px`,
+          maxHeight: `calc(100dvh - ${headerBottom}px)`,
+        }}
+      >
         <nav className="mobile-nav-links">
           {navItems.map((item) => (
             <MobileNavItem
@@ -640,19 +689,29 @@ export default function SiteHeader({ activeLink = "", onLinkClick }) {
               onSubClick={handleSubClick}
             />
           ))}
-          <div className="mobile-extra-links">
-            <Link to="/cart" onClick={() => setMenuOpen(false)} className="mobile-extra-link">
-              Shopping Cart ({cartCount})
-            </Link>
-            <Link to="/profile" onClick={() => setMenuOpen(false)} className="mobile-extra-link">
-              My Profile
-            </Link>
-            {isAdmin && (
-              <Link to="/admin" onClick={() => setMenuOpen(false)} className="mobile-extra-link mobile-admin-link">
-                Admin Panel ⚡
+          {/* Admin button (Minimal sidebar style) */}
+          {isAdmin && (
+            <div className="mobile-sidebar-admin-box">
+              <Link
+                to="/admin"
+                onClick={() => setMenuOpen(false)}
+                className="mobile-sidebar-admin-btn"
+              >
+                <div className="mobile-sidebar-admin-btn-left">
+                  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <rect x="3" y="3" width="7" height="7" />
+                    <rect x="14" y="3" width="7" height="7" />
+                    <rect x="14" y="14" width="7" height="7" />
+                    <rect x="3" y="14" width="7" height="7" />
+                  </svg>
+                  <span>Admin Panel</span>
+                </div>
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="admin-arrow-icon">
+                  <path d="M9 18l6-6-6-6" />
+                </svg>
               </Link>
-            )}
-          </div>
+            </div>
+          )}
         </nav>
       </div>
     </>

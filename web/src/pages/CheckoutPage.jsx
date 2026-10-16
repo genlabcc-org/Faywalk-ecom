@@ -347,9 +347,70 @@ export default function CheckoutPage() {
     }
   };
 
+  // Persistent checkout product / items across mobile reloads
+  const [persistedProduct, setPersistedProduct] = useState(() => {
+    if (location.state?.product) {
+      try {
+        sessionStorage.setItem("faywalk_checkout_product", JSON.stringify(location.state.product));
+        localStorage.setItem("faywalk_checkout_product", JSON.stringify(location.state.product));
+      } catch {}
+      return location.state.product;
+    }
+    try {
+      const saved = sessionStorage.getItem("faywalk_checkout_product") || localStorage.getItem("faywalk_checkout_product");
+      return saved ? JSON.parse(saved) : null;
+    } catch {
+      return null;
+    }
+  });
+
+  const [persistedSelectedItems, setPersistedSelectedItems] = useState(() => {
+    if (location.state?.selectedItems && location.state.selectedItems.length > 0) {
+      try {
+        sessionStorage.setItem("faywalk_checkout_selected_items", JSON.stringify(location.state.selectedItems));
+        localStorage.setItem("faywalk_checkout_selected_items", JSON.stringify(location.state.selectedItems));
+      } catch {}
+      return location.state.selectedItems;
+    }
+    try {
+      const saved = sessionStorage.getItem("faywalk_checkout_selected_items") || localStorage.getItem("faywalk_checkout_selected_items");
+      return saved ? JSON.parse(saved) : null;
+    } catch {
+      return null;
+    }
+  });
+
+  useEffect(() => {
+    if (location.state?.product) {
+      setPersistedProduct(location.state.product);
+      try {
+        sessionStorage.setItem("faywalk_checkout_product", JSON.stringify(location.state.product));
+        localStorage.setItem("faywalk_checkout_product", JSON.stringify(location.state.product));
+      } catch {}
+    }
+    if (location.state?.selectedItems && location.state.selectedItems.length > 0) {
+      setPersistedSelectedItems(location.state.selectedItems);
+      try {
+        sessionStorage.setItem("faywalk_checkout_selected_items", JSON.stringify(location.state.selectedItems));
+        localStorage.setItem("faywalk_checkout_selected_items", JSON.stringify(location.state.selectedItems));
+      } catch {}
+    }
+  }, [location.state]);
+
+  const clearCheckoutStorage = () => {
+    try {
+      sessionStorage.removeItem("faywalk_checkout_product");
+      sessionStorage.removeItem("faywalk_checkout_selected_items");
+      localStorage.removeItem("faywalk_checkout_product");
+      localStorage.removeItem("faywalk_checkout_selected_items");
+    } catch {}
+  };
+
   // Compute checkout items and totals
-  const checkoutProduct = location.state?.product;
-  const selectedCartItems = location.state?.selectedItems;
+  const checkoutProduct = location.state?.product || persistedProduct;
+  const selectedCartItems = (location.state?.selectedItems && location.state.selectedItems.length > 0)
+    ? location.state.selectedItems
+    : persistedSelectedItems;
   const cartItems = useStore((state) => state.cartItems);
   const checkoutItems = checkoutProduct
     ? [checkoutProduct]
@@ -573,6 +634,7 @@ export default function CheckoutPage() {
           }
         }
 
+        clearCheckoutStorage();
         showToast("Order placed successfully via Cash on Delivery!", "success");
         setTimeout(() => {
           navigate("/profile/orders");
@@ -697,6 +759,7 @@ export default function CheckoutPage() {
                 shippingFee: shippingFee,
               });
 
+              clearCheckoutStorage();
               setTimeout(() => {
                 navigate("/profile/orders");
               }, 2000);
@@ -820,10 +883,10 @@ export default function CheckoutPage() {
               )}
 
               {/* Form */}
-              <form onSubmit={handleCheckoutSubmit} className="checkout-form-container">
+              <form onSubmit={handleCheckoutSubmit} className="checkout-form-container" id="checkout-order-form">
 
                 {/* Choose Delivery Address Section */}
-                <div className="checkout-section-block">
+                <div className="checkout-section-block checkout-address-section-block">
                   <h2 className="checkout-block-title">Choose Delivery Address</h2>
 
                   {addresses.length > 0 && (
@@ -1026,25 +1089,9 @@ export default function CheckoutPage() {
                   )}
                 </div>
 
-                {/* 3. Shipping Method Section */}
-                <div className="checkout-section-block">
-                  <h2 className="checkout-block-title">Shipping method</h2>
-                  <div className="checkout-shipping-display-box">
-                    {isAddressServiceable ? (
-                      <div className="checkout-shipping-ready-row">
-                        <span className="shipping-type-text">Standard Shipping</span>
-                        <span className="shipping-cost-text">{shippingFee > 0 ? `₹${shippingFee.toFixed(2)}` : "FREE"}</span>
-                      </div>
-                    ) : (
-                      <span className="checkout-shipping-placeholder-text">
-                        Enter your shipping address to view available shipping methods.
-                      </span>
-                    )}
-                  </div>
-                </div>
 
                 {/* 4. Payment Section */}
-                <div className="checkout-section-block">
+                <div className="checkout-section-block checkout-payment-section-block">
                   <h2 className="checkout-block-title">Payment</h2>
                   <p className="checkout-block-subtitle">All transactions are secure and encrypted.</p>
 
@@ -1121,6 +1168,7 @@ export default function CheckoutPage() {
                 <div className="checkout-action-wrap">
                   <button
                     type="submit"
+                    form="checkout-order-form"
                     className="checkout-primary-pay-btn"
                     disabled={isProcessingPayment || !ratesLoaded}
                   >

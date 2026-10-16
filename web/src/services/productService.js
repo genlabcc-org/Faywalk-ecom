@@ -419,7 +419,7 @@ export const productService = {
     try {
       let query = supabase
         .from('products')
-        .select('product_id, name, price, compare_price, stock, image_url, images, sizes, has_variants, subcategory_id, subcategories(name), product_variants(price, compare_price, stock, images)')
+        .select('product_id, name, description, price, compare_price, stock, image_url, images, sizes, colors, material, category_id, categories(name), has_variants, subcategory_id, subcategories(name), product_variants(variant_id, price, compare_price, stock, images, color, size)')
         .eq('is_active', true)
         .order('created_at', { ascending: false });
 
@@ -431,7 +431,10 @@ export const productService = {
       if (!error && data) {
         queryData = data.map(p => ({
           ...p,
-          subcategory: p.subcategories?.name || p.subcategory || null
+          category: p.categories?.name || p.category || (catData ? categoryName : null),
+          subcategory: p.subcategories?.name || p.subcategory || null,
+          material: p.material || p.fabric || '',
+          fabric: p.material || p.fabric || ''
         }));
       }
     } catch (e) {
@@ -441,7 +444,7 @@ export const productService = {
     if (!queryData) {
       let query = supabase
         .from('products')
-        .select('product_id, name, price, compare_price, stock, image_url, images, sizes, has_variants, subcategory_id, subcategories(name), product_variants(price, compare_price, stock, images)')
+        .select('product_id, name, description, price, compare_price, stock, image_url, images, sizes, colors, material, category_id, categories(name), has_variants, subcategory_id, subcategories(name), product_variants(variant_id, price, compare_price, stock, images, color, size)')
         .eq('is_active', true)
         .order('created_at', { ascending: false });
 
@@ -467,7 +470,10 @@ export const productService = {
 
       queryData = (data || []).map(p => ({
         ...p,
-        subcategory: subMap[p.subcategory_id] || p.subcategory || null
+        category: p.categories?.name || p.category || (catData ? categoryName : null),
+        subcategory: subMap[p.subcategory_id] || p.subcategory || null,
+        material: p.material || p.fabric || '',
+        fabric: p.material || p.fabric || ''
       }));
     }
 

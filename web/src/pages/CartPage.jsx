@@ -240,7 +240,17 @@ export default function CartPage() {
                 </div>
                 <button
                   className="checkout-btn"
-                  onClick={() => navigate("/checkout", { state: { selectedItems } })}
+                  onClick={() => {
+                    try {
+                      sessionStorage.setItem("faywalk_checkout_selected_items", JSON.stringify(selectedItems));
+                      localStorage.setItem("faywalk_checkout_selected_items", JSON.stringify(selectedItems));
+                      sessionStorage.removeItem("faywalk_checkout_product");
+                      localStorage.removeItem("faywalk_checkout_product");
+                    } catch (e) {
+                      console.warn("Could not save checkout items to storage", e);
+                    }
+                    navigate("/checkout", { state: { selectedItems } });
+                  }}
                   disabled={selectedItems.length === 0}
                 >
                   Checkout

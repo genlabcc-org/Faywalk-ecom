@@ -305,18 +305,55 @@ export const useStore = create((set, get) => ({
           ? variants.find(v => v.images?.length > 0)?.images?.[0]
           : null;
 
+        const variantSizes = variants.map(v => v.size).filter(Boolean);
+        let baseSizes = [];
+        if (Array.isArray(p.sizes)) {
+          baseSizes = p.sizes;
+        } else if (typeof p.sizes === 'string' && p.sizes.trim()) {
+          try {
+            const parsed = JSON.parse(p.sizes);
+            if (Array.isArray(parsed)) baseSizes = parsed;
+            else baseSizes = [p.sizes];
+          } catch {
+            baseSizes = p.sizes.split(',').map(s => s.trim()).filter(Boolean);
+          }
+        }
+        const combinedSizes = Array.from(new Set([...baseSizes, ...variantSizes].map(s => String(s).trim()).filter(Boolean)));
+
+        const variantColors = variants.map(v => v.color).filter(Boolean);
+        let baseColors = Array.isArray(p.colors) ? p.colors : [];
+        if (typeof p.colors === 'string' && p.colors.trim()) {
+          try {
+            const parsed = JSON.parse(p.colors);
+            if (Array.isArray(parsed)) baseColors = parsed;
+            else baseColors = [p.colors];
+          } catch {
+            baseColors = p.colors.split(',').map(s => s.trim()).filter(Boolean);
+          }
+        }
+        const combinedColors = Array.from(new Set([...baseColors, ...variantColors].filter(Boolean)));
+
+        const categoryNameResolved = p.category || p.categories?.name || (categoryName.toLowerCase() !== 'all products' && categoryName.toLowerCase() !== 'all' ? categoryName : '');
+        const mat = (p.material || p.fabric || '').trim();
+
         return {
           id: p.product_id || p.id,
           productId: p.product_id || p.id,
           img: getOriginalImageUrl(firstVariantImage || p.image_url || (p.images && p.images[0]) || '/src/assets/cart/bangle1.webp'),
+          images: Array.isArray(p.images) && p.images.length > 0 ? p.images : (p.image_url ? [p.image_url] : []),
           name: p.name,
           desc: p.description,
           price: sellingPrice,
           compare_price: mrp,
-          sizes: p.sizes || variants.map(v => v.size).filter(Boolean),
-          stock: totalStock > 0 ? 'in-stock' : 'out-of-stock',
+          sizes: combinedSizes,
+          colors: combinedColors,
+          material: mat,
+          fabric: mat,
+          category: categoryNameResolved,
+          category_id: p.category_id || null,
           subcategory: p.subcategory || p.subcategories?.name || null,
           subcategory_id: p.subcategory_id || null,
+          stock: totalStock > 0 ? 'in-stock' : 'out-of-stock',
           has_variants: hasVariants,
         };
       });

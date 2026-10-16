@@ -241,7 +241,23 @@ export default function ProductDetailsPage({ onBack = () => window.history.back(
   const [toastMsg, setToastMsg] = useState("");
   const [toastType, setToastType] = useState("success");
   const [selectedSize, setSelectedSize] = useState("");
-  const [size, setSize] = useState(["80", "85", "90", "95", "100"]);
+  const [size, setSize] = useState(() => {
+    const rawSizes = selectedProduct?.sizes;
+    if (rawSizes) {
+      if (Array.isArray(rawSizes)) {
+        return rawSizes.map(s => String(s).trim()).filter(Boolean);
+      }
+      if (typeof rawSizes === "string" && rawSizes.trim()) {
+        try {
+          const parsed = JSON.parse(rawSizes);
+          if (Array.isArray(parsed)) return parsed.map(s => String(s).trim()).filter(Boolean);
+        } catch {
+          return rawSizes.split(",").map(s => s.trim()).filter(Boolean);
+        }
+      }
+    }
+    return [];
+  });
   const [hasVariants, setHasVariants] = useState(false);
   const [variants, setVariants] = useState([]);
   const [selectedColor, setSelectedColor] = useState("");
@@ -310,9 +326,27 @@ export default function ProductDetailsPage({ onBack = () => window.history.back(
           fabric: data.material || '',
           sku: data.sku || '',
           stock: data.stock,
-          sizes: data.sizes || [],
+          sizes: [],
           colors: parsedColorsList,
         };
+
+        const varSizes = (data.product_variants || []).map(v => v.size).filter(Boolean);
+        let baseSizes = [];
+        if (data.sizes) {
+          if (Array.isArray(data.sizes)) {
+            baseSizes = data.sizes;
+          } else if (typeof data.sizes === 'string' && data.sizes.trim()) {
+            try {
+              const jsonParsed = JSON.parse(data.sizes);
+              if (Array.isArray(jsonParsed)) baseSizes = jsonParsed;
+              else baseSizes = [data.sizes];
+            } catch {
+              baseSizes = data.sizes.split(',').map(s => s.trim()).filter(Boolean);
+            }
+          }
+        }
+        const realSizes = Array.from(new Set([...baseSizes, ...varSizes].map(s => String(s).trim()).filter(Boolean)));
+        formatted.sizes = realSizes;
 
         setProductImages(baseImages);
         setProductPrice({
@@ -323,18 +357,13 @@ export default function ProductDetailsPage({ onBack = () => window.history.back(
         if (data.has_variants && data.product_variants?.length > 0) {
           setHasVariants(true);
           setVariants(data.product_variants);
-          const varSizes = [...new Set(data.product_variants.map(v => v.size).filter(Boolean))];
-          if (varSizes.length > 0) setSize(varSizes);
         } else {
           setHasVariants(false);
           setVariants([]);
-          if (data.sizes?.length) {
-            const szList = Array.isArray(data.sizes) ? data.sizes : String(data.sizes).split(',').map(s => s.trim()).filter(Boolean);
-            if (szList.length > 0) {
-              setSize(szList);
-            }
-          }
         }
+
+        setSize(realSizes);
+        setSelectedSize(prev => (prev && realSizes.includes(prev)) ? prev : (realSizes.length === 1 ? realSizes[0] : ""));
 
         setSelectedProduct(formatted);
         setLoadingProduct(false);
@@ -732,21 +761,32 @@ export default function ProductDetailsPage({ onBack = () => window.history.back(
     const sizeParam = selectedSize || null;
     const colorParam = selectedColor || null;
 
+    const checkoutPayload = {
+      productId: selectedProduct?.productId || selectedProduct?.id || selectedProduct?.product_id,
+      id: selectedProduct?.productId || selectedProduct?.id || selectedProduct?.product_id,
+      name: displayName,
+      price: payPrice,
+      originalPrice: strikePrice,
+      qty: qty,
+      img: dynamicThumbs[0]?.img || selectedVariant?.images?.[0] || displayImage,
+      category: cat,
+      sku: displaySku || selectedProduct?.sku || selectedVariant?.sku || '',
+      size: sizeParam,
+      color: colorParam,
+    };
+
+    try {
+      sessionStorage.setItem("faywalk_checkout_product", JSON.stringify(checkoutPayload));
+      localStorage.setItem("faywalk_checkout_product", JSON.stringify(checkoutPayload));
+      sessionStorage.removeItem("faywalk_checkout_selected_items");
+      localStorage.removeItem("faywalk_checkout_selected_items");
+    } catch (e) {
+      console.warn("Could not save checkout item to storage", e);
+    }
+
     navigate("/checkout", {
       state: {
-        product: {
-          productId: selectedProduct?.productId || selectedProduct?.id || selectedProduct?.product_id,
-          id: selectedProduct?.productId || selectedProduct?.id || selectedProduct?.product_id,
-          name: displayName,
-          price: payPrice,
-          originalPrice: strikePrice,
-          qty: qty,
-          img: dynamicThumbs[0]?.img || selectedVariant?.images?.[0] || displayImage,
-          category: cat,
-          sku: displaySku || selectedProduct?.sku || selectedVariant?.sku || '',
-          size: sizeParam,
-          color: colorParam,
-        }
+        product: checkoutPayload
       }
     });
   }, [validateOptionsSelection, displayName, payPrice, strikePrice, qty, dynamicThumbs, selectedVariant, displayImage, cat, displaySku, selectedProduct, selectedSize, selectedColor, canAddToCart, navigate]);

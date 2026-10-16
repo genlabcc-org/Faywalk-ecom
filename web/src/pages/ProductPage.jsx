@@ -41,7 +41,10 @@ export default function ProductPage({ category = "Trending" }) {
 
   // Filter states
   const [sortBy, setSortBy] = useState("featured"); // "price-low-high", "price-high-low", "featured"
-  const [selectedGenders, setSelectedGenders] = useState([]);
+  const [selectedCategories, setSelectedCategories] = useState([]);
+  const [selectedSubcategories, setSelectedSubcategories] = useState(() =>
+    subcategoryParam.trim() ? [subcategoryParam.trim()] : []
+  );
   const [selectedFabrics, setSelectedFabrics] = useState([]);
   const [selectedSizes, setSelectedSizes] = useState([]);
   const [currentPage, setCurrentPage] = useState(1);
@@ -66,14 +69,22 @@ export default function ProductPage({ category = "Trending" }) {
     fetchCategories();
   }, [fetchCategories]);
 
+  // Sync subcategory param from URL
+  useEffect(() => {
+    if (subcategoryParam.trim()) {
+      setSelectedSubcategories([subcategoryParam.trim()]);
+    }
+  }, [subcategoryParam]);
+
   // Reset filters when category changes
   useEffect(() => {
-    setSelectedGenders([]);
+    setSelectedCategories([]);
+    setSelectedSubcategories(subcategoryParam.trim() ? [subcategoryParam.trim()] : []);
     setSelectedFabrics([]);
     setSelectedSizes([]);
     setSortBy("featured");
     setCurrentPage(1);
-  }, [category]);
+  }, [category, subcategoryParam]);
 
   const showToast = (message, type = "success") => {
     setToastMessage(message);
@@ -93,9 +104,16 @@ export default function ProductPage({ category = "Trending" }) {
     setCurrentPage(1);
   };
 
-  const handleGenderToggle = (gender) => {
-    setSelectedGenders(prev =>
-      prev.includes(gender) ? prev.filter(g => g !== gender) : [...prev, gender]
+  const handleCategoryToggle = (catName) => {
+    setSelectedCategories(prev =>
+      prev.includes(catName) ? prev.filter(c => c !== catName) : [...prev, catName]
+    );
+    setCurrentPage(1);
+  };
+
+  const handleSubcategoryToggle = (subName) => {
+    setSelectedSubcategories(prev =>
+      prev.includes(subName) ? prev.filter(s => s !== subName) : [...prev, subName]
     );
     setCurrentPage(1);
   };
@@ -115,85 +133,194 @@ export default function ProductPage({ category = "Trending" }) {
   };
 
   const handleClearFilters = () => {
-    setSelectedGenders([]);
+    setSelectedCategories([]);
+    setSelectedSubcategories([]);
     setSelectedFabrics([]);
     setSelectedSizes([]);
     setSortBy("featured");
     setCurrentPage(1);
   };
 
-  // Compute available sizes & dynamic counts
-  const availableSizes = useMemo(() => {
-    const base = ["80", "85", "90", "95", "100"];
-    const productSizes = [];
+  // Dynamically compute real categories from Supabase with live counts
+  const availableCategories = useMemo(() => {
+    const active = (allCategories || []).filter(c => c.is_active !== false);
+    if (active.length > 0) {
+      return active.map(c => {
+        const count = products.filter(p => {
+          const pCat = String(p.category || "").toLowerCase();
+          const cName = String(c.name || "").toLowerCase();
+          return pCat === cName || String(p.category_id) === String(c.category_id);
+        }).length;
+        return {
+          id: c.category_id || c.id,
+          name: c.name,
+          count
+        };
+      });
+    }
+
+    const catMap = new Map();
     products.forEach(p => {
-      if (Array.isArray(p.sizes)) {
-        p.sizes.forEach(s => {
-          const str = String(s).trim();
-          if (str && !productSizes.includes(str)) productSizes.push(str);
+      const name = p.category;
+      if (name) catMap.set(name, (catMap.get(name) || 0) + 1);
+    });
+    return Array.from(catMap.entries()).map(([name, count]) => ({ id: name, name, count }));
+  }, [allCategories, products]);
+
+  // Dynamically compute real subcategories from Supabase with live counts
+  const availableSubcategories = useMemo(() => {
+    const isAll = !category || category.toLowerCase() === "all products" || category.toLowerCase() === "all" || category.toLowerCase() === "trending";
+    let subList = [];
+    if (!isAll) {
+      const currentCat = (allCategories || []).find(c => (c.name || "").toLowerCase() === category.toLowerCase());
+      subList = (currentCat?.subcategories || []).filter(s => s.is_active !== false);
+    } else {
+      (allCategories || []).forEach(c => {
+        if (Array.isArray(c.subcategories)) {
+          subList.push(...c.subcategories.filter(s => s.is_active !== false));
+        }
+      });
+    }
+
+    const subMap = new Map();
+    subList.forEach(s => {
+      if (s.name && !subMap.has(s.name.toLowerCase())) {
+        subMap.set(s.name.toLowerCase(), {
+          id: s.subcategory_id || s.name,
+          name: s.name,
+          count: 0
         });
       }
     });
-    const combined = [...base];
-    productSizes.forEach(s => {
-      if (!combined.includes(s)) combined.push(s);
-    });
-    return combined;
-  }, [products]);
 
-  // Dynamic fabric counts
-  const fabricCounts = useMemo(() => {
-    let count = 0;
     products.forEach(p => {
-      const text = `${p.name || ""} ${p.desc || ""} ${p.fabric || ""} ${p.material || ""}`.toLowerCase();
-      if (text.includes("cotton") || products.length > 0) {
-        count++;
+      if (p.subcategory) {
+        const low = p.subcategory.toLowerCase();
+        if (!subMap.has(low)) {
+          subMap.set(low, {
+            id: p.subcategory_id || p.subcategory,
+            name: p.subcategory,
+            count: 0
+          });
+        }
       }
     });
-    return {
-      Cotton: count || products.length || 10
-    };
+
+    subMap.forEach((entry, low) => {
+      entry.count = products.filter(p => {
+        const pSub = String(p.subcategory || "").toLowerCase();
+        return pSub === low || String(p.subcategory_id) === String(entry.id);
+      }).length;
+    });
+
+    return Array.from(subMap.values());
+  }, [allCategories, category, products]);
+
+  // Dynamically compute real fabrics/materials from Supabase with live counts
+  const availableFabrics = useMemo(() => {
+    const counts = {};
+    products.forEach(p => {
+      const mat = (p.material || p.fabric || "").trim();
+      if (mat) {
+        const parts = mat.split(/[,/]+/).map(s => s.trim()).filter(Boolean);
+        parts.forEach(part => {
+          const formatted = part.charAt(0).toUpperCase() + part.slice(1);
+          counts[formatted] = (counts[formatted] || 0) + 1;
+        });
+      }
+    });
+
+    const list = Object.entries(counts).map(([name, count]) => ({
+      name,
+      count
+    }));
+
+    if (list.length === 0 && products.length > 0) {
+      return [{ name: "Cotton", count: products.length }];
+    }
+
+    return list;
   }, [products]);
 
-  // Filter & sort logic
+  // Dynamically compute real sizes from product catalog with live counts
+  const availableSizes = useMemo(() => {
+    const sizeCounts = new Map();
+    products.forEach(p => {
+      const pSizes = Array.isArray(p.sizes) ? p.sizes : [];
+      pSizes.forEach(s => {
+        const str = String(s).trim();
+        if (str) sizeCounts.set(str, (sizeCounts.get(str) || 0) + 1);
+      });
+    });
+
+    if (sizeCounts.size > 0) {
+      return Array.from(sizeCounts.entries()).map(([size, count]) => ({
+        size,
+        count
+      })).sort((a, b) => {
+        const numA = parseFloat(a.size);
+        const numB = parseFloat(b.size);
+        if (!isNaN(numA) && !isNaN(numB)) return numA - numB;
+        return a.size.localeCompare(b.size);
+      });
+    }
+
+    return [];
+  }, [products]);
+
+  // Real Filter & Sort Logic
   const filteredProducts = useMemo(() => {
     let result = products.filter(product => {
-      // Search query filter if present
+      // Search query filter
       if (searchQueryParam.trim()) {
         const q = searchQueryParam.trim().toLowerCase();
-        const text = `${product.name || ""} ${product.desc || ""} ${product.subcategory || ""}`.toLowerCase();
+        const text = `${product.name || ""} ${product.desc || ""} ${product.subcategory || ""} ${product.category || ""}`.toLowerCase();
         if (!text.includes(q)) return false;
       }
 
-      // Subcategory filter if present in URL
-      if (subcategoryParam.trim()) {
+      // Real category filter
+      if (selectedCategories.length > 0) {
+        const pCat = String(product.category || "").toLowerCase();
+        const matchesCategory = selectedCategories.some(cat => {
+          const cLow = String(cat).toLowerCase();
+          return pCat === cLow || String(product.category_id) === String(cat);
+        });
+        if (!matchesCategory) return false;
+      }
+
+      // Real subcategory filter
+      if (selectedSubcategories.length > 0) {
+        const pSub = String(product.subcategory || "").toLowerCase();
+        const matchesSubcategory = selectedSubcategories.some(sub => {
+          const sLow = String(sub).toLowerCase();
+          return pSub === sLow || String(product.subcategory_id) === String(sub);
+        });
+        if (!matchesSubcategory) return false;
+      } else if (subcategoryParam.trim()) {
         const targetSub = subcategoryParam.trim().toLowerCase();
         const pSub = String(product.subcategory || product.subcategory_id || "").trim().toLowerCase();
         if (pSub !== targetSub) return false;
       }
 
-      // Gender filter
-      if (selectedGenders.length > 0) {
-        const pGender = String(product.gender || product.category || "").toLowerCase();
-        const pName = String(product.name || "").toLowerCase();
-        const matchesGender = selectedGenders.some(g => {
-          const gLow = g.toLowerCase();
-          return pGender.includes(gLow) || pName.includes(gLow);
-        });
-        if (!matchesGender) return false;
-      }
-
-      // Fabric filter
+      // Real fabric filter
       if (selectedFabrics.length > 0) {
-        const text = `${product.name || ""} ${product.desc || ""} ${product.fabric || ""} ${product.material || ""}`.toLowerCase();
-        const matchesFabric = selectedFabrics.some(f => text.includes(f.toLowerCase()));
+        const pMat = String(product.material || product.fabric || "Cotton").toLowerCase();
+        const pName = String(product.name || "").toLowerCase();
+        const pDesc = String(product.desc || "").toLowerCase();
+        const matchesFabric = selectedFabrics.some(f => {
+          const fLow = String(f).toLowerCase();
+          return pMat.includes(fLow) || pName.includes(fLow) || pDesc.includes(fLow);
+        });
         if (!matchesFabric) return false;
       }
 
-      // Size filter
+      // Real size filter
       if (selectedSizes.length > 0) {
-        const hasMatchingSize = product.sizes?.some(size => selectedSizes.map(String).includes(String(size)));
-        if (!hasMatchingSize && product.sizes && product.sizes.length > 0) return false;
+        const prodSizes = Array.isArray(product.sizes) ? product.sizes.map(s => String(s).toLowerCase().trim()) : [];
+        const hasMatchingSize = selectedSizes.some(s =>
+          prodSizes.includes(String(s).toLowerCase().trim())
+        );
+        if (!hasMatchingSize) return false;
       }
 
       return true;
@@ -207,7 +334,7 @@ export default function ProductPage({ category = "Trending" }) {
     }
 
     return result;
-  }, [products, subcategoryParam, searchQueryParam, selectedGenders, selectedFabrics, selectedSizes, sortBy]);
+  }, [products, subcategoryParam, searchQueryParam, selectedCategories, selectedSubcategories, selectedFabrics, selectedSizes, sortBy]);
 
   const totalPages = Math.max(1, Math.ceil(filteredProducts.length / itemsPerPage));
 
@@ -247,7 +374,7 @@ export default function ProductPage({ category = "Trending" }) {
   const handleAddToCartClick = async (e, product) => {
     e.stopPropagation();
     try {
-      const defaultSize = (product.sizes && product.sizes.length > 0) ? product.sizes[0] : (selectedSizes[0] || "80");
+      const defaultSize = (product.sizes && product.sizes.length > 0) ? product.sizes[0] : (selectedSizes[0] || null);
       await addToCart(product, 1, defaultSize);
       showToast(`Added ${product.name} to cart!`, "success");
     } catch (err) {
@@ -274,14 +401,18 @@ export default function ProductPage({ category = "Trending" }) {
         <ProductFilter
           sortBy={sortBy}
           onSortChange={handlePriceSortToggle}
-          selectedGenders={selectedGenders}
-          onGenderToggle={handleGenderToggle}
+          availableCategories={availableCategories}
+          selectedCategories={selectedCategories}
+          onCategoryToggle={handleCategoryToggle}
+          availableSubcategories={availableSubcategories}
+          selectedSubcategories={selectedSubcategories}
+          onSubcategoryToggle={handleSubcategoryToggle}
+          availableFabrics={availableFabrics}
           selectedFabrics={selectedFabrics}
           onFabricToggle={handleFabricToggle}
+          availableSizes={availableSizes}
           selectedSizes={selectedSizes}
           onSizeToggle={handleSizeToggle}
-          availableSizes={availableSizes}
-          fabricCounts={fabricCounts}
           onClearFilters={handleClearFilters}
         />
 
@@ -324,12 +455,7 @@ export default function ProductPage({ category = "Trending" }) {
               <button
                 type="button"
                 className="trending-reset-btn"
-                onClick={() => {
-                  setSelectedGenders([]);
-                  setSelectedFabrics([]);
-                  setSelectedSizes([]);
-                  setSortBy("featured");
-                }}
+                onClick={handleClearFilters}
               >
                 Reset Filters
               </button>
