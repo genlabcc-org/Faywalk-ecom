@@ -114,7 +114,7 @@ const menuItems = [
       { label: "Add Banner", path: "/admin/banners/add" },
     ]
   },
-  { id: "analytics", label: "Analytics", path: "/admin/analytics" },
+  // { id: "analytics", label: "Analytics", path: "/admin/analytics" },
   { id: "shipping", label: "Shipping", path: "/admin/shipping" },
   { id: "topbar", label: "TopBar Content", path: "/admin/topbar" },
   {
@@ -438,62 +438,101 @@ const TotalCustomersChart = ({ orders = [], customers = [], loading = false }) =
 };
 
 const SalesByCategoryCard = ({ orders = [], products = [], categories = [], loading = false }) => {
-  const categorySales = useMemo(() => {
-    const palette = ["#818CF8", "#65A30D", "#06B6D4", "#EA580C", "#D97706", "#1E3A8A", "#EC4899", "#8B5CF6"];
+  const [viewMode, setViewMode] = useState("category"); // 'category' | 'subcategory'
+  const [expandedCategories, setExpandedCategories] = useState({});
 
-    // Map productId -> Category Name
-    const prodCategoryMap = {};
+  const { categories: categorySales, subcategories: subcategorySales } = useMemo(() => {
+    const palette = ["#0A2582", "#2563EB", "#059669", "#D97706", "#DC2626", "#7C3AED", "#DB2777", "#0891B2"];
+
+    // 1. Build lookup maps from products & categories
+    const prodCatMap = {};
+    const prodSubcatMap = {};
+
+    // Map subcategoryId -> Subcategory Name and parent_id
+    const subcatMapById = {};
+    categories.forEach(c => {
+      (c.subcategories || []).forEach(s => {
+        const sId = s.subcategory_id || s.id;
+        if (sId) {
+          subcatMapById[sId] = s.name;
+        }
+      });
+    });
+
     products.forEach(p => {
-      const catName = p.categories?.name || p.category || (categories.find(c => String(c.id || c.category_id) === String(p.category_id))?.name) || null;
+      const catName = p.categories?.name || p.category || (categories.find(c => String(c.id || c.category_id) === String(p.category_id))?.name) || "Other";
+      const subcatName = p.subcategories?.name || p.subcategory || (p.subcategory_id && subcatMapById[p.subcategory_id]) || null;
+
       if (catName) {
-        prodCategoryMap[p.id] = catName;
-        prodCategoryMap[p.product_id] = catName;
+        prodCatMap[p.id] = catName;
+        prodCatMap[p.product_id] = catName;
+      }
+      if (subcatName) {
+        prodSubcatMap[p.id] = subcatName;
+        prodSubcatMap[p.product_id] = subcatName;
       }
     });
 
-    const salesMap = {};
-    // Pre-initialize real categories so every real category in the store is accounted for
+    // Structure: categoriesData[catName] = { amount: 0, subcategories: { [subcatName]: amount } }
+    const categoriesData = {};
     categories.forEach(c => {
-      const name = c.name?.trim();
-      if (name) salesMap[name] = 0;
+      const cName = c.name?.trim();
+      if (!cName) return;
+      categoriesData[cName] = {
+        amount: 0,
+        subcategories: {}
+      };
+      (c.subcategories || []).forEach(s => {
+        const sName = s.name?.trim();
+        if (sName) {
+          categoriesData[cName].subcategories[sName] = 0;
+        }
+      });
     });
 
-    // 1. Calculate revenue from actual orders
+    // Helper to add sale
+    const recordSale = (catName, subcatName, amount) => {
+      if (!catName || catName === "Other") return;
+      if (!categoriesData[catName]) {
+        categoriesData[catName] = { amount: 0, subcategories: {} };
+      }
+      categoriesData[catName].amount += amount;
+
+      const sub = subcatName?.trim() || "General";
+      categoriesData[catName].subcategories[sub] = (categoriesData[catName].subcategories[sub] || 0) + amount;
+    };
+
+    // 2. Compute from actual orders
     let totalOrderSalesFound = 0;
     orders.forEach(order => {
       if (['cancelled', 'returned'].includes(order.status?.toLowerCase())) return;
       const items = order.order_items || [];
       if (items.length > 0) {
         items.forEach(item => {
-          const catName = item.category || item.category_name || prodCategoryMap[item.product_id] || prodCategoryMap[item.id] || "Other";
+          const catName = item.category || item.category_name || prodCatMap[item.product_id] || prodCatMap[item.id] || "Other";
+          const subcatName = item.subcategory || item.subcategory_name || prodSubcatMap[item.product_id] || prodSubcatMap[item.id] || null;
           const itemTotal = Number(item.price || 0) * Number(item.quantity || 1);
-          salesMap[catName] = (salesMap[catName] || 0) + itemTotal;
+          recordSale(catName, subcatName, itemTotal);
           totalOrderSalesFound += itemTotal;
         });
       } else {
-        const catName = order.category || prodCategoryMap[order.product_id] || "Other";
+        const catName = order.category || prodCatMap[order.product_id] || "Other";
+        const subcatName = prodSubcatMap[order.product_id] || null;
         const val = Number(order.total_price || 0);
-        salesMap[catName] = (salesMap[catName] || 0) + val;
+        recordSale(catName, subcatName, val);
         totalOrderSalesFound += val;
       }
     });
 
-    // 2. If no completed order sales exist yet, calculate based on product inventory/catalog value per real category
+    // 3. Fallback: catalog/inventory value if no completed order sales exist yet
     if (totalOrderSalesFound === 0) {
       products.forEach(p => {
         const catName = p.categories?.name || p.category || (categories.find(c => String(c.id || c.category_id) === String(p.category_id))?.name) || "Other";
+        const subcatName = p.subcategories?.name || p.subcategory || (p.subcategory_id && subcatMapById[p.subcategory_id]) || null;
         const catVal = Number(p.price || 0) * (Number(p.stock) || 1);
-        salesMap[catName] = (salesMap[catName] || 0) + catVal;
+        recordSale(catName, subcatName, catVal);
       });
     }
-
-    // Sort real categories by highest sales / value
-    const sorted = Object.entries(salesMap)
-      .filter(([name]) => name && name !== "Other")
-      .sort((a, b) => b[1] - a[1]);
-
-    const finalEntries = sorted.length > 0 ? sorted.slice(0, 6) : Object.entries(salesMap).slice(0, 6);
-    const maxVal = finalEntries[0]?.[1] || 1;
 
     const formatAmt = (val) => {
       if (val >= 100000) return `₹${(val / 100000).toFixed(1)}L`;
@@ -501,49 +540,170 @@ const SalesByCategoryCard = ({ orders = [], products = [], categories = [], load
       return `₹${Math.round(val)}`;
     };
 
-    return finalEntries.map(([name, amount], idx) => ({
-      name,
-      amount: formatAmt(amount),
-      percent: Math.max(10, Math.round((amount / maxVal) * 100)),
-      color: palette[idx % palette.length]
+    // Format category list
+    const sortedCategories = Object.entries(categoriesData)
+      .filter(([name]) => name && name !== "Other")
+      .sort((a, b) => b[1].amount - a[1].amount);
+
+    const maxCatVal = sortedCategories[0]?.[1]?.amount || 1;
+
+    const formattedCategories = sortedCategories.map(([name, data], idx) => {
+      const subEntries = Object.entries(data.subcategories)
+        .sort((a, b) => b[1] - a[1]);
+
+      return {
+        name,
+        rawAmount: data.amount,
+        amount: formatAmt(data.amount),
+        percent: Math.max(10, Math.round((data.amount / maxCatVal) * 100)),
+        color: palette[idx % palette.length],
+        subcategories: subEntries.map(([sName, sAmt]) => ({
+          name: sName,
+          amount: formatAmt(sAmt),
+          rawAmount: sAmt,
+          percent: data.amount > 0 ? Math.round((sAmt / data.amount) * 100) : 0,
+        }))
+      };
+    });
+
+    // Format all subcategories flat list
+    const allSubs = [];
+    formattedCategories.forEach(cat => {
+      cat.subcategories.forEach(sub => {
+        allSubs.push({
+          name: sub.name,
+          parentCategory: cat.name,
+          amount: sub.amount,
+          rawAmount: sub.rawAmount,
+          color: cat.color,
+        });
+      });
+    });
+    allSubs.sort((a, b) => b.rawAmount - a.rawAmount);
+    const maxSubVal = allSubs[0]?.rawAmount || 1;
+    const formattedSubcategories = allSubs.map(s => ({
+      ...s,
+      percent: Math.max(10, Math.round((s.rawAmount / maxSubVal) * 100)),
     }));
+
+    return {
+      categories: formattedCategories,
+      subcategories: formattedSubcategories,
+    };
   }, [orders, products, categories]);
+
+  const toggleCategory = (catName) => {
+    setExpandedCategories(prev => ({
+      ...prev,
+      [catName]: prev[catName] === false ? true : false,
+    }));
+  };
 
   return (
     <div className="dc__card">
       <div className="dc__card-header">
-        <h2 className="dc__card-title">Sales by category</h2>
-        <button className="dc__filter-link">
-          <span>From last week</span>
-          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-            <polyline points="6 9 12 15 18 9" />
-          </svg>
-        </button>
+        <div>
+          <h2 className="dc__card-title">Sales by category</h2>
+          <p className="dc__card-subtext">Category and subcategory breakdown</p>
+        </div>
+        <div className="dc__cat-view-tabs">
+          <button
+            type="button"
+            className={`dc__cat-view-tab ${viewMode === "category" ? "dc__cat-view-tab--active" : ""}`}
+            onClick={() => setViewMode("category")}
+          >
+            By Category
+          </button>
+          <button
+            type="button"
+            className={`dc__cat-view-tab ${viewMode === "subcategory" ? "dc__cat-view-tab--active" : ""}`}
+            onClick={() => setViewMode("subcategory")}
+          >
+            By Subcategory
+          </button>
+        </div>
       </div>
 
       <div className="dc__category-list">
-        {categorySales.length > 0 ? (
-          categorySales.map((cat, i) => (
-            <div key={i} className="dc__category-item">
-              <div className="dc__category-info">
-                <span className="dc__category-name">{cat.name}</span>
-                <span className="dc__category-amount">{cat.amount}</span>
-              </div>
-              <div className="dc__category-track">
-                <div
-                  className="dc__category-fill"
-                  style={{
-                    width: `${cat.percent}%`,
-                    backgroundColor: cat.color
-                  }}
-                />
-              </div>
-            </div>
-          ))
+        {viewMode === "category" ? (
+          categorySales.length > 0 ? (
+            categorySales.map((cat, i) => {
+              const isExpanded = expandedCategories[cat.name] !== false; // default expanded
+              return (
+                <div key={i} className="dc__category-item">
+                  <div
+                    className="dc__category-info dc__category-info--clickable"
+                    onClick={() => toggleCategory(cat.name)}
+                    title="Click to expand/collapse subcategories"
+                  >
+                    <div className="dc__cat-title-wrap">
+                      <span className="dc__cat-chevron">{isExpanded ? "▾" : "▸"}</span>
+                      <span className="dc__category-name">{cat.name}</span>
+                      {cat.subcategories.length > 0 && (
+                        <span className="dc__subcat-count-badge">
+                          {cat.subcategories.length} {cat.subcategories.length === 1 ? "subcat" : "subcats"}
+                        </span>
+                      )}
+                    </div>
+                    <span className="dc__category-amount">{cat.amount}</span>
+                  </div>
+
+                  <div className="dc__category-track">
+                    <div
+                      className="dc__category-fill"
+                      style={{
+                        width: `${cat.percent}%`,
+                        backgroundColor: cat.color
+                      }}
+                    />
+                  </div>
+
+                  {/* Subcategories list under this category */}
+                  {isExpanded && cat.subcategories.length > 0 && (
+                    <div className="dc__subcategories-nested">
+                      {cat.subcategories.map((sub, sIdx) => (
+                        <div key={sIdx} className="dc__subcat-row">
+                          <div className="dc__subcat-info">
+                            <span className="dc__subcat-bullet">↳</span>
+                            <span className="dc__subcat-name">{sub.name}</span>
+                            <span className="dc__subcat-share">({sub.percent}%)</span>
+                          </div>
+                          <span className="dc__subcat-amount">{sub.amount}</span>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              );
+            })
+          ) : (
+            <div className="dc__empty-text">No category data recorded yet.</div>
+          )
         ) : (
-          <div style={{ color: "#94a3b8", fontSize: "13px", padding: "16px 0", textAlign: "center" }}>
-            No sales data recorded yet.
-          </div>
+          subcategorySales.length > 0 ? (
+            subcategorySales.map((sub, i) => (
+              <div key={i} className="dc__category-item">
+                <div className="dc__category-info">
+                  <div className="dc__cat-title-wrap">
+                    <span className="dc__category-name">{sub.name}</span>
+                    <span className="dc__subcat-parent-tag">in {sub.parentCategory}</span>
+                  </div>
+                  <span className="dc__category-amount">{sub.amount}</span>
+                </div>
+                <div className="dc__category-track">
+                  <div
+                    className="dc__category-fill"
+                    style={{
+                      width: `${sub.percent}%`,
+                      backgroundColor: sub.color
+                    }}
+                  />
+                </div>
+              </div>
+            ))
+          ) : (
+            <div className="dc__empty-text">No subcategory data recorded yet.</div>
+          )
         )}
       </div>
     </div>

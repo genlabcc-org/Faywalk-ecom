@@ -58,7 +58,8 @@ export default function Orders() {
         category: product.categories?.name || product.category || 'Bangles'
       };
       setSelectedProduct(formattedProduct);
-      navigate("/product");
+      const pid = product.product_id || product.id;
+      navigate(pid ? `/product/${pid}` : "/product");
     }
   };
 

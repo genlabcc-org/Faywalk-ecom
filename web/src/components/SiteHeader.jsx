@@ -422,6 +422,7 @@ export default function SiteHeader({ activeLink = "", onLinkClick }) {
         navigate(item.path);
       }
       return;
+      
     }
     if (item.fromDb && onLinkClick) {
       onLinkClick(item.name);

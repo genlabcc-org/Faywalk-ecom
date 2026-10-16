@@ -27,7 +27,8 @@ export default function HomePage() {
 
   const handleProductClick = (product) => {
     setSelectedProduct(product);
-    navigate('/product');
+    const pid = product?.product_id || product?.productId || product?.id;
+    navigate(pid ? `/product/${pid}` : '/product');
   };
 
   const handleCategoryClick = (name) => {

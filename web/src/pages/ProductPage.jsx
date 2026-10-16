@@ -240,7 +240,8 @@ export default function ProductPage({ category = "Trending" }) {
       category
     };
     setSelectedProduct(formattedProduct);
-    navigate("/product");
+    const pid = product?.product_id || product?.productId || product?.id;
+    navigate(pid ? `/product/${pid}` : "/product");
   };
 
   const handleAddToCartClick = async (e, product) => {

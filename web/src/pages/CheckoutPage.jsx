@@ -19,6 +19,7 @@ import MastercardIcon from "../assets/mastercard.svg";
 import PaymentMorePopup from "../components/PaymentMorePopup";
 import { getOriginalImageUrl } from '../utils/imageUtils';
 import { getNavPath } from "../services/categoryRoute";
+import { getColorName, getColorStyle } from "../utils/colorUtils";
 
 // Helper to dynamically load the Razorpay script
 const loadRazorpayScript = () => {
@@ -167,7 +168,7 @@ export default function CheckoutPage() {
 
   const validate = () => {
     const e = {};
-    if (!form.email.trim() || !/\S+@\S+\.\S+/.test(form.email)) {
+    if (form.email && !/\S+@\S+\.\S+/.test(form.email)) {
       e.email = "Valid email is required";
     }
 
@@ -752,52 +753,76 @@ export default function CheckoutPage() {
             <div className="checkout-content-col">
 
               {/* TOP: Product Details Box */}
-              {primaryItem && (
-                <div className="checkout-product-preview-card">
-                  <div className="checkout-product-thumb-wrap">
-                    <img
-                      src={getOriginalImageUrl(primaryItem.img || primaryItem.image || (primaryItem.images && primaryItem.images[0]) || "")}
-                      alt={primaryItem.name || "Product"}
-                      className="checkout-product-thumb-img"
-                      onError={(e) => {
-                        e.target.onerror = null;
-                        e.target.src = "https://images.unsplash.com/photo-1521572267360-ee0c2909d518?auto=format&fit=crop&w=400&q=80";
-                      }}
-                    />
-                  </div>
-                  <div className="checkout-product-info">
-                    <h2 className="checkout-product-title">{primaryItem.name}</h2>
-                    <p className="checkout-product-desc">
-                      {primaryItem.description || primaryItem.short_description || `${primaryItem.name} - Premium Quality Fabric & Fit`}
-                    </p>
-                    <div className="checkout-product-price-tag">
-                      Rs. {primaryItemPrice.toLocaleString('en-IN')}
-                    </div>
-                  </div>
+              {checkoutItems.length > 0 && (
+                <div className="checkout-products-preview-list">
+                  {checkoutItems.map((item, idx) => {
+                    const itemPrice = parsePrice(item.price);
+                    const itemQty = Number(item.qty) || 1;
+                    const itemTotal = itemPrice * itemQty;
+                    const itemColor = typeof item.color === 'string' ? item.color : (item.color?.name || item.color?.hex || item.selectedColor || '');
+                    const itemSize = item.size || item.selectedSize || '';
+                    const colorStyle = getColorStyle(itemColor);
+                    const colorLabel = getColorName(itemColor);
+                    const isWhiteColor = colorStyle?.toUpperCase() === '#FFFFFF' || String(itemColor).toLowerCase() === 'white';
+
+                    return (
+                      <div key={item.id || item.productId || idx} className="checkout-product-preview-card">
+                        <div className="checkout-product-thumb-wrap">
+                          <img
+                            src={getOriginalImageUrl(item.img || item.image || (item.images && item.images[0]) || "")}
+                            alt={item.name || "Product"}
+                            className="checkout-product-thumb-img"
+                            onError={(e) => {
+                              e.target.onerror = null;
+                              e.target.src = "https://images.unsplash.com/photo-1521572267360-ee0c2909d518?auto=format&fit=crop&w=400&q=80";
+                            }}
+                          />
+                        </div>
+                        <div className="checkout-product-info">
+                          <div className="checkout-product-header-row">
+                            <h2 className="checkout-product-title">{item.name}</h2>
+                            <div className="checkout-product-price-tag">
+                              Rs. {itemTotal.toLocaleString('en-IN')}
+                            </div>
+                          </div>
+                          <p className="checkout-product-desc">
+                            {item.description || item.short_description || `${item.name} - Premium Quality Fabric & Fit`}
+                          </p>
+
+                          {/* Selected Color, Size & Qty Badges */}
+                          <div className="checkout-product-badges-row">
+                            {itemColor && (
+                              <span className="checkout-product-badge">
+                                <span className="checkout-badge-label">Color:</span>
+                                <span
+                                  className={`checkout-color-dot ${isWhiteColor ? 'checkout-color-dot--bordered' : ''}`}
+                                  style={{ backgroundColor: colorStyle }}
+                                />
+                                <strong className="checkout-badge-val">{colorLabel}</strong>
+                              </span>
+                            )}
+                            {itemSize && (
+                              <span className="checkout-product-badge">
+                                <span className="checkout-badge-label">Size:</span>
+                                <strong className="checkout-badge-val">{itemSize}</strong>
+                              </span>
+                            )}
+                            <span className="checkout-product-badge checkout-badge-qty">
+                              <span className="checkout-badge-label">Qty:</span>
+                              <strong className="checkout-badge-val">{itemQty}</strong>
+                            </span>
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })}
                 </div>
               )}
 
               {/* Form */}
               <form onSubmit={handleCheckoutSubmit} className="checkout-form-container">
 
-                {/* 1. Contact Section */}
-                <div className="checkout-section-block">
-                  <h2 className="checkout-block-title">Contact</h2>
-                  <div className="checkout-input-wrap">
-                    <input
-                      type="email"
-                      name="email"
-                      placeholder="Email"
-                      value={form.email}
-                      onChange={handleChange}
-                      className={`checkout-styled-input ${errors.email ? "error" : ""}`}
-                      required
-                    />
-                    {errors.email && <span className="checkout-err-msg">{errors.email}</span>}
-                  </div>
-                </div>
-
-                {/* 2. Choose Delivery Address Section */}
+                {/* Choose Delivery Address Section */}
                 <div className="checkout-section-block">
                   <h2 className="checkout-block-title">Choose Delivery Address</h2>
 
@@ -805,6 +830,15 @@ export default function CheckoutPage() {
                     <div className="checkout-address-cards-list">
                       {addresses.map((addr) => {
                         const isSelected = selectedId === addr.address_id && !isAddingNewAddress;
+                        const contactPhone = addr.phone_number || addr.phone || addr.mobile;
+                        const contactEmail = addr.email || form.email;
+                        const fullAddressString = [
+                          addr.address_line1,
+                          addr.address_line2,
+                          [addr.city, addr.state].filter(Boolean).join(", "),
+                          addr.postal_code ? `PIN: ${addr.postal_code}` : null,
+                        ].filter(Boolean).join(", ");
+
                         return (
                           <div
                             key={addr.address_id}
@@ -827,10 +861,36 @@ export default function CheckoutPage() {
                               </div>
                             </div>
                             <div className="checkout-address-card-info">
-                              <div className="checkout-address-card-name">{addr.full_name}</div>
-                              <div className="checkout-address-card-text">
-                                {addr.address_line1}{addr.address_line2 ? `, ${addr.address_line2}` : ''}{addr.city ? `, ${addr.city}` : ''} -{addr.postal_code}
+                              <div className="checkout-address-card-header">
+                                <span className="checkout-address-card-name">{addr.full_name}</span>
+                                {addr.is_default && (
+                                  <span className="checkout-address-badge-default">DEFAULT</span>
+                                )}
                               </div>
+                              <div className="checkout-address-card-text">
+                                {fullAddressString}
+                              </div>
+                              {(contactPhone || contactEmail) && (
+                                <div className="checkout-address-card-contact">
+                                  {contactPhone && (
+                                    <span className="checkout-address-contact-item">
+                                      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                        <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z" />
+                                      </svg>
+                                      <span><strong>Mobile:</strong> {contactPhone}</span>
+                                    </span>
+                                  )}
+                                  {contactEmail && (
+                                    <span className="checkout-address-contact-item">
+                                      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                        <rect width="20" height="16" x="2" y="4" rx="2" />
+                                        <path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7" />
+                                      </svg>
+                                      <span><strong>Email:</strong> {contactEmail}</span>
+                                    </span>
+                                  )}
+                                </div>
+                              )}
                             </div>
                           </div>
                         );
@@ -1079,12 +1139,11 @@ export default function CheckoutPage() {
                 <div className="checkout-billing-details-list">
                   <div className="checkout-billing-line">
                     <span className="billing-key">Price:</span>
-                    <span className="billing-val">₹{primaryItemPrice.toFixed(2)}</span>
-                  </div>
-
-                  <div className="checkout-billing-line">
-                    <span className="billing-key">Quantity:</span>
-                    <span className="billing-val">{totalQuantity}</span>
+                    <span className="billing-val">
+                      {totalQuantity > 1
+                        ? `${totalQuantity} * ₹${primaryItemPrice.toFixed(2)}`
+                        : `₹${primaryItemPrice.toFixed(2)}`}
+                    </span>
                   </div>
 
                   <div className="checkout-billing-line">

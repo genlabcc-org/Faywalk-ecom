@@ -73,7 +73,6 @@ const EMPTY_FORM = {
   stock: "",
   stock_alert: "",
   material: "",
-  weight: "",
   sizes: "",
   colors: [],
   care: "",
@@ -165,7 +164,6 @@ export default function AddProduct({ onBack, onPublish, onSaveDraft, onAddVarian
         stock: initialData.stock || "",
         stock_alert: initialData.stock_alert || "",
         material: initialData.material || "",
-        weight: initialData.weight || "",
         sizes: Array.isArray(initialData.sizes) ? initialData.sizes.join(", ") : (initialData.sizes || ""),
         colors: parseColors(initialData.colors),
         care: initialData.care || "",
@@ -260,7 +258,6 @@ export default function AddProduct({ onBack, onPublish, onSaveDraft, onAddVarian
         stock_alert: activeData.stock_alert || "",
         material: activeData.material || "",
         product_material: activeData.product_material || activeData.material || "",
-        weight: activeData.weight || "",
         sizes: Array.isArray(activeData.sizes) ? activeData.sizes.join(", ") : (activeData.sizes || ""),
         colors: parseColors(activeData.colors),
         care: activeData.care || "",
@@ -481,7 +478,7 @@ export default function AddProduct({ onBack, onPublish, onSaveDraft, onAddVarian
         stock: hasSizeStock ? totalStockFromSizes : parseInt(form.stock) || 0,
         stock_alert: firstAlert !== undefined ? parseInt(firstAlert) : parseInt(form.stock_alert) || null,
         material: form.product_material || form.material || "",
-        weight: parseFloat(form.weight) || null,
+        weight: activeData?.weight || null,
         sizes: validSizes.length > 0 ? validSizes : form.sizes ? form.sizes.split(",").map((s) => s.trim()).filter(Boolean) : null,
         colors: parseColors(form.colors),
         care: form.care,
@@ -624,7 +621,7 @@ export default function AddProduct({ onBack, onPublish, onSaveDraft, onAddVarian
       {/* ── Product Details ── */}
       <div className="card">
         <div className="card-title">Product Details</div>
-        <div className="grid3-wrap">
+        <div className="row-2">
           <div className="field">
             <label>Type <span className="scc-optional-tag">optional</span></label>
             {!form.category_id ? (
@@ -656,15 +653,6 @@ export default function AddProduct({ onBack, onPublish, onSaveDraft, onAddVarian
                 const val = e.target.value;
                 setForm((f) => ({ ...f, product_material: val, material: val }));
               }}
-            />
-          </div>
-          <div className="field">
-            <label>Weight</label>
-            <input
-              type="text"
-              placeholder="Eg: 200g"
-              value={form.weight}
-              onChange={set("weight")}
             />
           </div>
         </div>

@@ -120,6 +120,22 @@ function App() {
           element={<HomePage />}
         />
         <Route
+          path="/product/:id/*"
+          element={<ProductDetailsPage />}
+        />
+        <Route
+          path="/product/:id"
+          element={<ProductDetailsPage />}
+        />
+        <Route
+          path="/products/:id/*"
+          element={<ProductDetailsPage />}
+        />
+        <Route
+          path="/products/:id"
+          element={<ProductDetailsPage />}
+        />
+        <Route
           path="/product"
           element={<ProductDetailsPage />}
         />

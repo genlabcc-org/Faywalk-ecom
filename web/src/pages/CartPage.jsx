@@ -7,6 +7,7 @@ import { useNavigate } from "react-router-dom";
 import { useStore } from "../hooks/useStore";
 import { getOriginalImageUrl } from '../utils/imageUtils';
 import { getNavPath } from "../services/categoryRoute";
+import { getColorName } from '../utils/colorUtils';
 
 export default function CartPage() {
   const categories = useStore((state) => state.categories);
@@ -187,7 +188,7 @@ export default function CartPage() {
                           {item.color && <span className="cart-item-meta-dot">•</span>}
                           {item.color && (
                             <span className="cart-item-color">
-                              Color: <span className="cart-color-dot" style={{ backgroundColor: item.color }} />
+                              Color: <span className="cart-color-dot" style={{ backgroundColor: item.color }} /> <strong>{getColorName(item.color)}</strong>
                             </span>
                           )}
                         </div>

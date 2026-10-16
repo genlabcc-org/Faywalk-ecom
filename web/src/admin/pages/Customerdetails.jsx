@@ -80,7 +80,8 @@ const CustomerDetails = ({ customer, onBack }) => {
       stock: product.stock > 0 ? "in-stock" : "out-of-stock",
       category: product.categories?.name || "Bangles",
     });
-    navigate("/product");
+    const pid = item.product_id || item.productId || item.id;
+    navigate(pid ? `/product/${pid}` : "/product");
   };
 
   const c = customer || {

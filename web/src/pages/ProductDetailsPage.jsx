@@ -1,10 +1,11 @@
 import React, { useState, useCallback, useMemo, useEffect, memo, lazy, Suspense } from 'react';
 import { useRef } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useParams, useSearchParams } from "react-router-dom";
 import { supabase } from '../lib/supabase';
 import { productService } from "../services/productService";
 import { getOriginalImageUrl } from '../utils/imageUtils';
 import { getNavPath } from "../services/categoryRoute";
+import { getColorName } from '../utils/colorUtils';
 
 import './ProductDetailsPage.css';
 import SiteHeader from '../components/SiteHeader';
@@ -122,9 +123,89 @@ const RelatedProducts = memo(({ relatedItems, onProductClick }) => {
   );
 });
 
+// Color mapping helper for clothing/innerwear colors
+const COLOR_MAP = {
+  'navy': '#001f3f',
+  'navy blue': '#0A2582',
+  'royal blue': '#4169E1',
+  'sky blue': '#87CEEB',
+  'light blue': '#add8e6',
+  'deep blue': '#040273',
+  'blue': '#0074D9',
+  'black': '#111827',
+  'white': '#FFFFFF',
+  'grey': '#9CA3AF',
+  'gray': '#9CA3AF',
+  'dark grey': '#4B5563',
+  'dark gray': '#4B5563',
+  'light grey': '#D1D5DB',
+  'light gray': '#D1D5DB',
+  'melange': '#A0A0A0',
+  'charcoal': '#374151',
+  'skin': '#F3C59A',
+  'beige': '#F5F5DC',
+  'cream': '#FFFDD0',
+  'red': '#EF4444',
+  'ruby red': '#9B111E',
+  'maroon': '#800000',
+  'wine': '#722F37',
+  'pink': '#E75480',
+  'baby pink': '#FFC0CB',
+  'green': '#008000',
+  'olive': '#808000',
+  'olive green': '#556B2F',
+  'mint green': '#98FF98',
+  'emerald green': '#50C878',
+  'teal': '#2DD4BF',
+  'yellow': '#FFFF00',
+  'orange': '#FFA500',
+  'purple': '#8B2FC9',
+  'lavender': '#734F96',
+  'brown': '#8B4513'
+};
+
+export const getColorStyle = (c) => {
+  if (!c) return '#9CA3AF';
+  const lower = String(c).trim().toLowerCase();
+  if (COLOR_MAP[lower]) return COLOR_MAP[lower];
+  if (lower.startsWith('#') || lower.startsWith('rgb') || lower.startsWith('hsl')) return c;
+  return lower;
+};
+
+export const parseColors = (rawColors) => {
+  if (!rawColors) return [];
+  let parsed = rawColors;
+  if (typeof rawColors === "string") {
+    const trimmed = rawColors.trim();
+    if (!trimmed) return [];
+    if (trimmed.startsWith("[") && trimmed.endsWith("]")) {
+      try {
+        parsed = JSON.parse(trimmed);
+      } catch {
+        parsed = trimmed.slice(1, -1).split(",").map((s) => s.replace(/['"]/g, "").trim());
+      }
+    } else {
+      parsed = trimmed.split(",").map((s) => s.trim());
+    }
+  }
+  if (!Array.isArray(parsed)) return [];
+  return parsed
+    .map((c) => {
+      if (!c) return "";
+      if (typeof c === "string") return c.trim();
+      if (typeof c === "object") return (c.hex || c.color || c.name || "").trim();
+      return String(c).trim();
+    })
+    .filter(Boolean);
+};
+
 // ═════════════════════════════════════════════════════════════════════════════
 export default function ProductDetailsPage({ onBack = () => window.history.back() }) {
   const navigate = useNavigate();
+  const { id: routeId } = useParams();
+  const [searchParams] = useSearchParams();
+  const cleanId = (val) => (val ? String(val).replace(/\/+$/, '').trim() : '');
+  const rawId = routeId || searchParams.get("id") || searchParams.get("productId") || searchParams.get("product_id") || '';
 
   // Zustand Store
   const selectedProduct = useStore(state => state.selectedProduct);
@@ -133,90 +214,147 @@ export default function ProductDetailsPage({ onBack = () => window.history.back(
   const addToCart = useStore(state => state.addToCart);
   const fetchProductsByCategory = useStore(state => state.fetchProductsByCategory);
   const productsCache = useStore(state => state.products);
-  const fetchProductDetails = useStore(state => state.fetchProductDetails);
-  const productDetailsCache = useStore(state => state.productDetails);
 
-  const cat = selectedProduct?.category || 'Briefs';
+  const activeProductId = cleanId(rawId) || cleanId(selectedProduct?.productId || selectedProduct?.id || selectedProduct?.product_id);
+  const productId = activeProductId;
+
+  const [loadingProduct, setLoadingProduct] = useState(() => {
+    if (activeProductId && (!selectedProduct || String(selectedProduct?.productId || selectedProduct?.id || selectedProduct?.product_id) !== String(activeProductId))) {
+      return true;
+    }
+    return false;
+  });
+  const [productNotFound, setProductNotFound] = useState(false);
+  const [copied, setCopied] = useState(false);
+
+  const selectedProductId = cleanId(selectedProduct?.productId || selectedProduct?.id || selectedProduct?.product_id);
 
   // React States
   const [activeThumb, setActiveThumb] = useState(0);
   const [qty, setQty] = useState(1);
-  const [productImages, setProductImages] = useState([]);
-  const [productPrices, setProductPrice] = useState(null);
+  const [productImages, setProductImages] = useState(() => {
+    if (selectedProduct?.images && selectedProduct.images.length > 0) return selectedProduct.images;
+    if (selectedProduct?.img || selectedProduct?.image_url) return [selectedProduct.img || selectedProduct.image_url];
+    return [];
+  });
+  const [productPrices, setProductPrice] = useState(() => selectedProduct || null);
   const [toastMsg, setToastMsg] = useState("");
   const [toastType, setToastType] = useState("success");
-  const [selectedSize, setSelectedSize] = useState("80");
+  const [selectedSize, setSelectedSize] = useState("");
   const [size, setSize] = useState(["80", "85", "90", "95", "100"]);
   const [hasVariants, setHasVariants] = useState(false);
   const [variants, setVariants] = useState([]);
   const [selectedColor, setSelectedColor] = useState("");
 
-  const productId = selectedProduct?.productId || selectedProduct?.id;
-  const cachedEntry = productId ? productDetailsCache[productId] : undefined;
-
+  // Sync / fetch product if accessed directly via URL or shared link
   useEffect(() => {
-    if (!productId) return;
-
-    setSize(["80", "85", "90", "95", "100"]);
-    setProductImages([]);
-    setProductPrice(null);
-    setVariants([]);
-    setSelectedColor('');
-    setSelectedSize('80');
-    setQty(1);
-
-    if (cachedEntry?.base) {
-      setProductImages(cachedEntry.images || []);
-      const baseData = cachedEntry.base;
-      setHasVariants(!!baseData?.has_variants);
-      if (baseData?.has_variants) {
-        const variantRows = cachedEntry.variants || [];
-        setVariants(variantRows);
-        const sizes = [...new Set(variantRows.map(v => v.size).filter(Boolean))];
-        const firstVariant = variantRows[0];
-        if (sizes.length > 0) setSize(sizes);
-        setSelectedSize(firstVariant?.size || '80');
-        setSelectedColor(firstVariant?.color || '');
-      } else {
-        setProductPrice(baseData);
-        if (baseData?.sizes?.length) {
-          setSize(baseData.sizes);
-          setSelectedSize(baseData.sizes[0] || '80');
-        }
-        const parsedColors = Array.isArray(baseData?.colors)
-          ? baseData.colors
-          : (typeof baseData?.colors === 'string' ? baseData.colors.split(',').map(s => s.trim()).filter(Boolean) : []);
-        setSelectedColor(parsedColors[0] || '');
+    if (!productId) {
+      if (!selectedProduct) {
+        setProductNotFound(true);
       }
       return;
     }
 
-    fetchProductDetails(productId).then(details => {
-      if (!details) return;
-      setProductImages(details.images || []);
-      const baseData = details.base;
-      setHasVariants(!!baseData?.has_variants);
-      if (baseData?.has_variants) {
-        const variantRows = details.variants || [];
-        setVariants(variantRows);
-        const sizes = [...new Set(variantRows.map(v => v.size).filter(Boolean))];
-        const firstVariant = variantRows[0];
-        if (sizes.length > 0) setSize(sizes);
-        setSelectedSize(firstVariant?.size || '80');
-        setSelectedColor(firstVariant?.color || '');
-      } else {
-        setProductPrice(baseData);
-        if (baseData?.sizes?.length) {
-          setSize(baseData.sizes);
-          setSelectedSize(baseData.sizes[0] || '80');
+    // If navigated without ID in URL, update URL so the address bar reflects the product ID
+    if (!routeId && !rawId && productId) {
+      navigate(`/product/${productId}`, { replace: true });
+    }
+
+    const hasCachedInfo = selectedProductId && String(selectedProductId) === String(productId);
+    if (hasCachedInfo) {
+      setLoadingProduct(false);
+      setProductNotFound(false);
+    } else {
+      setLoadingProduct(true);
+      setProductNotFound(false);
+    }
+
+    let isMounted = true;
+
+    productService.getProductById(productId)
+      .then((data) => {
+        if (!isMounted) return;
+        if (!data) {
+          if (!hasCachedInfo) {
+            setProductNotFound(true);
+          }
+          setLoadingProduct(false);
+          return;
         }
-        const parsedColors = Array.isArray(baseData?.colors)
-          ? baseData.colors
-          : (typeof baseData?.colors === 'string' ? baseData.colors.split(',').map(s => s.trim()).filter(Boolean) : []);
-        setSelectedColor(parsedColors[0] || '');
-      }
-    });
-  }, [selectedProduct, cat, cachedEntry]);
+
+        const baseImages = Array.isArray(data.images) && data.images.length > 0
+          ? data.images
+          : (data.image_url ? [data.image_url] : []);
+
+        const parsedColorsList = parseColors(data.colors);
+
+        const formatted = {
+          ...data,
+          id: data.product_id,
+          productId: data.product_id,
+          product_id: data.product_id,
+          name: data.name,
+          desc: data.description,
+          description: data.description,
+          price: data.price,
+          compare_price: data.compare_price || data.price,
+          original: `₹${data.compare_price || data.price}.00`,
+          img: baseImages[0] || '',
+          image: baseImages[0] || '',
+          images: baseImages,
+          image_url: data.image_url || baseImages[0] || '',
+          category: data.categories?.name || 'Innerwear',
+          type: data.subcategories?.name || '',
+          subcategory: data.subcategories?.name || '',
+          material: data.material || '',
+          fabric: data.material || '',
+          sku: data.sku || '',
+          stock: data.stock,
+          sizes: data.sizes || [],
+          colors: parsedColorsList,
+        };
+
+        setProductImages(baseImages);
+        setProductPrice({
+          ...data,
+          colors: parsedColorsList,
+        });
+
+        if (data.has_variants && data.product_variants?.length > 0) {
+          setHasVariants(true);
+          setVariants(data.product_variants);
+          const varSizes = [...new Set(data.product_variants.map(v => v.size).filter(Boolean))];
+          if (varSizes.length > 0) setSize(varSizes);
+        } else {
+          setHasVariants(false);
+          setVariants([]);
+          if (data.sizes?.length) {
+            const szList = Array.isArray(data.sizes) ? data.sizes : String(data.sizes).split(',').map(s => s.trim()).filter(Boolean);
+            if (szList.length > 0) {
+              setSize(szList);
+            }
+          }
+        }
+
+        setSelectedProduct(formatted);
+        setLoadingProduct(false);
+      })
+      .catch((err) => {
+        console.error("Failed to load product by ID:", err);
+        if (isMounted) {
+          if (!hasCachedInfo) {
+            setProductNotFound(true);
+          }
+          setLoadingProduct(false);
+        }
+      });
+
+    return () => {
+      isMounted = false;
+    };
+  }, [productId, routeId, rawId, selectedProductId, setSelectedProduct, navigate]);
+
+  const cat = selectedProduct?.category || 'Briefs';
 
   const showToast = (message, type = "success") => {
     setToastMsg("");
@@ -235,62 +373,67 @@ export default function ProductDetailsPage({ onBack = () => window.history.back(
 
   useEffect(() => {
     if (!hasVariants || variants.length === 0) return;
+    if (!selectedColor) return;
 
     const colorsForCurrentSize = [...new Set(
       variants.filter(v => !activeSizeValue || v.size === activeSizeValue).map(v => v.color).filter(Boolean)
     )];
     if (colorsForCurrentSize.length > 0 && !colorsForCurrentSize.includes(selectedColor)) {
-      setSelectedColor(colorsForCurrentSize[0]);
+      setSelectedColor('');
     }
-  }, [activeSizeValue, hasVariants, variants]);
+  }, [activeSizeValue, hasVariants, variants, selectedColor]);
 
   const rawPrice = hasVariants
-    ? (selectedVariant?.price ?? null)
+    ? (selectedVariant?.price ?? productPrices?.price ?? selectedProduct?.price ?? variants[0]?.price ?? null)
     : (productPrices?.price ?? selectedProduct?.price ?? null);
 
   const rawCompare = hasVariants
-    ? (selectedVariant?.compare_price ?? null)
+    ? (selectedVariant?.compare_price ?? productPrices?.compare_price ?? selectedProduct?.compare_price ?? variants[0]?.compare_price ?? null)
     : (productPrices?.compare_price ?? selectedProduct?.compare_price ?? null);
 
   const displayImage = selectedProduct?.img || selectedProduct?.image || selectedProduct?.image_url || '';
-  const displayName = selectedProduct?.name || 'GREEN ROUND NECK FULL HAND T- SHIRT';
+  const displayName = selectedProduct?.name || '';
 
   const displaySku = hasVariants
-    ? (selectedVariant?.sku || '')
+    ? (selectedVariant?.sku || variants[0]?.sku || '')
     : (productPrices?.sku || selectedProduct?.sku || '');
 
   const stockCount = hasVariants
-    ? (selectedVariant?.stock ?? 0)
+    ? (selectedVariant ? selectedVariant.stock : (productPrices?.stock ?? selectedProduct?.stock ?? 10))
     : (productPrices?.stock ?? selectedProduct?.stock ?? 10);
 
-  const payPrice = rawPrice != null ? Number(rawPrice) : 150;
-  const strikePrice = rawCompare != null ? Number(rawCompare) : Math.round(payPrice * 1.3);
+  const cleanNum = (val) => {
+    if (val == null) return null;
+    if (typeof val === 'number') return isNaN(val) ? null : val;
+    const n = Number(String(val).replace(/[^0-9.]/g, ''));
+    return isNaN(n) ? null : n;
+  };
+
+  const payPrice = cleanNum(rawPrice) ?? 150;
+  const strikePrice = cleanNum(rawCompare) ?? Math.round(payPrice * 1.3);
 
   const canAddToCart = stockCount == null || stockCount > 0;
 
   const availableColors = useMemo(() => {
-    if (hasVariants && variants.length > 0) {
-      const colors = [...new Set(
-        variants
-          .filter(v => !activeSizeValue || v.size === activeSizeValue)
-          .map(v => v.color)
-          .filter(Boolean)
-      )];
-      if (colors.length > 0) return colors;
+    const variantColors = (variants || []).map(v => v.color).filter(Boolean);
+    if (hasVariants && variantColors.length > 0) {
+      const relevantVariants = activeSizeValue
+        ? variants.filter(v => v.size === activeSizeValue)
+        : variants;
+      const filtered = [...new Set(relevantVariants.map(v => v.color).filter(Boolean))];
+      if (filtered.length > 0) return filtered;
+      const allVariant = [...new Set(variantColors)];
+      if (allVariant.length > 0) return allVariant;
     }
     const rawColors = productPrices?.colors || selectedProduct?.colors;
-    if (Array.isArray(rawColors) && rawColors.length > 0) return rawColors.filter(Boolean);
-    if (typeof rawColors === 'string' && rawColors.trim()) {
-      return rawColors.split(',').map(c => c.trim()).filter(Boolean);
+    const parsed = parseColors(rawColors);
+    if (parsed.length > 0) return parsed;
+
+    if (variantColors.length > 0) {
+      return [...new Set(variantColors)];
     }
     return [];
   }, [hasVariants, variants, activeSizeValue, productPrices, selectedProduct]);
-
-  useEffect(() => {
-    if (!selectedColor && availableColors.length > 0) {
-      setSelectedColor(availableColors[0]);
-    }
-  }, [availableColors, selectedColor]);
 
   // Gallery Thumbnails
   const dynamicThumbs = useMemo(() => {
@@ -378,12 +521,176 @@ export default function ProductDetailsPage({ onBack = () => window.history.back(
         ...product,
         category: product.category || cat,
       });
-      navigate("/product");
+      const pid = product.product_id || product.productId || product.id;
+      navigate(pid ? `/product/${pid}` : "/product");
     },
     [cat, setSelectedProduct, navigate]
   );
 
+  const getShareUrl = useCallback(() => {
+    const pid = cleanId(productId) || selectedProduct?.productId || selectedProduct?.id || selectedProduct?.product_id;
+    if (pid) {
+      return `${window.location.origin}/product/${pid}`;
+    }
+    return window.location.href.split('?')[0].replace(/\/+$/, '');
+  }, [productId, selectedProduct]);
+
+  // Dynamically update document title, Open Graph, and Twitter Card meta tags for Instagram link previews
+  useEffect(() => {
+    if (!selectedProduct) return;
+
+    const prodName = selectedProduct.name || displayName || 'Product';
+    document.title = `${prodName} | FAYWALK`;
+
+    const desc = selectedProduct.description || selectedProduct.desc || 'Discover premium innerwear and comfortable inner clothing on FAYWALK.';
+    const cleanDesc = desc.replace(/<[^>]*>?/gm, '').slice(0, 200);
+    const productImg = selectedProduct.img || selectedProduct.image_url || selectedProduct.images?.[0] || '';
+    const fullImgUrl = productImg.startsWith('http') ? productImg : (productImg ? `${window.location.origin}${productImg}` : 'https://www.faywalk.com/logo.png');
+    const shareUrl = getShareUrl();
+
+    const setMetaTag = (attr, key, content) => {
+      if (!content) return;
+      let el = document.querySelector(`meta[${attr}="${key}"]`);
+      if (!el) {
+        el = document.createElement('meta');
+        el.setAttribute(attr, key);
+        document.head.appendChild(el);
+      }
+      el.setAttribute('content', content);
+    };
+
+    setMetaTag('property', 'og:title', `${prodName} - FAYWALK`);
+    setMetaTag('property', 'og:description', cleanDesc);
+    setMetaTag('property', 'og:image', fullImgUrl);
+    setMetaTag('property', 'og:image:secure_url', fullImgUrl);
+    setMetaTag('property', 'og:url', shareUrl);
+    setMetaTag('property', 'og:type', 'product');
+    setMetaTag('property', 'product:price:amount', String(payPrice || ''));
+    setMetaTag('property', 'product:price:currency', 'INR');
+
+    setMetaTag('name', 'twitter:card', 'summary_large_image');
+    setMetaTag('name', 'twitter:title', `${prodName} - FAYWALK`);
+    setMetaTag('name', 'twitter:description', cleanDesc);
+    setMetaTag('name', 'twitter:image', fullImgUrl);
+
+    // Canonical link
+    let canonical = document.querySelector('link[rel="canonical"]');
+    if (!canonical) {
+      canonical = document.createElement('link');
+      canonical.setAttribute('rel', 'canonical');
+      document.head.appendChild(canonical);
+    }
+    canonical.setAttribute('href', shareUrl);
+
+    return () => {
+      document.title = 'FAYWALK | Premium Innerwear & Clothing';
+    };
+  }, [selectedProduct, displayName, payPrice, getShareUrl]);
+
+  // Reliable clipboard copy supporting Instagram In-App Browser and iOS WebViews
+  const copyToClipboard = async (text) => {
+    if (navigator.clipboard && window.isSecureContext) {
+      try {
+        await navigator.clipboard.writeText(text);
+        return true;
+      } catch (err) {
+        // Fall back to execCommand for restricted in-app webviews
+      }
+    }
+
+    try {
+      const textarea = document.createElement('textarea');
+      textarea.value = text;
+      textarea.setAttribute('readonly', '');
+      textarea.style.position = 'fixed';
+      textarea.style.top = '0';
+      textarea.style.left = '0';
+      textarea.style.width = '2em';
+      textarea.style.height = '2em';
+      textarea.style.padding = '0';
+      textarea.style.border = 'none';
+      textarea.style.outline = 'none';
+      textarea.style.boxShadow = 'none';
+      textarea.style.background = 'transparent';
+      textarea.style.opacity = '0.01';
+      document.body.appendChild(textarea);
+      textarea.focus();
+      textarea.select();
+      textarea.setSelectionRange(0, 99999);
+      const successful = document.execCommand('copy');
+      document.body.removeChild(textarea);
+      return successful;
+    } catch (e) {
+      return false;
+    }
+  };
+
+  const handleShareProduct = async (e) => {
+    e?.preventDefault?.();
+    e?.stopPropagation?.();
+    const shareUrl = getShareUrl();
+    const shareTitle = displayName || 'FAYWALK';
+    const shareText = `Check out ${displayName || 'this product'} on Faywalk!`;
+
+    // 1. On mobile devices, trigger native OS share sheet synchronously on click
+    // (allows direct 1-tap share to Instagram Stories, Chats, WhatsApp, etc.)
+    const isMobile = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
+    if (isMobile && navigator.share && navigator.canShare && navigator.canShare({ url: shareUrl })) {
+      try {
+        await navigator.share({
+          title: shareTitle,
+          text: shareText,
+          url: shareUrl,
+        });
+        setCopied(true);
+        setTimeout(() => setCopied(false), 2500);
+        return;
+      } catch (err) {
+        if (err.name === 'AbortError') {
+          // User dismissed the native share dialog
+          return;
+        }
+        // Fall through to clipboard copy if native share threw an unexpected error
+      }
+    }
+
+    // 2. Clipboard copy fallback (guaranteed to work in Instagram In-App Browser & desktop)
+    const success = await copyToClipboard(shareUrl);
+    if (success) {
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2500);
+      showToast('Product link copied! Share it on Instagram & more', 'success');
+    } else {
+      showToast('Link copied to clipboard', 'info');
+    }
+  };
+
+  const validateOptionsSelection = useCallback(() => {
+    const hasSizes = Array.isArray(size) && size.length > 0;
+    const hasColors = Array.isArray(availableColors) && availableColors.length > 0;
+
+    const missingSize = hasSizes && !selectedSize;
+    const missingColor = hasColors && !selectedColor;
+
+    if (missingSize && missingColor) {
+      showToast("Please select size and color", "error");
+      return false;
+    }
+    if (missingSize) {
+      showToast("Please select a size", "error");
+      return false;
+    }
+    if (missingColor) {
+      showToast("Please select a color", "error");
+      return false;
+    }
+    return true;
+  }, [size, availableColors, selectedSize, selectedColor]);
+
   const handleAddToCart = async () => {
+    if (!validateOptionsSelection()) {
+      return;
+    }
     const { data: { session } } = await supabase.auth.getSession();
     if (!session) {
       navigate("/account/signup");
@@ -412,6 +719,9 @@ export default function ProductDetailsPage({ onBack = () => window.history.back(
   };
 
   const handleBuyNow = useCallback(async () => {
+    if (!validateOptionsSelection()) {
+      return;
+    }
     const { data: { session } } = await supabase.auth.getSession();
     if (!session) {
       navigate("/account/signup");
@@ -439,7 +749,7 @@ export default function ProductDetailsPage({ onBack = () => window.history.back(
         }
       }
     });
-  }, [displayName, payPrice, strikePrice, qty, dynamicThumbs, selectedVariant, displayImage, cat, displaySku, selectedProduct, selectedSize, selectedColor, canAddToCart, navigate]);
+  }, [validateOptionsSelection, displayName, payPrice, strikePrice, qty, dynamicThumbs, selectedVariant, displayImage, cat, displaySku, selectedProduct, selectedSize, selectedColor, canAddToCart, navigate]);
 
   return (
     <div className="dp-page-root">
@@ -448,36 +758,85 @@ export default function ProductDetailsPage({ onBack = () => window.history.back(
       <SiteHeader activeLink="" onLinkClick={handleHeaderLinkClick} />
 
       {/* ── PRODUCT DETAIL MAIN CONTAINER ── */}
-      <main className="dp-detail-main">
-        {/* Left Column: Vertical Thumbs + Main Image */}
-        <div className="dp-gallery-column">
-          <ProductGallery
-            activeThumb={activeThumb}
-            setActiveThumb={handleThumbClick}
-            displayImage={displayImage}
-            displayName={displayName}
-            thumbs={dynamicThumbs}
-          />
-        </div>
-
-        {/* Right Column: Title, Price, Options, Actions, Specs */}
-        <div className="dp-info-column">
-          {/* Title */}
-          <h1 className="dp-title">{displayName.toUpperCase()}</h1>
-
-          {/* Stock Status Badge */}
-          <div className="dp-stock-status">
-            {stockCount === 0 ? (
-              <span className="dp-stock-out">Out of Stock</span>
-            ) : (
-              <span className="dp-stock-in">In Stock</span>
-            )}
+      {loadingProduct ? (
+        <main className="dp-detail-main dp-state-container">
+          <div className="dp-state-box">
+            <div className="dp-loading-spinner" />
+            <p className="dp-state-text">Loading product details...</p>
+          </div>
+        </main>
+      ) : productNotFound ? (
+        <main className="dp-detail-main dp-state-container">
+          <div className="dp-state-box">
+            <h2 className="dp-state-heading">Product Not Found</h2>
+            <p className="dp-state-subtext">
+              The product you are looking for is no longer available or the link may be incorrect.
+            </p>
+            <button
+              type="button"
+              className="dp-explore-btn"
+              onClick={() => navigate('/all-products')}
+            >
+              Explore All Products
+            </button>
+          </div>
+        </main>
+      ) : (
+        <main className="dp-detail-main">
+          {/* Left Column: Vertical Thumbs + Main Image */}
+          <div className="dp-gallery-column">
+            <ProductGallery
+              activeThumb={activeThumb}
+              setActiveThumb={handleThumbClick}
+              displayImage={displayImage}
+              displayName={displayName}
+              thumbs={dynamicThumbs}
+            />
           </div>
 
-          {/* Short Description */}
-          <p className="dp-short-desc">
-            {selectedProduct?.desc || "Fitted coat in woven fabric with a lightly brushed finish. Notch lapels, a concealed fastening, welt front pockets and a detachable tie belt at the waist."}
-          </p>
+          {/* Right Column: Title, Price, Options, Actions, Specs */}
+          <div className="dp-info-column">
+            {/* Title & Share Row */}
+            <div className="dp-title-share-row">
+              <h1 className="dp-title">{displayName.toUpperCase()}</h1>
+              <button
+                type="button"
+                className={`dp-share-btn ${copied ? 'copied' : ''}`}
+                onClick={handleShareProduct}
+                title={copied ? "Link Copied!" : "Share product link"}
+                aria-label={copied ? "Link Copied!" : "Share product link"}
+              >
+                {copied ? (
+                  <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                    <polyline points="20 6 9 17 4 12" />
+                  </svg>
+                ) : (
+                  <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <circle cx="18" cy="5" r="3" />
+                    <circle cx="6" cy="12" r="3" />
+                    <circle cx="18" cy="19" r="3" />
+                    <line x1="8.59" y1="13.51" x2="15.42" y2="17.49" />
+                    <line x1="15.41" y1="6.51" x2="8.59" y2="10.49" />
+                  </svg>
+                )}
+              </button>
+            </div>
+
+            {/* Stock Status Badge */}
+            <div className="dp-stock-status">
+              {stockCount === 0 ? (
+                <span className="dp-stock-out">Out of Stock</span>
+              ) : (
+                <span className="dp-stock-in">In Stock</span>
+              )}
+            </div>
+
+            {/* Short Description */}
+            {(selectedProduct?.desc || selectedProduct?.description) && (
+              <p className="dp-short-desc">
+                {selectedProduct.desc || selectedProduct.description}
+              </p>
+            )}
 
           {/* Price */}
           <div className="dp-price-row">
@@ -487,20 +846,30 @@ export default function ProductDetailsPage({ onBack = () => window.history.back(
           {/* Select Color */}
           {availableColors.length > 0 && (
             <div className="dp-option-section">
-              <h4 className="dp-option-title">Select Color</h4>
+              <h4 className="dp-option-title">
+                Select Color {selectedColor ? <span className="dp-selected-choice-badge">: {getColorName(selectedColor)}</span> : null}
+              </h4>
               <div className="dp-color-swatches-row">
-                {availableColors.map((c) => (
-                  <button
-                    key={c}
-                    type="button"
-                    className={`dp-swatch-ring-btn ${selectedColor === c ? 'active' : ''}`}
-                    onClick={() => setSelectedColor(c)}
-                    aria-label={`Select color ${c}`}
-                    title={c}
-                  >
-                    <span className="dp-swatch-circle" style={{ backgroundColor: c }} />
-                  </button>
-                ))}
+                {availableColors.map((c) => {
+                  const bg = getColorStyle(c);
+                  const isWhite = bg.toUpperCase() === '#FFFFFF' || String(c).toLowerCase() === 'white';
+                  const colorLabel = getColorName(c);
+                  return (
+                    <button
+                      key={c}
+                      type="button"
+                      className={`dp-swatch-ring-btn ${selectedColor === c ? 'active' : ''}`}
+                      onClick={() => setSelectedColor(c)}
+                      aria-label={`Select color ${colorLabel}`}
+                      title={colorLabel}
+                    >
+                      <span
+                        className={`dp-swatch-circle ${isWhite ? 'dp-swatch-circle--white' : ''}`}
+                        style={{ backgroundColor: bg }}
+                      />
+                    </button>
+                  );
+                })}
               </div>
             </div>
           )}
@@ -533,7 +902,9 @@ export default function ProductDetailsPage({ onBack = () => window.history.back(
           {/* Select Size */}
           {size.length > 0 && (
             <div className="dp-option-section">
-              <h4 className="dp-option-title">Select Size</h4>
+              <h4 className="dp-option-title">
+                Select Size {selectedSize ? <span className="dp-selected-choice-badge">: {selectedSize}</span> : null}
+              </h4>
               <div className="dp-size-buttons-row">
                 {size.map((s) => (
                   <button
@@ -605,6 +976,7 @@ export default function ProductDetailsPage({ onBack = () => window.history.back(
           </div>
         </div>
       </main>
+      )}
 
       {/* ── YOU MAY ALSO LIKE ── */}
       <RelatedProducts

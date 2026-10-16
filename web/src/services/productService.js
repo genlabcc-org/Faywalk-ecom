@@ -82,13 +82,34 @@ export const productService = {
    * @returns {Promise<any>}
    */
   async getProductById(productId) {
-    const { data, error } = await supabase
-      .from('products')
-      .select('*, categories(name), subcategories(name), product_variants(variant_id, price, compare_price, stock, sku, color, size, images)')
-      .eq('product_id', productId)
-      .single();
-    if (error) throw error;
-    return data;
+    if (!productId) return null;
+    const cleanId = String(productId).replace(/\/+$/, '').trim();
+
+    try {
+      const { data, error } = await supabase
+        .from('products')
+        .select('*, categories(name), subcategories(name), product_variants(variant_id, price, compare_price, stock, sku, color, size, images)')
+        .eq('product_id', cleanId)
+        .maybeSingle();
+
+      if (!error && data) return data;
+    } catch (e) {
+      console.warn('getProductById lookup by product_id failed:', e);
+    }
+
+    try {
+      const { data, error } = await supabase
+        .from('products')
+        .select('*, categories(name), subcategories(name), product_variants(variant_id, price, compare_price, stock, sku, color, size, images)')
+        .eq('id', cleanId)
+        .maybeSingle();
+
+      if (!error && data) return data;
+    } catch (e) {
+      console.warn('getProductById lookup by id fallback failed:', e);
+    }
+
+    return null;
   },
 
   /**

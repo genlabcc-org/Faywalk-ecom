@@ -148,3 +148,52 @@ export function getColorName(rawColor) {
 
   return trimmed;
 }
+
+export const COLOR_MAP = {
+  'navy': '#001f3f',
+  'navy blue': '#0A2582',
+  'royal blue': '#4169E1',
+  'sky blue': '#87CEEB',
+  'light blue': '#add8e6',
+  'deep blue': '#040273',
+  'blue': '#0074D9',
+  'black': '#111827',
+  'white': '#FFFFFF',
+  'grey': '#9CA3AF',
+  'gray': '#9CA3AF',
+  'dark grey': '#4B5563',
+  'dark gray': '#4B5563',
+  'light grey': '#D1D5DB',
+  'light gray': '#D1D5DB',
+  'melange': '#A0A0A0',
+  'charcoal': '#374151',
+  'skin': '#F3C59A',
+  'beige': '#F5F5DC',
+  'cream': '#FFFDD0',
+  'red': '#EF4444',
+  'ruby red': '#9B111E',
+  'maroon': '#800000',
+  'wine': '#722F37',
+  'pink': '#E75480',
+  'baby pink': '#FFC0CB',
+  'green': '#008000',
+  'olive': '#808000',
+  'olive green': '#556B2F',
+  'mint green': '#98FF98',
+  'emerald green': '#50C878',
+  'teal': '#2DD4BF',
+  'yellow': '#FFFF00',
+  'orange': '#FFA500',
+  'purple': '#8B2FC9',
+  'lavender': '#734F96',
+  'brown': '#8B4513'
+};
+
+export const getColorStyle = (c) => {
+  if (!c) return '#9CA3AF';
+  const lower = String(c).trim().toLowerCase();
+  if (COLOR_MAP[lower]) return COLOR_MAP[lower];
+  if (lower.startsWith('#') || lower.startsWith('rgb') || lower.startsWith('hsl')) return c;
+  return lower;
+};
+
