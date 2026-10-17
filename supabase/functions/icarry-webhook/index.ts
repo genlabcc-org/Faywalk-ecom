@@ -1,3 +1,4 @@
+/// <reference path="../global.d.ts" />
 // supabase/functions/icarry-webhook/index.ts
 import { createClient } from "npm:@supabase/supabase-js@2";
 import { handleCorsPreflight, corsHeaders } from "../_shared/cors.ts";
@@ -31,108 +32,182 @@ Deno.serve(async (req: Request) => {
   const corsResponse = handleCorsPreflight(req);
   if (corsResponse) return corsResponse;
 
-  if (req.method !== "POST") {
-    return new Response(JSON.stringify({ ok: true, message: "Method ignored" }), {
-      status: 200,
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
-    });
-  }
-
   try {
-    // 1. Parse body as JSON; fallback to urlencoded if JSON parsing fails
-    const rawText = await req.text();
+    // 1. Parse body as JSON or urlencoded or GET query params
+    const url = new URL(req.url);
     let body: any = {};
-    let formatUsed = "json";
+    let formatUsed = "query";
 
-    try {
-      body = JSON.parse(rawText);
-      console.log("[iCarry Webhook] Parsed JSON payload");
-    } catch {
+    if (req.method === "GET") {
+      for (const [k, v] of url.searchParams.entries()) {
+        body[k] = v;
+      }
+    } else {
+      const rawText = await req.text();
       try {
-        const params = new URLSearchParams(rawText);
-        const formObj: Record<string, any> = {};
-        for (const [key, value] of params.entries()) {
-          formObj[key] = value;
+        body = JSON.parse(rawText);
+        formatUsed = "json";
+        console.log("[iCarry Webhook] Parsed JSON payload");
+      } catch {
+        try {
+          const params = new URLSearchParams(rawText);
+          const formObj: Record<string, any> = {};
+          for (const [key, value] of params.entries()) {
+            formObj[key] = value;
+          }
+          body = formObj;
+          formatUsed = "urlencoded";
+          console.log("[iCarry Webhook] Parsed application/x-www-form-urlencoded payload as fallback");
+        } catch (parseErr) {
+          console.warn("[iCarry Webhook] Failed to parse request body as JSON or urlencoded:", parseErr);
+          body = {};
         }
-        body = formObj;
-        formatUsed = "urlencoded";
-        console.log("[iCarry Webhook] Parsed application/x-www-form-urlencoded payload as fallback");
-      } catch (parseErr) {
-        console.warn("[iCarry Webhook] Failed to parse request body as JSON or urlencoded:", parseErr);
-        body = {};
       }
     }
 
-    const callbackType = String(body.callback_type || "").trim();
+    // Merge URL query params as fallback if fields missing from body
+    for (const [k, v] of url.searchParams.entries()) {
+      if (!body[k]) body[k] = v;
+    }
+
+    const callbackType = String(body.callback_type || body.event || body.type || body.action || "").trim();
     console.log(`[iCarry Webhook] Event: "${callbackType || 'unknown'}" (format: ${formatUsed})`);
+    console.log(`[iCarry Webhook] Payload:`, JSON.stringify(body));
 
     const expectedToken = Deno.env.get("ICARRY_WEBHOOK_TOKEN");
+    const icarryKey = Deno.env.get("ICARRY_KEY");
+
+    // Optional token validation (warn instead of dropping if token missing from iCarry dashboard)
+    if (expectedToken && body.token && body.token !== expectedToken && body.token !== icarryKey) {
+      console.warn("[iCarry Webhook] 401 Unauthorized: token mismatch");
+      return new Response(JSON.stringify({ error: "Unauthorized token" }), {
+        status: 401,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
 
     // ─────────────────────────────────────────────────────────────
-    // 2. CALLBACK: sync_status
+    // 2. CALLBACK: Status update, cancellation, or shipment event
     // ─────────────────────────────────────────────────────────────
-    if (callbackType === "sync_status") {
-      // Require body.token === ICARRY_WEBHOOK_TOKEN, else return 401
-      if (!expectedToken || body.token !== expectedToken) {
-        console.warn("[iCarry Webhook] 401 Unauthorized: token mismatch for sync_status");
-        return new Response(JSON.stringify({ error: "Unauthorized token" }), {
-          status: 401,
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
-        });
-      }
-
-      const awb = String(body.awb || "").trim();
+    if (callbackType !== "ndr_status" && callbackType !== "new_weight_discrepancy") {
+      const awb = String(body.awb || body.waybill || body.tracking_number || "").trim();
+      const shipmentId = String(body.shipment_id || body.id || "").trim();
+      const clientOrderId = String(body.client_order_id || body.order_id || "").trim();
       const statusCode = Number(body.status);
+      const rawStatusStr = String(body.status || body.event || body.current_status || body.shipment_status || body.delivery_status || "").trim();
+      const statusLower = rawStatusStr.toLowerCase();
 
-      if (!awb) {
-        console.warn("[iCarry Webhook] sync_status received without AWB");
-        return new Response(JSON.stringify({ ok: true, note: "missing awb" }), {
+      if (!awb && !shipmentId && !clientOrderId) {
+        console.warn("[iCarry Webhook] Received webhook without AWB, shipment_id, or order_id:", body);
+        return new Response(JSON.stringify({ ok: true, note: "missing identifiers" }), {
           status: 200,
           headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
       }
 
-      // Find the order by waybill
-      const { data: order, error: orderErr } = await supabaseAdmin
-        .from("orders")
-        .select("id, delivery_status, shipped_at, delivered_at")
-        .eq("waybill", awb)
-        .maybeSingle();
-
-      if (orderErr) {
-        console.error(`[iCarry Webhook] Database error finding order for AWB ${awb}:`, orderErr);
-        return new Response(JSON.stringify({ ok: true, error: orderErr.message }), {
-          status: 200,
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
-        });
+      // Find the order by waybill, shipment_id, or order_id
+      let order: any = null;
+      if (awb) {
+        const { data, error } = await supabaseAdmin
+          .from("orders")
+          .select("id, delivery_status, status, shipped_at, delivered_at")
+          .eq("waybill", awb)
+          .maybeSingle();
+        if (error) console.error("[iCarry Webhook] Error querying by waybill:", error);
+        order = data;
+      }
+      if (!order && shipmentId) {
+        const { data, error } = await supabaseAdmin
+          .from("orders")
+          .select("id, delivery_status, status, shipped_at, delivered_at")
+          .eq("shipment_id", shipmentId)
+          .maybeSingle();
+        if (error) console.error("[iCarry Webhook] Error querying by shipment_id:", error);
+        order = data;
+      }
+      if (!order && clientOrderId) {
+        const { data, error } = await supabaseAdmin
+          .from("orders")
+          .select("id, delivery_status, status, shipped_at, delivered_at")
+          .eq("id", clientOrderId)
+          .maybeSingle();
+        if (error) console.error("[iCarry Webhook] Error querying by clientOrderId:", error);
+        order = data;
       }
 
       if (!order) {
-        console.log(`[iCarry Webhook] Unknown AWB: ${awb}. Returning 200 to prevent retry storm.`);
-        return new Response(JSON.stringify({ ok: true, note: "unknown awb" }), {
+        console.log(`[iCarry Webhook] Unknown shipment (AWB: ${awb}, Shipment ID: ${shipmentId}, Order: ${clientOrderId}). Returning 200.`);
+        return new Response(JSON.stringify({ ok: true, note: "unknown order" }), {
           status: 200,
           headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
       }
 
-      const newDeliveryStatus = STATUS[statusCode] ?? String(body.status);
+      // Determine new clean delivery status for the database
+      let newDeliveryStatus = STATUS[statusCode] ?? (rawStatusStr || "Booked");
+      const sLower = newDeliveryStatus.toLowerCase();
+
+      // Initial booking / label generation / pending pickup -> Booked
+      if (
+        sLower.includes("shipping label") ||
+        sLower.includes("label generated") ||
+        sLower.includes("pending pickup") ||
+        sLower.includes("processing") ||
+        sLower.includes("manifested") ||
+        sLower === "1" ||
+        sLower === "2" ||
+        sLower === "24" ||
+        sLower === "25"
+      ) {
+        newDeliveryStatus = "Booked";
+      }
+
+      // Shipped / In Transit
+      if (sLower === "3" || sLower === "22" || sLower.includes("shipped") || sLower.includes("transit")) {
+        newDeliveryStatus = sLower.includes("transit") ? "In Transit" : "Shipped";
+      }
+
+      // Out for Delivery
+      if (sLower === "26" || sLower.includes("out for delivery")) {
+        newDeliveryStatus = "Out for Delivery";
+      }
+
+      // Delivered
+      if (sLower === "21" || sLower.includes("delivered")) {
+        newDeliveryStatus = "Delivered";
+      }
+
+      // Returned / RTO
+      if (sLower === "23" || sLower === "27" || sLower.includes("return") || sLower.includes("rto")) {
+        newDeliveryStatus = "Returned (RTO)";
+      }
+
       const updates: Record<string, any> = {
         delivery_status: newDeliveryStatus,
       };
 
-      // If status === 3 (Shipped), set shipped_at = now() only if currently null
-      if (statusCode === 3 && !order.shipped_at) {
+      if ((newDeliveryStatus === "Shipped" || newDeliveryStatus === "In Transit") && !order.shipped_at) {
         updates.shipped_at = new Date().toISOString();
+        updates.status = "Shipped";
       }
 
-      // If status === 21 (Delivered), set delivered_at = now() only if currently null
-      if (statusCode === 21 && !order.delivered_at) {
+      if (newDeliveryStatus === "Delivered" && !order.delivered_at) {
         updates.delivered_at = new Date().toISOString();
+        updates.status = "Delivered";
       }
 
-      // If status === 7 (Canceled) or 16 (Voided), mark order status as Cancelled
-      if (statusCode === 7 || statusCode === 16) {
+      // Canceled (7) or Voided (16) or status text contains cancel/void
+      const isCancelled =
+        statusCode === 7 ||
+        statusCode === 16 ||
+        statusLower.includes("cancel") ||
+        statusLower.includes("void") ||
+        callbackType.toLowerCase().includes("cancel") ||
+        callbackType.toLowerCase().includes("void");
+
+      if (isCancelled) {
         updates.status = "Cancelled";
+        updates.delivery_status = "Cancelled";
       }
 
       const { error: updateErr } = await supabaseAdmin
@@ -143,10 +218,10 @@ Deno.serve(async (req: Request) => {
       if (updateErr) {
         console.error(`[iCarry Webhook] Failed to update order ${order.id}:`, updateErr);
       } else {
-        console.log(`[iCarry Webhook] Order ${order.id} status updated to: "${newDeliveryStatus}"`);
+        console.log(`[iCarry Webhook] Order ${order.id} updated: status="${updates.status || order.status}", delivery_status="${updates.delivery_status}"`);
       }
 
-      return new Response(JSON.stringify({ ok: true }), {
+      return new Response(JSON.stringify({ ok: true, orderId: order.id, updates }), {
         status: 200,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });

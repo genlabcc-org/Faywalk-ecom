@@ -35,7 +35,7 @@ export async function bookShipmentForOrder(
     // 1. Fetch order details
     const { data: order, error: orderError } = await supabaseAdmin
       .from("orders")
-      .select("id, total_price, payment, quantity, address_id, waybill, shipment_id")
+      .select("id, total_price, payment, quantity, address_id, waybill, shipment_id, delivery_status")
       .eq("id", orderId)
       .maybeSingle();
 
@@ -45,9 +45,9 @@ export async function bookShipmentForOrder(
       return { ok: false, error: errMsg };
     }
 
-    // 2. Idempotency check: Skip if waybill is already assigned
-    if (order.waybill) {
-      console.log(`[iCarry] Order ${orderId} already booked with waybill: ${order.waybill}`);
+    // 2. Idempotency check: Skip if already booked or currently booking
+    if (order.waybill || order.shipment_id) {
+      console.log(`[iCarry] Order ${orderId} already booked with waybill: ${order.waybill}, shipment: ${order.shipment_id}. Skipping.`);
       return {
         ok: true,
         waybill: order.waybill,
@@ -56,7 +56,36 @@ export async function bookShipmentForOrder(
       };
     }
 
+    if (order.delivery_status === "Booking in Progress") {
+      console.log(`[iCarry] Order ${orderId} is currently being booked by another process. Skipping duplicate call.`);
+      return {
+        ok: true,
+        skipped: true,
+      };
+    }
+
     const isSaveOnly = !!options?.saveOnly;
+
+    // 3. ATOMIC LOCK: Claim the booking lock so no concurrent process can double-book
+    if (!isSaveOnly) {
+      const { data: locked, error: lockErr } = await supabaseAdmin
+        .from("orders")
+        .update({ delivery_status: "Booking in Progress" })
+        .eq("id", orderId)
+        .is("waybill", null)
+        .is("shipment_id", null)
+        .neq("delivery_status", "Booking in Progress")
+        .select("id")
+        .maybeSingle();
+
+      if (lockErr || !locked) {
+        console.warn(`[iCarry] Order ${orderId} booking lock already acquired by another worker. Skipping duplicate booking.`);
+        return {
+          ok: true,
+          skipped: true,
+        };
+      }
+    }
 
     // 3. Ensure order has a linked shipping address
     if (!order.address_id) {

@@ -1,7 +1,6 @@
 import { SupabaseClient } from "@supabase/supabase-js";
 import { RazorpayClient } from "./client.ts";
 import { Product, Order } from "../../_shared/types.ts";
-import { bookShipmentForOrder } from "../../_shared/bookShipment.ts";
 
 /** Normalise a state name for comparison (same logic as the frontend). */
 function normState(s: string | null | undefined): string {
@@ -45,6 +44,7 @@ export interface CreateOrderResult {
   amount: number;
   currency: string;
   productName: string;
+  keyId?: string;
 }
 
 export interface VerifyPaymentInput {
@@ -109,7 +109,7 @@ export class RazorpayService {
     const productIds = items.map(item => item.productId).filter(Boolean);
     const { data: rawProducts, error: dbError } = await this.supabaseAdmin
       .from("products")
-      .select("product_id, name, price, discount_price, product_variants(*)")
+      .select("product_id, name, price, discount_price, image_url, images, sku, product_variants(*)")
       .in("product_id", productIds);
     const products = (rawProducts || []) as unknown as any[];
 
@@ -117,8 +117,19 @@ export class RazorpayService {
       throw new Error(`Products not found or database query failed: ${dbError?.message || "Unknown error"}`);
     }
 
-    // 2. Calculate subtotal matching variant price or base product price
+    // 2. Calculate subtotal and resolve variant details
     let subtotal = 0;
+    const resolvedItemDetails: Array<{
+      productId: any;
+      name: string;
+      price: number;
+      quantity: number;
+      size: string | null;
+      color: string | null;
+      image: string | null;
+      sku: string | null;
+    }> = [];
+
     for (const item of items) {
       const product = products.find(p => String(p.product_id) === String(item.productId));
       if (!product) {
@@ -127,6 +138,8 @@ export class RazorpayService {
 
       const variants = product.product_variants || [];
       let itemPrice = 0;
+      let itemImage = product.image_url || (product.images && product.images[0]) || null;
+      let itemSku: string | null = product.sku || null;
 
       if (variants.length > 0) {
         const matchedVariant = variants.find((v: any) => {
@@ -138,6 +151,10 @@ export class RazorpayService {
         }) || variants[0];
 
         itemPrice = Number(matchedVariant?.price || 0);
+        itemSku = matchedVariant?.sku || itemSku;
+        if (matchedVariant?.images && matchedVariant.images.length > 0) {
+          itemImage = matchedVariant.images[0];
+        }
       }
 
       if (itemPrice === 0) {
@@ -150,7 +167,19 @@ export class RazorpayService {
         throw new Error(`Product ${item.productId} has no valid price in the database`);
       }
 
-      subtotal += itemPrice * Number(item.quantity || 1);
+      const qty = Number(item.quantity || 1);
+      subtotal += itemPrice * qty;
+
+      resolvedItemDetails.push({
+        productId: product.product_id,
+        name: product.name || "Unknown Product",
+        price: itemPrice,
+        quantity: qty,
+        size: item.size || null,
+        color: item.color || null,
+        image: itemImage,
+        sku: itemSku,
+      });
     }
 
     // Apply discount (server-side code lookup) and shipping fee
@@ -161,19 +190,62 @@ export class RazorpayService {
     const grandTotal = Math.max(0, subtotal - discountAmount) + shipping;
     const amountInPaise = Math.round(grandTotal * 100);
 
+    const mainItem = resolvedItemDetails[0];
+    const productName = resolvedItemDetails.length > 1
+      ? `${mainItem?.name || 'Product'} + ${resolvedItemDetails.length - 1} other(s)`
+      : mainItem?.name || "Faywalk Order";
+
     // 3. Create order on Razorpay
     const receiptId = `receipt_order_${Date.now()}`;
-    const notes: Record<string, string> = {};
+    const notes: Record<string, string> = {
+      product_name: productName,
+      user_id: String(input.userId),
+    };
     if (input.addressId) {
       notes.address_id = String(input.addressId);
     }
     const rzOrder = await this.client.createOrder(amountInPaise, receiptId, notes);
 
-    const mainItem = items[0];
-    const mainProduct = products.find(p => String(p.product_id) === String(mainItem.productId));
-    const productName = items.length > 1
-      ? `${mainProduct?.name || 'Product'} + ${items.length - 1} other(s)`
-      : mainProduct?.name || "Faywalk Order";
+    // 4. Verify address ownership
+    let safeAddressId: number | null = null;
+    if (input.addressId) {
+      try {
+        const { data: addr } = await this.supabaseAdmin
+          .from("addresses")
+          .select("address_id")
+          .eq("address_id", Number(input.addressId))
+          .eq("user_id", input.userId)
+          .maybeSingle();
+        safeAddressId = addr?.address_id ?? null;
+      } catch (err) {
+        console.warn("Failed to verify address ownership, falling back to null:", err);
+        safeAddressId = null;
+      }
+    }
+
+    // 5. Store pending checkout session metadata in checkout_sessions table
+    // The orders table is kept completely clean of unpaid/abandoned checkouts.
+    // The order and order_items are created strictly upon verified payment via the Razorpay webhook.
+    try {
+      const { error: sessionError } = await this.supabaseAdmin
+        .from("checkout_sessions")
+        .upsert({
+          id: rzOrder.id,
+          user_id: input.userId,
+          address_id: safeAddressId,
+          product_name: productName,
+          quantity: resolvedItemDetails.reduce((sum, item) => sum + item.quantity, 0),
+          total_price: grandTotal,
+          shipping_fee: shipping,
+          items: resolvedItemDetails,
+        });
+
+      if (sessionError) {
+        console.warn("[Razorpay] Warning: Failed to save checkout session:", sessionError.message);
+      }
+    } catch (dbEx) {
+      console.warn("[Razorpay] Error saving checkout session:", dbEx);
+    }
 
     return {
       orderId: rzOrder.id,
@@ -300,70 +372,82 @@ export class RazorpayService {
       }
     }
 
-    // 4. Insert order record using admin client (bypasses RLS limits if any)
-    const { data: rawOrder, error: insertError } = await this.supabaseAdmin
+    // 4. Check if the order was pre-created as "Pending" during createOrder
+    const { data: existingOrder } = await this.supabaseAdmin
       .from("orders")
-      .insert({
-        user_id: input.userId,
-        address_id: safeAddressId,
-        item_name: itemName,
-        quantity: resolvedItemDetails.reduce((sum, item) => sum + item.quantity, 0),
-        total_price: grandTotal,
-        shipping_fee: shipping,
-        payment: "Razorpay",
-        type: "Regular",
-        status: "Paid",
-        razorpay_order_id: input.razorpay_order_id,
-        razorpay_payment_id: input.razorpay_payment_id,
-        razorpay_signature: input.razorpay_signature,
-      } as unknown as never)
-      .select()
-      .single();
-    const order = rawOrder as unknown as Order | null;
+      .select("*")
+      .eq("razorpay_order_id", input.razorpay_order_id)
+      .maybeSingle();
 
-    if (insertError || !order) {
-      throw new Error(`Failed to insert order: ${insertError?.message || "Unknown error"}`);
-    }
+    let order: Order | null = null;
 
-    // 4. Insert child order items for each item in order
-    const orderItemsToInsert = resolvedItemDetails.map(item => ({
-      order_id: order.id,
-      product_id: item.productId,
-      product_name: item.name,
-      quantity: item.quantity,
-      price: item.price,
-      size: item.size,
-      color: item.color,
-      image_url: item.image,
-      sku: item.sku,
-    }));
+    if (existingOrder) {
+      console.log(`[Razorpay] Found existing pending order #${existingOrder.id}. Updating status to Paid.`);
+      const { data: updatedOrder, error: updateError } = await this.supabaseAdmin
+        .from("orders")
+        .update({
+          status: "Paid",
+          payment: "Razorpay",
+          razorpay_payment_id: input.razorpay_payment_id,
+          razorpay_signature: input.razorpay_signature,
+        } as unknown as never)
+        .eq("id", existingOrder.id)
+        .select()
+        .single();
 
-    const { error: itemsInsertError } = await this.supabaseAdmin
-      .from("order_items")
-      .insert(orderItemsToInsert as unknown as never[]);
-
-    if (itemsInsertError) {
-      throw new Error(`Failed to insert order items: ${itemsInsertError.message}`);
-    }
-
-    // 5. Automatically book shipment with iCarry after order and payment are confirmed
-    try {
-      const bookingResult = await bookShipmentForOrder(this.supabaseAdmin, order.id);
-      if (bookingResult.ok) {
-        order.waybill = bookingResult.waybill;
-        order.shipment_id = bookingResult.shipment_id;
-        order.courier_name = bookingResult.courier_name;
-        order.tracking_url = bookingResult.tracking_url;
-        order.delivery_status = "Booked";
-      } else {
-        console.warn(`[iCarry] Auto-booking after payment failed for order ${order.id}:`, bookingResult.error);
-        order.delivery_status = "Booking Failed";
-        order.shipment_error = bookingResult.error;
+      if (updateError) {
+        console.warn("[Razorpay] Failed to update pending order to Paid:", updateError.message);
       }
-    } catch (bookingErr) {
-      console.error(`[iCarry] Unexpected error during auto-booking for order ${order.id}:`, bookingErr);
-      // Never throw — the customer's payment succeeded and order is saved
+      order = (updatedOrder || existingOrder) as unknown as Order;
+    } else {
+      // Fallback: Insert fresh order record if no pre-created record exists
+      const { data: rawOrder, error: insertError } = await this.supabaseAdmin
+        .from("orders")
+        .insert({
+          user_id: input.userId,
+          address_id: safeAddressId,
+          item_name: itemName,
+          quantity: resolvedItemDetails.reduce((sum, item) => sum + item.quantity, 0),
+          total_price: grandTotal,
+          shipping_fee: shipping,
+          payment: "Razorpay",
+          type: "Regular",
+          status: "Paid",
+          razorpay_order_id: input.razorpay_order_id,
+          razorpay_payment_id: input.razorpay_payment_id,
+          razorpay_signature: input.razorpay_signature,
+        } as unknown as never)
+        .select()
+        .single();
+      order = rawOrder as unknown as Order | null;
+
+      if (insertError || !order) {
+        throw new Error(`Failed to insert order: ${insertError?.message || "Unknown error"}`);
+      }
+
+      // Insert child order items for each item in order
+      const orderItemsToInsert = resolvedItemDetails.map(item => ({
+        order_id: order!.id,
+        product_id: item.productId,
+        product_name: item.name,
+        quantity: item.quantity,
+        price: item.price,
+        size: item.size,
+        color: item.color,
+        image_url: item.image,
+        sku: item.sku,
+      }));
+
+      const { error: itemsInsertError } = await this.supabaseAdmin
+        .from("order_items")
+        .insert(orderItemsToInsert as unknown as never[]);
+
+      if (itemsInsertError) {
+        throw new Error(`Failed to insert order items: ${itemsInsertError.message}`);
+      }
     }
+
+    // Note: Shipment booking and confirmation emails are strictly managed by razorpay-webhook to prevent duplicate bookings.
 
     return order;
   }

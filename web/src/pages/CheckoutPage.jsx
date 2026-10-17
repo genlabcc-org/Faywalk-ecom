@@ -683,7 +683,7 @@ export default function CheckoutPage() {
           .eq("id", userId)
           .single();
 
-        const razorpayKey = orderData?.keyId || import.meta.env.VITE_RAZORPAY_KEY_ID || "rzp_test_Tmwrt8SaZ3YBtC";
+        const razorpayKey = orderData?.keyId || import.meta.env.VITE_RAZORPAY_KEY_ID || "rzp_test_ToppPFJoyBrgOR";
 
         const options = {
           key: razorpayKey,
@@ -695,31 +695,11 @@ export default function CheckoutPage() {
           handler: async function (response) {
             try {
               setIsProcessingPayment(true);
-              const { data: verifyData, error: verifyError } = await supabase.functions.invoke('razorpay', {
-                body: {
-                  action: "verify_payment",
-                  razorpay_order_id: response.razorpay_order_id,
-                  razorpay_payment_id: response.razorpay_payment_id,
-                  razorpay_signature: response.razorpay_signature,
-                  items: paymentItems,
-                  addressId: addressId ? Number(addressId) : null,
-                  discountCode: appliedDiscount?.code || null,
-                  discountPct: appliedDiscount?.pct || 0,
-                  shippingFee: shippingFee || 0,
-                }
-              });
 
-              if (verifyError) {
-                let errMsg = verifyError.message;
-                if (verifyError.context && typeof verifyError.context.json === 'function') {
-                  try {
-                    const errJson = await verifyError.context.json();
-                    if (errJson?.error) errMsg = errJson.error;
-                  } catch (_) { }
-                }
-                throw new Error(errMsg || "Payment verification failed.");
-              }
-
+              // Payment completed in Razorpay popup.
+              // Order verification, "Paid" status update, iCarry courier booking,
+              // and customer email notifications are handled reliably and securely
+              // via the server-side Razorpay webhook.
               if (!checkoutProduct) {
                 const removeFromCart = useStore.getState().removeFromCart;
                 for (const item of checkoutItems) {
@@ -727,45 +707,15 @@ export default function CheckoutPage() {
                 }
               }
 
-              showToast("Payment successful! Order placed.", "success");
-
-              emailService.sendOrderNotificationEmail({
-                orderId: verifyData?.order?.id || response.razorpay_order_id,
-                customerName: profile?.name || `${form.firstName} ${form.lastName}`.trim(),
-                customerEmail: session?.user?.email || form.email || "N/A",
-                customerPhone: profile?.phone || form.mobile || "N/A",
-                paymentMethod: "Razorpay (Online Payment)",
-                address: {
-                  name: profile?.name || `${form.firstName} ${form.lastName}`.trim(),
-                  mobile: form.mobile,
-                  flat: form.flat,
-                  area: form.area,
-                  city: form.city,
-                  state: form.state,
-                  pincode: form.pinCode,
-                },
-                items: checkoutItems.map(item => ({
-                  product_name: item.name,
-                  quantity: item.qty || 1,
-                  price: parsePrice(item.price),
-                  size: item.size || null,
-                  color: item.color || null,
-                  sku: item.sku || item.sku_id || 'N/A',
-                  category: item.category || item.category_name || item.categories?.name || 'N/A',
-                })),
-                totalPrice: grandTotal,
-                subtotal: subtotal,
-                discount: discountAmount,
-                shippingFee: shippingFee,
-              });
-
+              showToast("Payment successful! Your order has been placed.", "success");
               clearCheckoutStorage();
               setTimeout(() => {
                 navigate("/profile/orders");
-              }, 2000);
+              }, 1500);
             } catch (err) {
-              showToast(err.message, "error");
-              setIsProcessingPayment(false);
+              console.error("Error completing checkout:", err);
+              clearCheckoutStorage();
+              navigate("/profile/orders");
             }
           },
           prefill: {

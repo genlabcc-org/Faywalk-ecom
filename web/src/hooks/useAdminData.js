@@ -47,7 +47,7 @@ export function useAdminData() {
               return [newRecord, ...currentOrders];
             }
             if (eventType === 'UPDATE') {
-              return currentOrders.map((o) => (o.id === newRecord.id ? newRecord : o));
+              return currentOrders.map((o) => (o.id === newRecord.id ? { ...o, ...newRecord } : o));
             }
             if (eventType === 'DELETE') {
               return currentOrders.filter((o) => o.id !== oldRecord.id);

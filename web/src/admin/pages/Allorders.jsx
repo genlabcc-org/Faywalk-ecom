@@ -84,28 +84,15 @@ const ICARRY_CODE_MAP = {
 };
 
 const getDeliveryStatusTag = (order) => {
-  // 1. Primary: read status directly from iCarry fields
+  // Directly read the status saved in the database
   let raw =
-    order?.icarry_status ||
-    order?.icarry_shipment_status ||
     order?.delivery_status ||
-    order?.deliveryStatus ||
+    order?.status ||
     null;
 
-  // 2. If icarry_events is present, inspect latest tracking event
-  if (!raw && Array.isArray(order?.icarry_events) && order.icarry_events.length > 0) {
-    const last = order.icarry_events[order.icarry_events.length - 1];
-    raw = last?.status || last?.event_name || last?.event_description;
-  }
-
-  // 3. If numeric status code, map to friendly label
-  if (raw !== null && raw !== undefined && !isNaN(Number(raw)) && Number(raw) in ICARRY_CODE_MAP) {
-    raw = ICARRY_CODE_MAP[Number(raw)];
-  }
-
-  // 4. If still no status but shipment is booked with iCarry
+  // Fallback if no delivery_status yet but waybill exists
   if (!raw) {
-    if (order?.icarry_awb || order?.waybill || order?.icarry_shipment_id || order?.shipment_id) {
+    if (order?.waybill || order?.shipment_id || order?.icarry_awb || order?.icarry_shipment_id) {
       raw = "Booked";
     } else if (order?.status?.toLowerCase() === "cancelled") {
       raw = "Cancelled";
@@ -116,6 +103,11 @@ const getDeliveryStatusTag = (order) => {
     } else {
       raw = "Pending Booking";
     }
+  }
+
+  // If numeric status code, map to friendly label
+  if (raw !== null && raw !== undefined && !isNaN(Number(raw)) && Number(raw) in ICARRY_CODE_MAP) {
+    raw = ICARRY_CODE_MAP[Number(raw)];
   }
 
   const str = String(raw).trim();
@@ -153,21 +145,17 @@ const getDeliveryStatusTag = (order) => {
     };
   }
 
-  // Booked / Manifested / Pickup Scheduled / Pending Pickup / Processing
+  // Booked / Manifested / Pickup Scheduled / Pending Pickup / Processing / Label Generated
   if (
     lower === "booked" ||
     lower === "manifested" ||
     lower.includes("pickup") ||
-    lower === "processing"
+    lower === "processing" ||
+    lower.includes("shipping label") ||
+    lower.includes("label generated")
   ) {
-    let label = "Booked";
-    if (lower === "manifested") label = "Manifested";
-    else if (lower.includes("scheduled")) label = "Pickup Scheduled";
-    else if (lower.includes("pending pickup")) label = "Pending Pickup";
-    else if (lower === "processing") label = "Processing";
-
     return {
-      label,
+      label: "Booked",
       bg: "#EDE9FE",
       color: "#6D28D9",
       border: "#DDD6FE",
@@ -219,10 +207,10 @@ const getDeliveryStatusTag = (order) => {
     };
   }
 
-  // Pending Booking
-  if (lower === "pending booking" || lower === "pending") {
+  // Pending Booking / Booking in Progress
+  if (lower === "pending booking" || lower === "pending" || lower === "booking in progress") {
     return {
-      label: "Pending Booking",
+      label: lower === "booking in progress" ? "Booking…" : "Pending Booking",
       bg: "#FEF9C3",
       color: "#A16207",
       border: "#FEF08A",
@@ -263,7 +251,7 @@ const STATUSES = [
   "Returned",
 ];
 const PAYMENT_OPTIONS = ["All Payment", "Razorpay", "COD"];
-const PER_PAGE = 8;
+const PAGE_SIZE = 10;
 
 /* ── Icons ── */
 const ChevronDownIcon = () => (
@@ -475,7 +463,10 @@ const AllOrders = ({ orders = [], products = [], categories: categoriesProp = []
   const [paymentFilter, setPaymentFilter] = useState("All Payment");
   const [search, setSearch] = useState("");
   const [selected, setSelected] = useState([]);
-  const [page, setPage] = useState(1);
+  const [visibleCount, setVisibleCount] = useState(PAGE_SIZE);
+  const [loadingMore, setLoadingMore] = useState(false);
+  const [hasMoreDb, setHasMoreDb] = useState(true);
+  const sentinelRef = useRef(null);
   const [dbCategories, setDbCategories] = useState([]);
 
   // Fetch real categories from database
@@ -506,8 +497,8 @@ const AllOrders = ({ orders = [], products = [], categories: categoriesProp = []
   const [previewOrder, setPreviewOrder] = useState(null);
   const [previewAddress, setPreviewAddress] = useState(null);
   const [previewLoadingAddress, setPreviewLoadingAddress] = useState(false);
-  const [printAddresses, setPrintAddresses] = useState({});
   const [isSyncingAll, setIsSyncingAll] = useState(false);
+  const [retryingOrderId, setRetryingOrderId] = useState(null);
 
   const toastTimerRef = useRef(null);
 
@@ -579,6 +570,17 @@ const AllOrders = ({ orders = [], products = [], categories: categoriesProp = []
           }
         }
       )
+      .on(
+        "postgres_changes",
+        { event: "UPDATE", schema: "public", table: "orders" },
+        (payload) => {
+          const updated = payload.new;
+          if (!updated) return;
+          setLocalOrders((prev) =>
+            prev.map((o) => (o.id === updated.id ? { ...o, ...updated } : o))
+          );
+        }
+      )
       .subscribe();
 
     return () => {
@@ -586,21 +588,25 @@ const AllOrders = ({ orders = [], products = [], categories: categoriesProp = []
     };
   }, [autoPrint]);
 
-  // Common sync tracking status for all iCarry shipments
-  const handleSyncAllTracking = async () => {
+  // Common sync tracking status for all active iCarry shipments
+  const handleSyncAllTracking = async (silent = false) => {
     if (isSyncingAll) return;
     const trackable = localOrders.filter(
-      (o) => o.waybill || o.shipment_id || o.icarry_awb || o.icarry_shipment_id
+      (o) =>
+        (o.waybill || o.shipment_id || o.icarry_awb || o.icarry_shipment_id) &&
+        o.delivery_status !== "Cancelled" &&
+        o.status !== "Cancelled" &&
+        o.delivery_status !== "Delivered"
     );
 
     if (trackable.length === 0) {
-      showToast("No active iCarry shipments found to sync.", "info");
+      if (!silent) showToast("No active iCarry shipments found to sync.", "info");
       return;
     }
 
     try {
       setIsSyncingAll(true);
-      showToast(`Syncing ${trackable.length} shipment(s) with iCarry...`, "info");
+      if (!silent) showToast(`Syncing ${trackable.length} shipment(s) with iCarry...`, "info");
       let updatedCount = 0;
       const updatedMap = {};
 
@@ -645,14 +651,44 @@ const AllOrders = ({ orders = [], products = [], categories: categoriesProp = []
           prev.map((o) => (updatedMap[o.id] ? { ...o, ...updatedMap[o.id] } : o))
         );
         showToast(`Synced! Updated ${updatedCount} order status(es) from iCarry.`, "success");
-      } else {
+      } else if (!silent) {
         showToast("iCarry tracking checked: All order statuses are up to date.", "success");
       }
     } catch (err) {
       console.error("iCarry bulk sync error:", err);
-      showToast("iCarry sync failed: " + (err.message || "Network error"), "error");
+      if (!silent) showToast("iCarry sync failed: " + (err.message || "Network error"), "error");
     } finally {
       setIsSyncingAll(false);
+    }
+  };
+
+
+
+  const handleRetryBooking = async (order) => {
+    if (!order?.id) return;
+    try {
+      setRetryingOrderId(order.id);
+      showToast(`Booking order #${String(order.id).slice(-8).toUpperCase()} with iCarry...`, "info");
+      const res = await icarryService.retryBooking(order.id);
+      if (res && res.error) {
+        showToast("iCarry booking failed: " + res.error, "error");
+      } else {
+        showToast("Order booked successfully with iCarry!", "success");
+        const { data: refreshed } = await supabase
+          .from("orders")
+          .select("*")
+          .eq("id", order.id)
+          .maybeSingle();
+        if (refreshed) {
+          setLocalOrders((prev) =>
+            prev.map((o) => (o.id === order.id ? { ...o, ...refreshed } : o))
+          );
+        }
+      }
+    } catch (err) {
+      showToast("Failed to book order: " + err.message, "error");
+    } finally {
+      setRetryingOrderId(null);
     }
   };
 
@@ -1023,18 +1059,109 @@ const AllOrders = ({ orders = [], products = [], categories: categoriesProp = []
     });
   }, [localOrders, category, status, printStatusFilter, paymentFilter, search, products]);
 
-  /* ── Pagination ── */
-  const totalPages = Math.max(1, Math.ceil(filtered.length / PER_PAGE));
-  const safePage = Math.min(page, totalPages);
-  const paginated = filtered.slice((safePage - 1) * PER_PAGE, safePage * PER_PAGE);
+  /* ── Infinite Scroll / Lazy Load (10 at a time) ── */
+  const paginated = useMemo(() => {
+    return filtered.slice(0, visibleCount);
+  }, [filtered, visibleCount]);
 
-  const pageNums = () => {
-    if (totalPages <= 5) return Array.from({ length: totalPages }, (_, i) => i + 1);
-    const p = safePage;
-    if (p <= 3) return [1, 2, 3, "…", totalPages];
-    if (p >= totalPages - 2) return [1, "…", totalPages - 2, totalPages - 1, totalPages];
-    return [1, "…", p, "…", totalPages];
-  };
+  // Load next 10 orders from Supabase DB when user scrolls
+  const loadMoreOrdersFromDb = useCallback(async () => {
+    if (loadingMore || !hasMoreDb) return;
+    setLoadingMore(true);
+    try {
+      const currentCount = localOrders.length;
+      const { data: newOrders, error: fetchErr } = await supabase
+        .from("orders")
+        .select("*, order_items(*)")
+        .order("order_date", { ascending: false })
+        .range(currentCount, currentCount + PAGE_SIZE - 1);
+
+      if (fetchErr) {
+        console.warn("Error fetching next orders batch from DB:", fetchErr);
+        setHasMoreDb(false);
+        return;
+      }
+
+      if (!newOrders || newOrders.length === 0) {
+        setHasMoreDb(false);
+        return;
+      }
+
+      if (newOrders.length < PAGE_SIZE) {
+        setHasMoreDb(false);
+      }
+
+      const enriched = await Promise.all(
+        newOrders.map(async (order) => {
+          const en = {
+            ...order,
+            customer: {
+              id: order.user_id,
+              name: order.customer_name || "Customer",
+              phone: order.customer_phone || order.phone || "",
+            },
+          };
+          if (order.user_id) {
+            try {
+              const { data: profile } = await supabase
+                .from("users")
+                .select("name, full_name, phone, phone_number, mobile, email")
+                .eq("id", order.user_id)
+                .maybeSingle();
+              if (profile) {
+                en.customer = {
+                  id: order.user_id,
+                  name: profile.name || profile.full_name || en.customer.name,
+                  phone: profile.phone || profile.phone_number || profile.mobile || en.customer.phone,
+                  email: profile.email || "",
+                };
+              }
+            } catch (_) { }
+          }
+          return en;
+        })
+      );
+
+      setLocalOrders((prev) => {
+        const existingIds = new Set(prev.map((o) => o.id));
+        const filteredNew = enriched.filter((o) => !existingIds.has(o.id));
+        return [...prev, ...filteredNew];
+      });
+
+      setVisibleCount((prev) => prev + PAGE_SIZE);
+    } catch (err) {
+      console.warn("Failed to load more orders:", err);
+    } finally {
+      setLoadingMore(false);
+    }
+  }, [loadingMore, hasMoreDb, localOrders.length]);
+
+  // Observer to trigger next 10 when user scrolls down
+  useEffect(() => {
+    const sentinel = sentinelRef.current;
+    if (!sentinel) return;
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        const [entry] = entries;
+        if (entry.isIntersecting) {
+          if (visibleCount < filtered.length) {
+            // More already loaded in filtered array
+            setVisibleCount((prev) => prev + PAGE_SIZE);
+          } else if (hasMoreDb && !loadingMore && !loading) {
+            // Load next 10 from database
+            loadMoreOrdersFromDb();
+          }
+        }
+      },
+      { root: null, rootMargin: "300px", threshold: 0.1 }
+    );
+
+    observer.observe(sentinel);
+    return () => {
+      observer.disconnect();
+    };
+  }, [visibleCount, filtered.length, hasMoreDb, loadingMore, loading, loadMoreOrdersFromDb]);
 
   /* ── Selection ── */
   const toggleRow = (id) =>
@@ -1062,13 +1189,13 @@ const AllOrders = ({ orders = [], products = [], categories: categoriesProp = []
     setPrintStatusFilter("All Invoices");
     setPaymentFilter("All Payment");
     setSearch("");
-    setPage(1);
+    setVisibleCount(PAGE_SIZE);
   };
 
   /* ── Render Table Body ── */
   const renderBody = () => {
     if (loading) {
-      return Array.from({ length: PER_PAGE }).map((_, i) => <SkeletonRow key={i} />);
+      return Array.from({ length: PAGE_SIZE }).map((_, i) => <SkeletonRow key={i} />);
     }
 
     if (error) {
@@ -1299,6 +1426,21 @@ const AllOrders = ({ orders = [], products = [], categories: categoriesProp = []
               >
                 View
               </button>
+              {(!order.waybill && !order.icarry_awb && order.status !== "Cancelled" && order.delivery_status !== "Cancelled") && (
+                <button
+                  type="button"
+                  className="ao__view-link"
+                  style={{
+                    color: (order.delivery_status === "Booking Failed" || order.shipment_error) ? "#dc2626" : "#0284c7",
+                    fontWeight: 600,
+                  }}
+                  onClick={() => handleRetryBooking(order)}
+                  disabled={retryingOrderId === order.id}
+                  title="Book shipment with iCarry"
+                >
+                  {retryingOrderId === order.id ? "Booking…" : (order.delivery_status === "Booking Failed" || order.shipment_error ? "Retry Booking" : "Book iCarry")}
+                </button>
+              )}
               <button
                 type="button"
                 className="ao__view-link"
@@ -1441,6 +1583,19 @@ const AllOrders = ({ orders = [], products = [], categories: categoriesProp = []
                   <button className="ao__view-btn" onClick={() => onViewDetail?.(order)}>
                     Details
                   </button>
+                  {(!order.waybill && !order.icarry_awb && order.status !== "Cancelled" && order.delivery_status !== "Cancelled") && (
+                    <button
+                      className="ao__view-btn"
+                      style={{
+                        color: (order.delivery_status === "Booking Failed" || order.shipment_error) ? "#dc2626" : "#0284c7",
+                        fontWeight: 600,
+                      }}
+                      onClick={() => handleRetryBooking(order)}
+                      disabled={retryingOrderId === order.id}
+                    >
+                      {retryingOrderId === order.id ? "Booking…" : (order.delivery_status === "Booking Failed" || order.shipment_error ? "Retry Booking" : "Book iCarry")}
+                    </button>
+                  )}
                   <button
                     className="ao__row-print-btn"
                     onClick={() => triggerPrintBatch([order])}
@@ -1602,7 +1757,7 @@ const AllOrders = ({ orders = [], products = [], categories: categoriesProp = []
             options={STATUSES}
             onChange={(v) => {
               setStatus(v);
-              setPage(1);
+              setVisibleCount(PAGE_SIZE);
             }}
           />
 
@@ -1612,7 +1767,7 @@ const AllOrders = ({ orders = [], products = [], categories: categoriesProp = []
             options={PAYMENT_OPTIONS}
             onChange={(v) => {
               setPaymentFilter(v);
-              setPage(1);
+              setVisibleCount(PAGE_SIZE);
             }}
           />
 
@@ -1622,7 +1777,7 @@ const AllOrders = ({ orders = [], products = [], categories: categoriesProp = []
             options={PRINT_STATUSES}
             onChange={(v) => {
               setPrintStatusFilter(v);
-              setPage(1);
+              setVisibleCount(PAGE_SIZE);
             }}
           />
 
@@ -1632,7 +1787,7 @@ const AllOrders = ({ orders = [], products = [], categories: categoriesProp = []
             options={categoryOptions}
             onChange={(v) => {
               setCategory(v);
-              setPage(1);
+              setVisibleCount(PAGE_SIZE);
             }}
           />
 
@@ -1679,7 +1834,7 @@ const AllOrders = ({ orders = [], products = [], categories: categoriesProp = []
               value={search}
               onChange={(e) => {
                 setSearch(e.target.value);
-                setPage(1);
+                setVisibleCount(PAGE_SIZE);
               }}
             />
           </div>
@@ -1711,64 +1866,34 @@ const AllOrders = ({ orders = [], products = [], categories: categoriesProp = []
         {renderMobileCards()}
       </div>
 
-      {/* ── Footer & Pagination ── */}
+      {/* ── Footer / Infinite Scroll Indicator ── */}
       <div className="ao__footer">
         <span className="ao__showing">
           {loading ? (
             <span style={{ display: "inline-flex", alignItems: "center", gap: 6 }}>
-              <SpinnerIcon /> Loading orders &amp; invoices…
+              <SpinnerIcon /> Loading orders…
             </span>
           ) : filtered.length === 0 ? (
             "No orders to show"
           ) : (
-            `Showing ${(safePage - 1) * PER_PAGE + 1}–${Math.min(
-              safePage * PER_PAGE,
-              filtered.length
-            )} of ${filtered.length} orders`
+            `Showing ${Math.min(visibleCount, filtered.length)} of ${filtered.length} orders`
           )}
         </span>
 
-        {!loading && filtered.length > 0 && (
-          <div className="ao__pagination">
-            <button
-              type="button"
-              className="ao__pg-arrow"
-              disabled={safePage === 1}
-              onClick={() => setPage((p) => p - 1)}
-              aria-label="Previous page"
-            >
-              <ChevronLeftIcon />
-            </button>
-
-            {pageNums().map((n, i) =>
-              n === "…" ? (
-                <span key={`e${i}`} className="ao__pg-ellipsis">
-                  …
-                </span>
-              ) : (
-                <button
-                  key={n}
-                  type="button"
-                  className={`ao__pg-num${safePage === n ? " ao__pg-num--active" : ""}`}
-                  onClick={() => setPage(n)}
-                >
-                  {n}
-                </button>
-              )
-            )}
-
-            <button
-              type="button"
-              className="ao__pg-arrow"
-              disabled={safePage === totalPages}
-              onClick={() => setPage((p) => p + 1)}
-              aria-label="Next page"
-            >
-              <ChevronRightIcon />
-            </button>
+        {loadingMore && (
+          <div className="ao__infinite-loader">
+            <SpinnerIcon />
+            <span>Loading next 10 orders…</span>
           </div>
         )}
+
+        {!loading && !loadingMore && filtered.length > 0 && visibleCount >= filtered.length && (
+          <span className="ao__all-loaded-text">All orders loaded</span>
+        )}
       </div>
+
+      {/* ── Infinite scroll trigger sentinel ── */}
+      <div ref={sentinelRef} className="ao__infinite-sentinel" />
 
       {/* ── Invoice Preview Modal (Thermal 4x6) — Portal to document.body ── */}
       {previewOrder && typeof document !== "undefined" && createPortal(

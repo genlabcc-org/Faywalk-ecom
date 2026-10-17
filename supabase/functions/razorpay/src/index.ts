@@ -4,7 +4,7 @@ import { handleCorsPreflight, corsHeaders } from "../../_shared/cors.ts";
 import { RazorpayService } from "./service.ts";
 
 export default {
-  fetch: withSupabase({ auth: ["publishable", "secret"] }, async (req, ctx) => {
+  fetch: withSupabase({ auth: ["publishable", "secret"] }, async (req: any, ctx: any) => {
     // 1. Handle CORS preflight request
     const corsResponse = handleCorsPreflight(req);
     if (corsResponse) return corsResponse;
@@ -57,6 +57,7 @@ export default {
             amount: orderDetails.amount,
             currency: orderDetails.currency,
             productName: orderDetails.productName,
+            keyId: orderDetails.keyId,
           }),
           { headers: { ...corsHeaders, "Content-Type": "application/json" } }
         );

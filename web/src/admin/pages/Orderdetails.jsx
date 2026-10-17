@@ -272,6 +272,7 @@ const OrderDetails = ({ order, onBack }) => {
     setAdminNote(o.admin_notes || "");
   }, [o.admin_notes]);
 
+
   useEffect(() => {
     const existing = getExistingOrderAddress(o) || getExistingOrderAddress(order) || getExistingOrderAddress(currentOrder);
     if (existing) {
@@ -472,13 +473,13 @@ const OrderDetails = ({ order, onBack }) => {
     }
   };
 
-  const handleRefreshTracking = async () => {
+  const handleRefreshTracking = async (silent = false) => {
     if (!o?.id) return;
     try {
-      setTrackingLoading(true);
+      if (!silent) setTrackingLoading(true);
       const res = await icarryService.track(o.id);
       if (res && res.error) {
-        showToast("iCarry tracking note: " + res.error, "info");
+        if (!silent) showToast("iCarry tracking note: " + res.error, "info");
       } else {
         const newStatus =
           res?.shipment_status ||
@@ -504,23 +505,31 @@ const OrderDetails = ({ order, onBack }) => {
               updates.status = "Shipped";
               updates.delivery_status = "Shipped";
             }
-            await supabase
-              .from("orders")
-              .update(updates)
-              .eq("id", o.id);
+            if (updates.status !== o.status || updates.delivery_status !== o.delivery_status) {
+              await supabase
+                .from("orders")
+                .update(updates)
+                .eq("id", o.id);
+              await fetchFreshOrder();
+            }
           } catch (dbErr) {
             console.warn("Could not save tracking status in DB:", dbErr);
           }
         }
-        showToast("iCarry shipment status synced successfully!", "success");
-        await fetchFreshOrder();
+        if (!silent) showToast("iCarry shipment status synced successfully!", "success");
       }
     } catch (err) {
-      showToast("iCarry sync: " + (err.message || "Failed contacting iCarry"), "warning");
+      if (!silent) showToast("iCarry sync: " + (err.message || "Failed contacting iCarry"), "warning");
     } finally {
-      setTrackingLoading(false);
+      if (!silent) setTrackingLoading(false);
     }
   };
+
+  useEffect(() => {
+    if (o?.id && (o.waybill || o.shipment_id) && o.delivery_status !== "Cancelled") {
+      handleRefreshTracking(true);
+    }
+  }, [o?.id]);
 
   const orderItems = (o.order_items && o.order_items.length > 0) ? o.order_items : [{
     product_name: o.item_name || "Product",
@@ -1201,13 +1210,13 @@ const OrderDetails = ({ order, onBack }) => {
 
           {/* Shipment Actions */}
           <div style={{ display: 'flex', gap: '8px', marginTop: '14px', flexWrap: 'wrap' }}>
-            {o.delivery_status === 'Booking Failed' && (
+            {(!o.waybill && !o.icarry_awb && o.delivery_status !== 'Cancelled' && o.status !== 'Cancelled') && (
               <button
                 onClick={handleRetryBooking}
                 disabled={retryingBooking}
                 className="admin-btn-with-spinner"
                 style={{
-                  backgroundColor: '#dc2626',
+                  backgroundColor: (o.delivery_status === 'Booking Failed' || o.shipment_error) ? '#dc2626' : '#002277',
                   color: '#fff',
                   border: 'none',
                   borderRadius: '6px',
@@ -1226,7 +1235,7 @@ const OrderDetails = ({ order, onBack }) => {
                   </>
                 ) : (
                   <>
-                    <IconSync size={13} /> Retry Booking
+                    <IconSync size={13} /> {(o.delivery_status === 'Booking Failed' || o.shipment_error) ? 'Retry Booking' : 'Book with iCarry'}
                   </>
                 )}
               </button>
