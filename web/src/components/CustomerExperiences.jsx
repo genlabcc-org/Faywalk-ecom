@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState, useRef } from 'react';
 import { FaTwitter, FaFacebookF, FaInstagram, FaStar } from 'react-icons/fa';
 import './CustomerExperiences.css';
 
@@ -54,6 +54,21 @@ const TESTIMONIALS = [
 ];
 
 const RealExperience = () => {
+  const [isPaused, setIsPaused] = useState(false);
+  const pauseTimerRef = useRef(null);
+
+  const handleTouchStart = () => {
+    if (pauseTimerRef.current) clearTimeout(pauseTimerRef.current);
+    setIsPaused(true);
+  };
+
+  const handleTouchEnd = () => {
+    if (pauseTimerRef.current) clearTimeout(pauseTimerRef.current);
+    pauseTimerRef.current = setTimeout(() => {
+      setIsPaused(false);
+    }, 2000);
+  };
+
   // Duplicate list to create a seamless infinite loop
   const loopItems = [...TESTIMONIALS, ...TESTIMONIALS];
 
@@ -64,7 +79,11 @@ const RealExperience = () => {
       </div>
 
       <div className="testimonials-scroll-container">
-        <div className="testimonials-track">
+        <div
+          className={`testimonials-track ${isPaused ? 'is-paused' : ''}`}
+          onTouchStart={handleTouchStart}
+          onTouchEnd={handleTouchEnd}
+        >
           {loopItems.map((item, idx) => (
             <div className="testimonial-card" key={`${item.id}-${idx}`}>
               <div className="testimonial-header">
@@ -74,8 +93,6 @@ const RealExperience = () => {
               <div className="testimonial-quote-wrapper">
                 <svg
                   className="testimonial-quote-icon"
-                  width="36"
-                  height="26"
                   viewBox="0 0 32 24"
                   fill="none"
                   xmlns="http://www.w3.org/2000/svg"

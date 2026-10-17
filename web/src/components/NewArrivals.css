@@ -206,7 +206,14 @@
 
 /* ── Tablet Responsiveness (769px to 1024px) ── */
 @media (max-width: 1024px) {
+  .new-arrivals-section {
+    width: calc(100% - 24px);
+    margin: 32px auto 48px;
+    padding: 0 8px;
+  }
+
   .new-arrivals-grid {
+    grid-template-columns: repeat(3, 1fr) !important;
     gap: 20px 16px !important;
   }
 
@@ -222,46 +229,183 @@
 /* ── Mobile Responsiveness (<= 768px): 2 Columns ── */
 @media (max-width: 768px) {
   .new-arrivals-section {
+    width: 100% !important;
+    max-width: 100% !important;
     margin: 24px auto 36px !important;
-    padding: 0 12px !important;
+    padding: 0 16px !important;
+    box-sizing: border-box !important;
   }
 
   .new-arrivals-header-row {
-    flex-direction: column !important;
-    align-items: flex-start !important;
-    gap: 14px !important;
-    margin-bottom: 20px !important;
+    display: flex !important;
+    justify-content: space-between !important;
+    align-items: flex-end !important;
+    flex-wrap: wrap !important;
+    gap: 12px !important;
+    margin-bottom: 18px !important;
   }
 
   .new-arrivals-title {
-    font-size: 30px !important;
+    font-size: 28px !important;
+    line-height: 1.1 !important;
   }
 
   .new-arrivals-subtitle {
     font-size: 13.5px !important;
+    margin-top: 4px !important;
+  }
+
+  .new-arrivals-tabs {
+    gap: 8px !important;
+  }
+
+  .new-arrivals-tab-btn {
+    font-size: 12px !important;
+    padding: 5px 14px !important;
+    border-radius: 5px !important;
   }
 
   .new-arrivals-grid {
     grid-template-columns: repeat(2, 1fr) !important;
-    gap: 16px 10px !important;
+    gap: 16px 12px !important;
+  }
+
+  .new-arrival-img-box {
+    border-radius: 4px !important;
   }
 
   .new-arrival-add-cart-btn {
     bottom: 8px !important;
     right: 8px !important;
-    padding: 4px 8px !important;
-    font-size: 10px !important;
+    padding: 5px 8px !important;
+    font-size: 10.5px !important;
+    gap: 4px !important;
+    border-radius: 4px !important;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.12) !important;
+    max-width: calc(100% - 16px) !important;
+  }
+
+  .new-arrival-add-cart-btn svg {
+    width: 12px !important;
+    height: 12px !important;
   }
 
   .new-arrival-info {
-    padding: 8px 0 0 0 !important;
+    padding: 6px 0 0 0 !important;
   }
 
   .new-arrival-name {
     font-size: 13.5px !important;
+    line-height: 1.25 !important;
+    margin: 0 0 2px 0 !important;
+    min-height: unset !important;
   }
 
   .new-arrival-price {
-    font-size: 13px !important;
+    font-size: 13.5px !important;
+    font-weight: 600 !important;
+    line-height: 1.2 !important;
+    margin: 0 !important;
+  }
+}
+
+/* ── Small Mobile (<= 480px) ── */
+@media (max-width: 480px) {
+  .new-arrivals-section {
+    margin: 20px auto 30px !important;
+    padding: 0 12px !important;
+  }
+
+  .new-arrivals-header-row {
+    gap: 10px !important;
+    margin-bottom: 14px !important;
+  }
+
+  .new-arrivals-title {
+    font-size: 24px !important;
+  }
+
+  .new-arrivals-subtitle {
+    font-size: 12.5px !important;
+  }
+
+  .new-arrivals-tab-btn {
+    font-size: 11.5px !important;
+    padding: 4px 12px !important;
+  }
+
+  .new-arrivals-grid {
+    gap: 14px 10px !important;
+  }
+
+  .new-arrival-add-cart-btn {
+    bottom: 6px !important;
+    right: 6px !important;
+    padding: 4px 7px !important;
+    font-size: 10px !important;
+    gap: 3px !important;
+  }
+
+  .new-arrival-add-cart-btn svg {
+    width: 11px !important;
+    height: 11px !important;
+  }
+
+  .new-arrival-info {
+    padding: 5px 0 0 0 !important;
+  }
+
+  .new-arrival-name {
+    font-size: 12.5px !important;
+    line-height: 1.25 !important;
+    margin: 0 0 1px 0 !important;
+    min-height: unset !important;
+  }
+
+  .new-arrival-price {
+    font-size: 12.5px !important;
+    line-height: 1.2 !important;
+    margin: 0 !important;
+  }
+}
+
+/* ── Extra Small Mobile (<= 360px) ── */
+@media (max-width: 360px) {
+  .new-arrivals-section {
+    padding: 0 10px !important;
+  }
+
+  .new-arrivals-title {
+    font-size: 21px !important;
+  }
+
+  .new-arrivals-subtitle {
+    font-size: 11.5px !important;
+  }
+
+  .new-arrivals-grid {
+    gap: 12px 8px !important;
+  }
+
+  .new-arrival-add-cart-btn {
+    padding: 3px 6px !important;
+    font-size: 9.5px !important;
+  }
+
+  .new-arrival-info {
+    padding: 4px 0 0 0 !important;
+  }
+
+  .new-arrival-name {
+    font-size: 11.5px !important;
+    line-height: 1.2 !important;
+    margin: 0 0 1px 0 !important;
+    min-height: unset !important;
+  }
+
+  .new-arrival-price {
+    font-size: 11.5px !important;
+    line-height: 1.2 !important;
+    margin: 0 !important;
   }
 }

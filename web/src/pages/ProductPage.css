@@ -374,11 +374,17 @@
   background: var(--blue-hover, #00185e);
 }
 
+/* ─── Mobile Filter Bar (Default Hidden on Desktop) ─── */
+.trending-mobile-filter-bar,
+.trending-mobile-chips-row {
+  display: none;
+}
+
 /* ─── Responsive Breakdown ─── */
 @media (max-width: 992px) {
   .trending-main-container {
     grid-template-columns: 180px 1fr;
-    gap: 32px;
+    gap: 28px;
     padding: 24px 20px 48px 20px;
   }
 
@@ -392,21 +398,149 @@
 @media (max-width: 768px) {
   .trending-main-container {
     grid-template-columns: 1fr;
-    gap: 24px;
+    gap: 16px;
     padding: 16px 16px 40px 16px;
   }
 
-  .trending-sidebar {
-    position: static;
-    display: grid;
-    grid-template-columns: repeat(2, 1fr);
-    gap: 16px;
-    padding-bottom: 16px;
-    border-bottom: 1px solid #f3f4f6;
+  /* Hide Desktop Sidebar on Mobile */
+  .trending-sidebar.desktop-filter-sidebar {
+    display: none !important;
+  }
+
+  .desktop-only {
+    display: none !important;
+  }
+
+  .trending-header-bar {
+    margin-bottom: 12px;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 4px;
   }
 
   .trending-headline {
-    font-size: 30px;
+    font-size: 28px;
+  }
+
+  .trending-subtitle {
+    font-size: 13px;
+    color: #4b5563;
+  }
+
+  /* ── Mobile Filter Trigger Bar ── */
+  .trending-mobile-filter-bar {
+    display: flex !important;
+    align-items: center;
+    justify-content: flex-start;
+    gap: 12px;
+    margin-bottom: 14px;
+    padding-bottom: 12px;
+    border-bottom: 1px solid #f1f5f9;
+  }
+
+  .trending-mobile-filter-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 16px;
+    background: #ffffff;
+    border: 1.5px solid #e2e8f0;
+    border-radius: 9999px;
+    font-family: inherit;
+    font-size: 13px;
+    font-weight: 600;
+    color: #0f172a;
+    cursor: pointer;
+    transition: all 0.15s ease;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  .trending-mobile-filter-btn:hover {
+    background: #f8fafc;
+    border-color: #cbd5e1;
+  }
+
+  .trending-mobile-filter-btn.has-filters {
+    background: rgba(0, 34, 119, 0.06);
+    border-color: var(--blue-primary, #002277);
+    color: var(--blue-primary, #002277);
+  }
+
+  .trending-mobile-filter-count-badge {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 18px;
+    height: 18px;
+    padding: 0 5px;
+    border-radius: 10px;
+    background: var(--blue-primary, #002277);
+    color: #ffffff;
+    font-size: 10.5px;
+    font-weight: 700;
+    line-height: 1;
+  }
+
+  /* ── Mobile Filter Active Chips Row ── */
+  .trending-mobile-chips-row {
+    display: flex !important;
+    align-items: center;
+    gap: 8px;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    padding-bottom: 8px;
+    margin-bottom: 14px;
+    scrollbar-width: none;
+  }
+
+  .trending-mobile-chips-row::-webkit-scrollbar {
+    display: none;
+  }
+
+  .trending-mobile-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 11px;
+    background: #f1f5f9;
+    border: 1px solid #e2e8f0;
+    border-radius: 6px;
+    font-family: inherit;
+    font-size: 12px;
+    font-weight: 500;
+    color: #1e293b;
+    white-space: nowrap;
+    cursor: pointer;
+    transition: all 0.15s ease;
+    flex-shrink: 0;
+  }
+
+  .trending-mobile-chip:hover {
+    background: #fee2e2;
+    border-color: #fca5a5;
+    color: #b91c1c;
+  }
+
+  .chip-remove-x {
+    font-size: 11px;
+    opacity: 0.6;
+    font-weight: 700;
+  }
+
+  .trending-mobile-clear-all {
+    font-family: inherit;
+    font-size: 12px;
+    font-weight: 600;
+    color: #ef4444;
+    background: none;
+    border: none;
+    text-decoration: underline;
+    text-underline-offset: 2px;
+    white-space: nowrap;
+    cursor: pointer;
+    padding: 4px 6px;
+    flex-shrink: 0;
   }
 
   .trending-products-grid {
@@ -423,3 +557,29 @@
     box-shadow: none !important;
   }
 }
+
+@media (max-width: 480px) {
+  .trending-main-container {
+    padding: 12px 12px 36px 12px;
+    gap: 12px;
+  }
+
+  .trending-products-grid {
+    column-gap: 10px;
+    row-gap: 16px;
+  }
+
+  .trending-headline {
+    font-size: 24px;
+  }
+
+  .trending-subtitle {
+    font-size: 12px;
+  }
+
+  .trending-mobile-filter-btn {
+    padding: 7px 13px;
+    font-size: 12.5px;
+  }
+}
+

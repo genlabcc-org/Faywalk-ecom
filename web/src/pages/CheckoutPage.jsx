@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { authService } from "../services/authService";
 import { orderService } from "../services/orderService";
@@ -18,22 +18,46 @@ import VisaIcon from "../assets/visa.svg";
 import MastercardIcon from "../assets/mastercard.svg";
 import PaymentMorePopup from "../components/PaymentMorePopup";
 import { getOriginalImageUrl } from '../utils/imageUtils';
+
+// Fast in-memory cache for verified pincodes across user actions
+const clientPincodeCache = new Map();
 import { getNavPath } from "../services/categoryRoute";
 import { getColorName, getColorStyle } from "../utils/colorUtils";
 
-// Helper to dynamically load the Razorpay script
+let razorpayScriptPromise = null;
 const loadRazorpayScript = () => {
-  return new Promise((resolve) => {
-    if (window.Razorpay) {
-      resolve(true);
+  if (typeof window !== "undefined" && window.Razorpay) {
+    return Promise.resolve(true);
+  }
+  if (razorpayScriptPromise) {
+    return razorpayScriptPromise;
+  }
+  razorpayScriptPromise = new Promise((resolve) => {
+    if (typeof window === "undefined") {
+      resolve(false);
+      return;
+    }
+    const existing = document.querySelector('script[src="https://checkout.razorpay.com/v1/checkout.js"]');
+    if (existing) {
+      if (window.Razorpay) {
+        resolve(true);
+      } else {
+        existing.addEventListener("load", () => resolve(true));
+        existing.addEventListener("error", () => resolve(false));
+      }
       return;
     }
     const script = document.createElement("script");
     script.src = "https://checkout.razorpay.com/v1/checkout.js";
+    script.async = true;
     script.onload = () => resolve(true);
-    script.onerror = () => resolve(false);
+    script.onerror = () => {
+      razorpayScriptPromise = null;
+      resolve(false);
+    };
     document.body.appendChild(script);
   });
+  return razorpayScriptPromise;
 };
 
 const parsePrice = (priceVal) => {
@@ -85,6 +109,7 @@ export default function CheckoutPage() {
   const [isProcessingPayment, setIsProcessingPayment] = useState(false);
   const [pincodeServiceable, setPincodeServiceable] = useState(null);
   const [pincodeChecking, setPincodeChecking] = useState(false);
+  const activePincodeCheckRef = useRef(null);
   const [rates, setRates] = useState([]);
   const [ratesLoaded, setRatesLoaded] = useState(false);
   const [pinState, setPinState] = useState(null);
@@ -223,68 +248,91 @@ export default function CheckoutPage() {
     setErrors({});
   };
 
-  // Debounced iCarry pincode serviceability check
+  // Instant-cached & debounced iCarry pincode serviceability check
   useEffect(() => {
     const pin = (form.pinCode || "").trim();
     if (!isValidPincodeRegex(pin)) {
       setPincodeServiceable(null);
       setPincodeChecking(false);
+      activePincodeCheckRef.current = null;
+      return;
+    }
+
+    // 1. Instant cache hit: 0ms response!
+    if (clientPincodeCache.has(pin)) {
+      const isServ = clientPincodeCache.get(pin);
+      setPincodeServiceable(isServ);
+      setPincodeChecking(false);
+      activePincodeCheckRef.current = Promise.resolve(isServ);
+      if (isServ) {
+        setErrors((prev) => ({ ...prev, pinCode: undefined }));
+      } else {
+        setErrors((prev) => ({
+          ...prev,
+          pinCode: "Pincode not serviceable for delivery",
+        }));
+      }
       return;
     }
 
     let active = true;
     setPincodeChecking(true);
 
-    const timer = setTimeout(async () => {
+    const checkPromise = new Promise(async (resolve) => {
       try {
         const timeoutPromise = new Promise((_, reject) =>
-          setTimeout(() => reject(new Error("Pincode check timed out")), 5000)
+          setTimeout(() => reject(new Error("Pincode check timed out")), 3500)
         );
         const res = await Promise.race([
           icarryService.checkPincode(pin),
           timeoutPromise
         ]);
 
-        if (!active) return;
+        if (!active) return resolve(true);
 
+        let serviceable = true;
         if (res && res.success === 1 && Array.isArray(res.msg) && res.msg.length > 0) {
-          const hasService = res.msg.some(
+          serviceable = res.msg.some(
             (m) => m.prepaid === 'Y' || m.prepaid === 'U' || !m.prepaid
           );
-          if (hasService) {
-            setPincodeServiceable(true);
+        } else if (res && (res.success === 0 || (Array.isArray(res.msg) && res.msg.length === 0))) {
+          serviceable = false;
+        } else {
+          serviceable = isValidPincodeRegex(pin);
+        }
+
+        clientPincodeCache.set(pin, serviceable);
+        if (active) {
+          setPincodeServiceable(serviceable);
+          if (serviceable) {
             setErrors((prev) => ({ ...prev, pinCode: undefined }));
           } else {
-            setPincodeServiceable(false);
             setErrors((prev) => ({
               ...prev,
               pinCode: "Pincode not serviceable for delivery",
             }));
           }
-        } else if (res && (res.success === 0 || (Array.isArray(res.msg) && res.msg.length === 0))) {
-          setPincodeServiceable(false);
-          setErrors((prev) => ({
-            ...prev,
-            pinCode: "Pincode not serviceable for delivery",
-          }));
-        } else {
-          setPincodeServiceable(isValidPincodeRegex(pin));
         }
+        resolve(serviceable);
       } catch (err) {
         console.warn("iCarry pincode check failed or timed out, failing open to regex:", err);
+        const fallback = isValidPincodeRegex(pin);
+        clientPincodeCache.set(pin, fallback);
         if (active) {
-          setPincodeServiceable(isValidPincodeRegex(pin));
+          setPincodeServiceable(fallback);
         }
+        resolve(fallback);
       } finally {
         if (active) {
           setPincodeChecking(false);
         }
       }
-    }, 400);
+    });
+
+    activePincodeCheckRef.current = checkPromise;
 
     return () => {
       active = false;
-      clearTimeout(timer);
     };
   }, [form.pinCode]);
 
@@ -293,6 +341,9 @@ export default function CheckoutPage() {
     shippingService.getRates()
       .then((r) => { setRates(r); setRatesLoaded(true); })
       .catch((err) => console.error("Failed to load shipping rates:", err));
+
+    // Preload Razorpay SDK script on page mount so it is ready instantaneously
+    loadRazorpayScript().catch((err) => console.warn("Preloading Razorpay script failed:", err));
   }, []);
 
   // Look up which state the pincode belongs to
@@ -443,16 +494,7 @@ export default function CheckoutPage() {
   const handleCheckoutSubmit = async (e) => {
     if (e) e.preventDefault();
 
-    if (!ratesLoaded) {
-      showToast("Loading shipping rates, please wait a moment...", "warning");
-      return;
-    }
-
-    if (pincodeChecking) {
-      showToast("Verifying delivery pincode, please wait a moment...", "warning");
-      return;
-    }
-
+    // 1. Immediate synchronous form validation (< 1ms)
     const eErrors = validate();
     if (Object.keys(eErrors).length > 0) {
       setErrors(eErrors);
@@ -461,9 +503,31 @@ export default function CheckoutPage() {
       return;
     }
 
+    // 2. Instantly update button to loading state (0ms delay)
     setIsProcessingPayment(true);
 
     try {
+      if (!ratesLoaded) {
+        setIsProcessingPayment(false);
+        showToast("Loading shipping rates, please wait a moment...", "warning");
+        return;
+      }
+
+      if (pincodeChecking && activePincodeCheckRef.current) {
+        try {
+          const isServ = await activePincodeCheckRef.current;
+          if (isServ === false) {
+            setIsProcessingPayment(false);
+            showToast("Delivery is not available for this pincode.", "error");
+            return;
+          }
+        } catch (_) {}
+      } else if (pincodeServiceable === false) {
+        setIsProcessingPayment(false);
+        showToast("Delivery is not available for this pincode.", "error");
+        return;
+      }
+
       const session = await authService.getSession();
       const currentUserId = session?.user?.id || userId;
       if (!currentUserId) {
@@ -1122,7 +1186,12 @@ export default function CheckoutPage() {
                     className="checkout-primary-pay-btn"
                     disabled={isProcessingPayment || !ratesLoaded}
                   >
-                    {isProcessingPayment ? "Processing..." : (paymentMethod === "COD" ? "Place order" : "Pay now")}
+                    {isProcessingPayment ? (
+                      <>
+                        <span className="checkout-btn-spinner" />
+                        Processing...
+                      </>
+                    ) : (paymentMethod === "COD" ? "Place order" : "Pay now")}
                   </button>
                 </div>
 

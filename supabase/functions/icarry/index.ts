@@ -10,6 +10,9 @@ const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
 // Global admin client with service_role privileges
 const supabaseAdmin = createClient(supabaseUrl, supabaseServiceKey);
 
+// In-memory pincode cache (2 hours TTL)
+const pincodeCache = new Map<string, { data: any; exp: number }>();
+
 /**
  * Checks if the given user ID belongs to public.users with role = 'admin'.
  */
@@ -70,7 +73,21 @@ Deno.serve(async (req: Request) => {
           headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
       }
+
+      // Return instant cached result if valid
+      const hit = pincodeCache.get(pincode);
+      if (hit && hit.exp > Date.now()) {
+        return new Response(JSON.stringify(hit.data), {
+          status: 200,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
       const data = await icarryCall(ENDPOINTS.pincode, { pincode });
+      if (data && data.success === 1) {
+        pincodeCache.set(pincode, { data, exp: Date.now() + 2 * 60 * 60 * 1000 });
+      }
+
       return new Response(JSON.stringify(data), {
         status: 200,
         headers: { ...corsHeaders, "Content-Type": "application/json" },

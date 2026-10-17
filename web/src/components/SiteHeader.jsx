@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect, useMemo } from "react";
+import { useState, useRef, useEffect, useMemo, useCallback } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { authService } from "../services/authService";
 import { useAdmin } from "../hooks/useAdmin";
@@ -349,12 +349,18 @@ export default function SiteHeader({ activeLink = "", onLinkClick }) {
   const headerRef = useRef(null);
   const [headerBottom, setHeaderBottom] = useState(60);
 
+  const updateHeaderHeight = useCallback(() => {
+    if (headerRef.current) {
+      const rect = headerRef.current.getBoundingClientRect();
+      const actualHeight = headerRef.current.offsetHeight || 56;
+      // When sticky/fixed at top, rect.bottom matches actualHeight.
+      // At top of page (below topbar announcement), rect.bottom will be topbar + header.
+      const calculatedBottom = rect.bottom >= actualHeight ? Math.round(rect.bottom) : actualHeight;
+      setHeaderBottom(calculatedBottom);
+    }
+  }, []);
+
   useEffect(() => {
-    const updateHeaderHeight = () => {
-      if (headerRef.current) {
-        setHeaderBottom(headerRef.current.getBoundingClientRect().bottom);
-      }
-    };
     updateHeaderHeight();
     window.addEventListener("resize", updateHeaderHeight);
     window.addEventListener("scroll", updateHeaderHeight, { passive: true });
@@ -362,7 +368,7 @@ export default function SiteHeader({ activeLink = "", onLinkClick }) {
       window.removeEventListener("resize", updateHeaderHeight);
       window.removeEventListener("scroll", updateHeaderHeight);
     };
-  }, [menuOpen, isScrolled]);
+  }, [updateHeaderHeight, menuOpen, isScrolled]);
 
   useEffect(() => {
     const handleScroll = () => {
@@ -396,40 +402,18 @@ export default function SiteHeader({ activeLink = "", onLinkClick }) {
     return false;
   };
 
-  // Lock body scroll completely when mobile menu is open
+  // Lock body scroll when mobile menu is open
   useEffect(() => {
     if (menuOpen) {
-      if (headerRef.current) {
-        setHeaderBottom(headerRef.current.getBoundingClientRect().bottom);
-      }
-      const scrollY = window.scrollY;
-      document.documentElement.classList.add("menu-open");
+      updateHeaderHeight();
       document.body.classList.add("menu-open");
-      document.body.style.position = "fixed";
-      document.body.style.top = `-${scrollY}px`;
-      document.body.style.width = "100%";
-      document.body.style.overflow = "hidden";
     } else {
-      const scrollY = document.body.style.top;
-      document.documentElement.classList.remove("menu-open");
       document.body.classList.remove("menu-open");
-      document.body.style.position = "";
-      document.body.style.top = "";
-      document.body.style.width = "";
-      document.body.style.overflow = "";
-      if (scrollY) {
-        window.scrollTo(0, parseInt(scrollY || "0", 10) * -1);
-      }
     }
     return () => {
-      document.documentElement.classList.remove("menu-open");
       document.body.classList.remove("menu-open");
-      document.body.style.position = "";
-      document.body.style.top = "";
-      document.body.style.width = "";
-      document.body.style.overflow = "";
     };
-  }, [menuOpen]);
+  }, [menuOpen, updateHeaderHeight]);
 
   // Close search on outside click
   useEffect(() => {
@@ -507,7 +491,10 @@ export default function SiteHeader({ activeLink = "", onLinkClick }) {
 
   return (
     <>
-      <header ref={headerRef} className={`header${isScrolled ? " header--scrolled" : ""}`}>
+      <header
+        ref={headerRef}
+        className={`header${isScrolled ? " header--scrolled" : ""}${menuOpen ? " header--menu-open" : ""}`}
+      >
         <div className="header-container">
           {/* Left: Brand Logo */}
           <div
@@ -671,6 +658,15 @@ export default function SiteHeader({ activeLink = "", onLinkClick }) {
           </div>
         )}
       </header>
+
+      {/* ─── Backdrop Overlay when Mobile Menu Open ─── */}
+      {menuOpen && (
+        <div
+          className="mobile-menu-backdrop"
+          onClick={() => setMenuOpen(false)}
+          aria-hidden="true"
+        />
+      )}
 
       {/* ─── Mobile Drawer Menu (Sidebar) ─── */}
       <div

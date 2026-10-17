@@ -48,6 +48,7 @@ export default function ProductPage({ category = "Trending" }) {
   const [selectedFabrics, setSelectedFabrics] = useState([]);
   const [selectedSizes, setSelectedSizes] = useState([]);
   const [currentPage, setCurrentPage] = useState(1);
+  const [mobileFilterOpen, setMobileFilterOpen] = useState(false);
   const [toastMessage, setToastMessage] = useState("");
   const [toastType, setToastType] = useState("success");
 
@@ -140,6 +141,29 @@ export default function ProductPage({ category = "Trending" }) {
     setSortBy("featured");
     setCurrentPage(1);
   };
+
+  // Active filter chips list for mobile and quick dismissal
+  const activeFilterChips = useMemo(() => {
+    const chips = [];
+    if (sortBy === "price-low-high") {
+      chips.push({ label: "Price: Low to High", onRemove: () => handlePriceSortToggle("price-low-high") });
+    } else if (sortBy === "price-high-low") {
+      chips.push({ label: "Price: High to Low", onRemove: () => handlePriceSortToggle("price-high-low") });
+    }
+    selectedCategories.forEach(cat => {
+      chips.push({ label: cat, onRemove: () => handleCategoryToggle(cat) });
+    });
+    selectedSubcategories.forEach(sub => {
+      chips.push({ label: sub, onRemove: () => handleSubcategoryToggle(sub) });
+    });
+    selectedFabrics.forEach(fab => {
+      chips.push({ label: fab, onRemove: () => handleFabricToggle(fab) });
+    });
+    selectedSizes.forEach(size => {
+      chips.push({ label: `Size: ${size}`, onRemove: () => handleSizeToggle(size) });
+    });
+    return chips;
+  }, [sortBy, selectedCategories, selectedSubcategories, selectedFabrics, selectedSizes]);
 
   // Dynamically compute real categories from Supabase with live counts
   const availableCategories = useMemo(() => {
@@ -397,7 +421,7 @@ export default function ProductPage({ category = "Trending" }) {
       <SiteHeader activeLink={category} onLinkClick={handleNavClick} />
 
       <div className="trending-main-container">
-        {/* ─── Left Sidebar Filters ─── */}
+        {/* ─── Left Sidebar Filters (Desktop) & Mobile Drawer (Mobile) ─── */}
         <ProductFilter
           sortBy={sortBy}
           onSortChange={handlePriceSortToggle}
@@ -414,6 +438,9 @@ export default function ProductPage({ category = "Trending" }) {
           selectedSizes={selectedSizes}
           onSizeToggle={handleSizeToggle}
           onClearFilters={handleClearFilters}
+          mobileOpen={mobileFilterOpen}
+          onMobileClose={() => setMobileFilterOpen(false)}
+          totalCount={filteredProducts.length}
         />
 
         {/* ─── Right Products Main Panel ─── */}
@@ -436,10 +463,72 @@ export default function ProductPage({ category = "Trending" }) {
                   : "Check what came new to the store"}
               </p>
             </div>
-            <div className="trending-product-count">
+            <div className="trending-product-count desktop-only">
               {filteredProducts.length} Products
             </div>
           </div>
+
+          {/* Mobile Filter Action Bar (Mobile Only) */}
+          <div className="trending-mobile-filter-bar">
+            <button
+              type="button"
+              className={`trending-mobile-filter-btn ${activeFilterChips.length > 0 ? "has-filters" : ""}`}
+              onClick={() => setMobileFilterOpen(true)}
+              aria-label="Open filter and sort drawer"
+            >
+              <svg
+                width="16"
+                height="16"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2.2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              >
+                <line x1="4" y1="21" x2="4" y2="14" />
+                <line x1="4" y1="10" x2="4" y2="3" />
+                <line x1="12" y1="21" x2="12" y2="12" />
+                <line x1="12" y1="8" x2="12" y2="3" />
+                <line x1="20" y1="21" x2="20" y2="16" />
+                <line x1="20" y1="12" x2="20" y2="3" />
+                <line x1="1" y1="14" x2="7" y2="14" />
+                <line x1="9" y1="8" x2="15" y2="8" />
+                <line x1="17" y1="16" x2="23" y2="16" />
+              </svg>
+              <span>Filters & Sort</span>
+              {activeFilterChips.length > 0 && (
+                <span className="trending-mobile-filter-count-badge">
+                  {activeFilterChips.length}
+                </span>
+              )}
+            </button>
+          </div>
+
+          {/* Active Filter Chips Scrollable Row (Mobile Only) */}
+          {activeFilterChips.length > 0 && (
+            <div className="trending-mobile-chips-row">
+              {activeFilterChips.map((chip, idx) => (
+                <button
+                  key={idx}
+                  type="button"
+                  className="trending-mobile-chip"
+                  onClick={chip.onRemove}
+                  title={`Remove ${chip.label}`}
+                >
+                  <span>{chip.label}</span>
+                  <span className="chip-remove-x">✕</span>
+                </button>
+              ))}
+              <button
+                type="button"
+                className="trending-mobile-clear-all"
+                onClick={handleClearFilters}
+              >
+                Clear All
+              </button>
+            </div>
+          )}
 
           {/* Products Grid / Skeletons / Empty */}
           {loading ? (
