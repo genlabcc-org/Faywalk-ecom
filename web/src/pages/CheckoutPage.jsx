@@ -760,11 +760,14 @@ export default function CheckoutPage() {
         }
 
         const paymentItems = checkoutItems.map(item => ({
-          productId: item.productId || item.id || null,
+          productId: item.productId || item.product_id || item.id || null,
+          name: item.name,
           price: parsePrice(item.price),
           quantity: item.qty || 1,
           size: item.size || null,
           color: item.color || null,
+          image: item.img || item.image || (item.images && item.images[0]) || null,
+          sku: item.sku || item.sku_id || null,
         }));
 
         const { data: orderData, error: invokeError } = await supabase.functions.invoke('razorpay', {

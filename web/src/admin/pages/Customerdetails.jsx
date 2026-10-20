@@ -361,7 +361,8 @@ const CustomerDetails = ({ customer, onBack }) => {
                   const displayOrderId = String(orderRef).startsWith("#") ? orderRef : `#${orderRef}`;
 
                   return orderItems.map((item, idx) => {
-                    const image = item.image_url || '/src/assets/cart/bangle1.webp';
+                    const rawImg = item.image_url || item.image || item.img || item.products?.image_url || item.products?.images?.[0] || null;
+                    const image = (rawImg && !rawImg.includes('bangle1')) ? rawImg : null;
                     const skuVal = item.sku || order.sku || (item.product_id ? (String(item.product_id).length > 8 ? item.product_id.slice(-8).toUpperCase() : item.product_id) : null);
                     const displaySku = skuVal ? (String(skuVal).startsWith("#") ? skuVal : `#${skuVal}`) : displayOrderId;
 
@@ -412,9 +413,11 @@ const CustomerDetails = ({ customer, onBack }) => {
                             <img
                               src={row.image}
                               alt={row.item.product_name}
+                              onError={(e) => { e.currentTarget.style.display = 'none'; }}
                               style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: '6px' }}
                             />
-                          ) : (
+                          ) : null}
+                          {(!row.image) && (
                             <span style={{ fontSize: '24px' }}>🛍️</span>
                           )}
                         </div>

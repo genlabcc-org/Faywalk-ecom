@@ -18,11 +18,17 @@ export const orderService = {
         const orderIds = data.map((o) => o.id);
         const { data: allItems } = await supabase
           .from('order_items')
-          .select('*')
+          .select('*, products(product_id, name, image_url, images, sku)')
           .in('order_id', orderIds);
         if (allItems && allItems.length > 0) {
           const itemsByOrderId = {};
           allItems.forEach((item) => {
+            if (!item.image_url && item.products) {
+              item.image_url = item.products.image_url || item.products.images?.[0] || null;
+            }
+            if ((!item.sku || item.sku === 'N/A') && item.products?.sku) {
+              item.sku = item.products.sku;
+            }
             if (!itemsByOrderId[item.order_id]) itemsByOrderId[item.order_id] = [];
             itemsByOrderId[item.order_id].push(item);
           });
@@ -175,11 +181,17 @@ export const orderService = {
         const orderIds = data.map((o) => o.id);
         const { data: allItems } = await supabase
           .from('order_items')
-          .select('*')
+          .select('*, products(product_id, name, image_url, images, sku)')
           .in('order_id', orderIds);
         if (allItems && allItems.length > 0) {
           const itemsByOrderId = {};
           allItems.forEach((item) => {
+            if (!item.image_url && item.products) {
+              item.image_url = item.products.image_url || item.products.images?.[0] || null;
+            }
+            if ((!item.sku || item.sku === 'N/A') && item.products?.sku) {
+              item.sku = item.products.sku;
+            }
             if (!itemsByOrderId[item.order_id]) itemsByOrderId[item.order_id] = [];
             itemsByOrderId[item.order_id].push(item);
           });

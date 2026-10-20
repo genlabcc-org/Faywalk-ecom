@@ -219,6 +219,16 @@ const getExistingOrderAddress = (orderObj) => {
 
 const OrderDetails = ({ order, onBack }) => {
   const [currentOrder, setCurrentOrder] = useState(order || null);
+  const o = currentOrder || order || {
+    id: "ORD-UNKNOWN",
+    customer: { name: "Unknown Customer", email: "N/A", phone: "N/A" },
+    order_date: new Date().toISOString(),
+    item_name: "N/A",
+    quantity: 1,
+    total_price: 0,
+    status: "Order Placed",
+    payment: "COD"
+  };
   const [adminNote, setAdminNote] = useState(order?.admin_notes || "");
   const [address, setAddress] = useState(() => getExistingOrderAddress(order));
   const [addressLoading, setAddressLoading] = useState(false);
@@ -304,7 +314,37 @@ const OrderDetails = ({ order, onBack }) => {
     loadFreshOrderStatus();
   }, [order?.id, currentOrder?.id]);
 
+  const [productImagesMap, setProductImagesMap] = useState({});
 
+  useEffect(() => {
+    let isMounted = true;
+    const loadMissingProductImages = async () => {
+      try {
+        const items = o?.order_items || [];
+        const needsLookup = items.some(it => !it.image_url || it.image_url.includes('bangle1')) || !items.length;
+        if (!needsLookup) return;
+
+        const { data: prods } = await supabase
+          .from("products")
+          .select("product_id, name, image_url, images, sku");
+
+        if (isMounted && prods && prods.length > 0) {
+          const map = {};
+          prods.forEach(p => {
+            const validImg = p.image_url || p.images?.[0] || null;
+            if (p.product_id) map[String(p.product_id)] = validImg;
+            if (p.name) map[p.name.trim().toLowerCase()] = validImg;
+          });
+          setProductImagesMap(map);
+        }
+      } catch (err) {
+        console.warn("Notice loading product images map in Orderdetails:", err);
+      }
+    };
+
+    loadMissingProductImages();
+    return () => { isMounted = false; };
+  }, [o?.id, o?.order_items]);
 
   const handleItemClick = async (item) => {
     if (!item.product_id) return;
@@ -333,17 +373,6 @@ const OrderDetails = ({ order, onBack }) => {
   const showToast = (message, type = "info") => {
     setToast({ message: "", type: "" });
     setTimeout(() => setToast({ message, type }), 10);
-  };
-
-  const o = currentOrder || order || {
-    id: "ORD-UNKNOWN",
-    customer: { name: "Unknown Customer", email: "N/A", phone: "N/A" },
-    order_date: new Date().toISOString(),
-    item_name: "N/A",
-    quantity: 1,
-    total_price: 0,
-    status: "Order Placed",
-    payment: "COD"
   };
 
   useEffect(() => {
@@ -474,9 +503,19 @@ const OrderDetails = ({ order, onBack }) => {
       if (!error && refreshedOrder) {
         const { data: items } = await supabase
           .from("order_items")
-          .select("*")
+          .select("*, products(product_id, name, image_url, images, sku)")
           .eq("order_id", o.id);
-        const fullOrder = { ...refreshedOrder, order_items: items || [] };
+        const enrichedItems = (items || []).map((it) => {
+          const p = it.products;
+          const img = it.image_url || p?.image_url || p?.images?.[0] || null;
+          const skuVal = (it.sku && it.sku !== 'N/A') ? it.sku : (p?.sku || it.sku || null);
+          return {
+            ...it,
+            image_url: img,
+            sku: skuVal,
+          };
+        });
+        const fullOrder = { ...refreshedOrder, order_items: enrichedItems };
         setCurrentOrder(fullOrder);
         if (setSelectedAdminOrder) setSelectedAdminOrder(fullOrder);
         return fullOrder;
@@ -759,8 +798,9 @@ const OrderDetails = ({ order, onBack }) => {
     price: o.total_price || 0,
     size: null,
     color: null,
-    image_url: null,
-    sku: o.sku || null
+    image_url: o.image_url || o.image || o.img || null,
+    sku: o.sku || null,
+    product_id: o.product_id || null
   }];
 
   const uniqueProducts = orderItems.length;
@@ -1200,7 +1240,18 @@ const OrderDetails = ({ order, onBack }) => {
         </div>
         <div className="od__items-list">
           {orderItems.map((item, idx) => {
-            const image = item.image_url || '/src/assets/cart/bangle1.webp';
+            const rawImage =
+              item.image_url ||
+              item.image ||
+              item.img ||
+              item.products?.image_url ||
+              item.products?.images?.[0] ||
+              (item.product_id ? productImagesMap[String(item.product_id)] : null) ||
+              (item.product_name ? productImagesMap[item.product_name.trim().toLowerCase()] : null) ||
+              null;
+            const image = (rawImage && typeof rawImage === 'string' && !rawImage.includes('bangle1'))
+              ? rawImage
+              : null;
             const isClickable = !!item.product_id;
             const resolvedSku =
               item.sku && item.sku !== 'N/A' && item.sku !== 'undefined' ? item.sku : null;
@@ -1215,12 +1266,30 @@ const OrderDetails = ({ order, onBack }) => {
                   {image ? (
                     <img
                       src={image}
-                      alt={item.product_name}
+                      alt={item.product_name || "Product"}
+                      onError={(e) => {
+                        e.currentTarget.style.display = 'none';
+                        const fallback = e.currentTarget.parentElement?.querySelector('.od__item-fallback-icon');
+                        if (fallback) fallback.style.display = 'flex';
+                      }}
                       style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: '8px' }}
                     />
-                  ) : (
+                  ) : null}
+                  <div
+                    className="od__item-fallback-icon"
+                    style={{
+                      display: image ? 'none' : 'flex',
+                      width: '100%',
+                      height: '100%',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      background: '#f1f5f9',
+                      borderRadius: '8px',
+                      color: '#94a3b8'
+                    }}
+                  >
                     <IconPackage size={22} />
-                  )}
+                  </div>
                 </div>
                 <div className="od__item-info">
                   <div className="od__item-name" style={{ fontWeight: '500', display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
