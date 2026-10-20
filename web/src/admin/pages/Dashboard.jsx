@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo, useCallback } from "react";
+import React, { useState, useEffect, useMemo, useCallback, useRef } from "react";
 import { supabase } from "../../lib/supabase";
 import { productService } from "../../services/productService";
 import { useAdminData } from "../../hooks/useAdminData";
@@ -1091,8 +1091,77 @@ const Dashboard = () => {
     customers,
     loading: adminDataLoading,
     error: adminDataError,
-    updateOrderStatus: updateOrderStatusRaw
+    updateOrderStatus: updateOrderStatusRaw,
+    updateOrderInvoicePrinted
   } = useAdminData();
+
+  // Orders whose invoices are unprinted (excluding cancelled orders)
+  const isInvoicePrinted = useCallback((order) => {
+    if (!order) return false;
+    return (
+      order.invoice_printed === true ||
+      order.invoice_printed === "true" ||
+      order.invoice_printed === 1
+    );
+  }, []);
+
+  const unprintedOrders = useMemo(() => {
+    return (orders || []).filter((o) => {
+      if (o.status === "Cancelled" || o.delivery_status === "Cancelled") return false;
+      return !isInvoicePrinted(o);
+    });
+  }, [orders, isInvoicePrinted]);
+
+  const unprintedOrdersCount = unprintedOrders.length;
+
+  const [liveToast, setLiveToast] = useState(null);
+  const notificationRef = useRef(null);
+
+  // Audio chime for live incoming order alert
+  const playOrderChime = useCallback(() => {
+    try {
+      const AudioCtx = window.AudioContext || window.webkitAudioContext;
+      if (!AudioCtx) return;
+      const audioCtx = new AudioCtx();
+      const osc = audioCtx.createOscillator();
+      const gain = audioCtx.createGain();
+      osc.type = "sine";
+      osc.frequency.setValueAtTime(587.33, audioCtx.currentTime);
+      osc.frequency.setValueAtTime(880.0, audioCtx.currentTime + 0.15);
+      gain.gain.setValueAtTime(0.25, audioCtx.currentTime);
+      gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.5);
+      osc.connect(gain);
+      gain.connect(audioCtx.destination);
+      osc.start();
+      osc.stop(audioCtx.currentTime + 0.5);
+    } catch (e) {
+      console.debug("Audio chime skipped:", e);
+    }
+  }, []);
+
+  // Dismiss live toast after 8 seconds
+  useEffect(() => {
+    if (!liveToast) return;
+    const timer = setTimeout(() => {
+      setLiveToast(null);
+    }, 8000);
+    return () => clearTimeout(timer);
+  }, [liveToast]);
+
+  // Click outside to close notification dropdown
+  useEffect(() => {
+    const handleClickOutside = (e) => {
+      if (notificationRef.current && !notificationRef.current.contains(e.target)) {
+        setNotificationOpen(false);
+      }
+    };
+    if (notificationOpen) {
+      document.addEventListener("mousedown", handleClickOutside);
+    }
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+    };
+  }, [notificationOpen]);
 
   const currentAdminProfile = useMemo(() => {
     if (!currentUser || !customers) return null;
@@ -1129,9 +1198,10 @@ const Dashboard = () => {
 
   const currentPath = location.pathname;
 
+  // Realtime Supabase listener for newly placed orders
   useEffect(() => {
     const channel = supabase
-      .channel("admin-new-orders")
+      .channel("admin-live-orders-alert")
       .on(
         'postgres_changes',
         {
@@ -1140,26 +1210,29 @@ const Dashboard = () => {
           table: 'orders',
         },
         (payload) => {
-          console.log('🔔 NEW ORDER:', payload.new);
-
           const newOrder = payload.new;
-          setNotifications((prev) => [
-            {
-              id: newOrder.id,
-              type: "new_order",
-              title: "New Order Received",
-              message: `Order #${String(newOrder.id).slice(-6)} has been placed`,
-              order: newOrder,
-              read: false,
-              createdAt: new Date().toISOString(),
-            },
-            ...prev,
-          ]);
+          if (!newOrder) return;
+          console.log('🔔 NEW ORDER PLACED:', newOrder);
+
+          playOrderChime();
+
+          const shortId = String(newOrder.id).slice(-6).toUpperCase();
+          const amount = Number(newOrder.total_price || 0).toLocaleString("en-IN");
+
+          setLiveToast({
+            id: newOrder.id,
+            order: newOrder,
+            message: `New Order #${shortId} placed! (₹${amount}) • Invoice pending print`,
+          });
 
           if ('Notification' in window && window.Notification.permission === 'granted') {
-            new window.Notification('New Order Recieved!', {
-              body: `Order #${String(newOrder.id).slice(-6)} has been placed.`,
-            });
+            try {
+              new window.Notification('New Order Placed!', {
+                body: `Order #${shortId} (₹${amount}) received. Invoice pending print.`,
+              });
+            } catch (e) {
+              console.debug("Native notification error:", e);
+            }
           }
         }
       )
@@ -1169,13 +1242,13 @@ const Dashboard = () => {
     return () => {
       supabase.removeChannel(channel);
     };
-  }, []);
+  }, [playOrderChime]);
 
   useEffect(() => {
     if ('Notification' in window && window.Notification.permission === 'default') {
       window.Notification.requestPermission();
     }
-  }, [])
+  }, []);
 
   // Auto-expand menu based on current path
   useEffect(() => {
@@ -1718,14 +1791,15 @@ const Dashboard = () => {
 
 
           {/* Notification dropdown */}
-          <div className="notification-wrapper">
+          <div className="notification-wrapper" ref={notificationRef}>
             <button
               className="db__action-icon-btn notification-btn"
               onClick={() => setNotificationOpen((prev) => !prev)}
-              aria-label={`Notifications${notifications.filter((n) => !n.read).length
-                ? `, ${notifications.filter((n) => !n.read).length} unread`
-                : ""
-                }`}
+              aria-label={`Notifications${
+                unprintedOrdersCount
+                  ? `, ${unprintedOrdersCount} orders pending invoice print`
+                  : ""
+              }`}
             >
               <svg
                 width="18"
@@ -1741,69 +1815,75 @@ const Dashboard = () => {
                 <path d="M13.73 21a2 2 0 0 1-3.46 0" />
               </svg>
 
-              {notifications.filter((n) => !n.read).length > 0 && (
-                <span className="db__notification-dot" />
+              {unprintedOrdersCount > 0 && (
+                <span className="notification-badge">
+                  {unprintedOrdersCount > 99 ? "99+" : unprintedOrdersCount}
+                </span>
               )}
             </button>
 
             {notificationOpen && (
               <div className="notification-dropdown">
                 <div className="notification-header">
-                  <strong>Notifications</strong>
-
-                  {notifications.length > 0 && (
+                  <strong>Pending Invoices ({unprintedOrdersCount})</strong>
+                  {unprintedOrdersCount > 0 && (
                     <button
+                      className="notification-view-all-btn"
                       onClick={() => {
-                        setNotifications([]);
+                        setNotificationOpen(false);
+                        navigate("/admin/orders");
                       }}
                     >
-                      Clear all
+                      View All Orders
                     </button>
                   )}
                 </div>
-                {notifications.length === 0 ? (
+                {unprintedOrdersCount === 0 ? (
                   <div className="notification-empty">
-                    <span>🔔</span>
-                    <p>No new notifications</p>
+                    <span style={{ fontSize: "24px" }}>🎉</span>
+                    <p style={{ margin: "8px 0 0", fontWeight: 600, color: "#1e293b" }}>All invoices printed</p>
+                    <small style={{ color: "#94a3b8" }}>New order alerts will appear here</small>
                   </div>
                 ) : (
                   <div className="notification-list">
-                    {notifications.map((notification) =>
-                      <button
-                        key={notification.id}
-                        className={`notification-item ${notification.read ? "notification-item--read" : ""
-                          }`}
-                        onClick={() => {
-                          setNotifications((prev) =>
-                            prev.map((item) =>
-                              item.id === notification.id
-                                ? { ...item, read: true }
-                                : item
-                            )
-                          );
-                          setNotificationOpen(false);
-                          setSelectedOrder(notification.order);
-
-                          navigate("/admin/orders/detail");
-                        }}
-                      >
-                        <div className="notification-icon">
-                          🛍️
-                        </div>
-                        <div className="notification-content">
-                          <strong>{notification.title}</strong>
-                          <span>{notification.message}</span>
-                          <small>
-                            ₹{Number(notification.order.total_price || 0).toLocaleString("en-IN")}
-                            {" • "}
-                            {notification.order.payment || "Payment"}
-                          </small>
-                        </div>
-                        {!notification.read && (
-                          <span className="notification-dot" />
-                        )}
-                      </button>
-                    )}
+                    {unprintedOrders.slice(0, 10).map((order) => {
+                      const orderShortId = String(order.id).slice(-6).toUpperCase();
+                      const dateStr = order.order_date || order.created_at;
+                      const formattedTime = dateStr
+                        ? new Date(dateStr).toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit" })
+                        : "Recent";
+                      return (
+                        <button
+                          key={order.id}
+                          className="notification-item"
+                          onClick={() => {
+                            setNotificationOpen(false);
+                            setSelectedOrder(order);
+                            navigate("/admin/orders/detail");
+                          }}
+                        >
+                          <div className="notification-icon">
+                            🛍️
+                          </div>
+                          <div className="notification-content">
+                            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: "8px" }}>
+                              <strong>Order #{orderShortId}</strong>
+                              <span className="notification-unprinted-tag">Print Invoice</span>
+                            </div>
+                            <span>
+                              {order.customer?.name || order.customer_name || "Customer"}
+                            </span>
+                            <small>
+                              ₹{Number(order.total_price || 0).toLocaleString("en-IN")}
+                              {" • "}
+                              {order.payment || "Payment"}
+                              {" • "}
+                              {formattedTime}
+                            </small>
+                          </div>
+                        </button>
+                      );
+                    })}
                   </div>
                 )}
               </div>
@@ -1854,6 +1934,14 @@ const Dashboard = () => {
                     <span className="db__menu-label">
                       {item.label}
                     </span>
+                    {item.id === "order" && unprintedOrdersCount > 0 && (
+                      <span
+                        className="db__menu-badge"
+                        title={`${unprintedOrdersCount} orders pending invoice print`}
+                      >
+                        {unprintedOrdersCount > 99 ? "99+" : unprintedOrdersCount}
+                      </span>
+                    )}
                     {hasChildren && <span className="db__chevron">{isOpen ? <ChevronUp /> : <ChevronDown />}</span>}
                   </button>
 
@@ -1985,8 +2073,8 @@ const Dashboard = () => {
             <Route path="/categories/add" element={<AddCategory initialData={editingCategory} onBack={() => { setEditingCategory(null); navigate("/admin/categories"); }} onPublish={handlePublishCategory} onSaveDraft={handleSaveDraftCategory} />} />
 
             {/* Orders */}
-            <Route path="/orders" element={<AllOrders orders={orders} products={products} categories={categories} loading={adminDataLoading} onViewDetail={handleViewOrderDetail} />} />
-            <Route path="/orders/detail" element={<OrderDetails order={selectedOrderObj} onStatusChange={updateOrderStatus} onBack={() => navigate("/admin/orders")} />} />
+            <Route path="/orders" element={<AllOrders orders={orders} products={products} categories={categories} loading={adminDataLoading} onViewDetail={handleViewOrderDetail} onInvoicePrinted={updateOrderInvoicePrinted} />} />
+            <Route path="/orders/detail" element={<OrderDetails order={selectedOrderObj} onStatusChange={updateOrderStatus} onInvoicePrinted={updateOrderInvoicePrinted} onBack={() => navigate("/admin/orders")} />} />
 
             {/* Invoices (redirects to unified Orders & Invoices page) */}
             <Route path="/invoices" element={<Navigate to="/admin/orders" replace />} />
@@ -2015,6 +2103,34 @@ const Dashboard = () => {
           </Routes>
         </main>
       </div>
+
+      {/* Floating Live Order Notification Alert */}
+      {liveToast && (
+        <div className="db__order-toast">
+          <div className="db__order-toast-icon">🛍️</div>
+          <div className="db__order-toast-content">
+            <span className="db__order-toast-title">New Order Received!</span>
+            <span className="db__order-toast-msg">{liveToast.message}</span>
+          </div>
+          <button
+            className="db__order-toast-action"
+            onClick={() => {
+              setSelectedOrder(liveToast.order);
+              setLiveToast(null);
+              navigate("/admin/orders/detail");
+            }}
+          >
+            Print Invoice
+          </button>
+          <button
+            className="db__order-toast-close"
+            onClick={() => setLiveToast(null)}
+            aria-label="Close alert"
+          >
+            ×
+          </button>
+        </div>
+      )}
 
       <LogoutModal
         isOpen={showLogoutModal}

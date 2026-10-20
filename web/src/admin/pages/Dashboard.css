@@ -1324,8 +1324,8 @@
 
 .notification-badge {
   position: absolute;
-  top: -6px;
-  right: -6px;
+  top: -5px;
+  right: -5px;
 
   min-width: 18px;
   height: 18px;
@@ -1343,6 +1343,9 @@
   font-size: 10px;
   font-weight: 700;
   line-height: 1;
+  border: 2px solid #ffffff;
+  box-shadow: 0 2px 6px rgba(239, 68, 68, 0.4);
+  animation: dbBadgePulse 2.2s infinite;
 }
 
 .notification-dropdown {
@@ -2207,4 +2210,172 @@
 button:disabled {
   opacity: 0.68;
   cursor: not-allowed !important;
+}
+
+/* ─────────────────────────────────────────────────────────────────────────────
+   UNPRINTED ORDER BADGES & LIVE ORDER TOAST ALERTS
+───────────────────────────────────────────────────────────────────────────── */
+
+.db__menu-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 20px;
+  height: 20px;
+  padding: 0 6px;
+  margin-left: auto;
+  border-radius: 999px;
+  background: #ef4444;
+  color: #ffffff;
+  font-size: 11px;
+  font-weight: 700;
+  line-height: 1;
+  letter-spacing: -0.2px;
+  box-shadow: 0 2px 6px rgba(239, 68, 68, 0.35);
+  animation: dbBadgePulse 2.2s infinite;
+}
+
+@keyframes dbBadgePulse {
+  0% {
+    transform: scale(1);
+    box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.5);
+  }
+  70% {
+    transform: scale(1.05);
+    box-shadow: 0 0 0 5px rgba(239, 68, 68, 0);
+  }
+  100% {
+    transform: scale(1);
+    box-shadow: 0 0 0 0 rgba(239, 68, 68, 0);
+  }
+}
+
+.db__menu-item--active .db__menu-badge {
+  background: #ffffff;
+  color: #0A2582;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.2);
+  animation: none;
+}
+
+.notification-unprinted-tag {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 8px;
+  background: #fef2f2;
+  color: #ef4444;
+  border: 1px solid #fecaca;
+  border-radius: 999px;
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+  white-space: nowrap;
+}
+
+.notification-view-all-btn {
+  background: none;
+  border: none;
+  color: #2563eb !important;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  padding: 0;
+  transition: opacity 0.15s ease;
+}
+
+.notification-view-all-btn:hover {
+  text-decoration: underline;
+  opacity: 0.85;
+}
+
+.db__order-toast {
+  position: fixed;
+  top: 80px;
+  right: 24px;
+  z-index: 999999;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 18px;
+  background: #0f172a;
+  color: #ffffff;
+  border-radius: 12px;
+  box-shadow: 0 12px 32px rgba(15, 23, 42, 0.35);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  animation: dbToastSlideIn 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@keyframes dbToastSlideIn {
+  from {
+    opacity: 0;
+    transform: translateY(-20px) scale(0.96);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+.db__order-toast-icon {
+  font-size: 22px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.db__order-toast-content {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.db__order-toast-title {
+  font-size: 13px;
+  font-weight: 700;
+  color: #38bdf8;
+}
+
+.db__order-toast-msg {
+  font-size: 12px;
+  color: #e2e8f0;
+  white-space: nowrap;
+}
+
+.db__order-toast-action {
+  background: #3b82f6;
+  color: #ffffff;
+  border: none;
+  padding: 6px 14px;
+  border-radius: 6px;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  margin-left: 8px;
+  transition: all 0.15s ease;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.db__order-toast-action:hover {
+  background: #2563eb;
+  transform: translateY(-1px);
+}
+
+.db__order-toast-close {
+  background: transparent;
+  border: none;
+  color: #94a3b8;
+  font-size: 20px;
+  line-height: 1;
+  cursor: pointer;
+  padding: 0 4px;
+  margin-left: 4px;
+  transition: color 0.15s ease;
+  flex-shrink: 0;
+}
+
+.db__order-toast-close:hover {
+  color: #ffffff;
 }

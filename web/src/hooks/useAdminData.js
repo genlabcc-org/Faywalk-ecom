@@ -103,6 +103,15 @@ export function useAdminData() {
     }
   };
 
+  const updateOrderInvoicePrinted = (orderIds, isPrinted = true) => {
+    const ids = Array.isArray(orderIds) ? orderIds : [orderIds];
+    setOrders((currentOrders) =>
+      currentOrders.map((o) =>
+        ids.includes(o.id) ? { ...o, invoice_printed: Boolean(isPrinted) } : o
+      )
+    );
+  };
+
   const aggregatedOrders = useMemo(() => {
     return orders.map((order) => {
       const matchedCustomer = customers.find((c) => c.id === order.user_id);
@@ -165,5 +174,6 @@ export function useAdminData() {
     error,
     refetch: fetchData,
     updateOrderStatus,
+    updateOrderInvoicePrinted,
   };
 }

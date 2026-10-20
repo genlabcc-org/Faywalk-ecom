@@ -217,7 +217,7 @@ const getExistingOrderAddress = (orderObj) => {
   return null;
 };
 
-const OrderDetails = ({ order, onBack }) => {
+const OrderDetails = ({ order, onBack, onInvoicePrinted }) => {
   const [currentOrder, setCurrentOrder] = useState(order || null);
   const o = currentOrder || order || {
     id: "ORD-UNKNOWN",
@@ -482,6 +482,9 @@ const OrderDetails = ({ order, onBack }) => {
       // Mark as printed in Supabase
       if (o?.id) {
         await orderService.markInvoicePrinted(o.id);
+        if (onInvoicePrinted) {
+          onInvoicePrinted(o.id, true);
+        }
       }
       showToast("Invoice printed successfully!", "success");
     } catch (err) {

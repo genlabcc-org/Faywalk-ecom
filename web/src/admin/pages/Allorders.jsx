@@ -455,7 +455,7 @@ const playOrderChime = () => {
 };
 
 /* ── Main Unified AllOrders Component ── */
-const AllOrders = ({ orders = [], products = [], categories: categoriesProp = [], loading, error = null, onViewDetail }) => {
+const AllOrders = ({ orders = [], products = [], categories: categoriesProp = [], loading, error = null, onViewDetail, onInvoicePrinted }) => {
   const [localOrders, setLocalOrders] = useState(orders);
   const [category, setCategory] = useState("All Category");
   const [status, setStatus] = useState("All Status");
@@ -736,6 +736,9 @@ const AllOrders = ({ orders = [], products = [], categories: categoriesProp = []
     const orderShortId = String(order.id).slice(-6).toUpperCase();
     try {
       await orderService.updateInvoicePrintedStatus(order.id, newStatus);
+      if (onInvoicePrinted) {
+        onInvoicePrinted(order.id, newStatus);
+      }
       setLocalOrders((prev) =>
         prev.map((o) => (o.id === order.id ? { ...o, invoice_printed: newStatus } : o))
       );
@@ -787,6 +790,9 @@ const AllOrders = ({ orders = [], products = [], categories: categoriesProp = []
       const ids = ordersToPrint.map((o) => o.id);
       try {
         await orderService.markInvoicesBulkPrinted(ids);
+        if (onInvoicePrinted) {
+          onInvoicePrinted(ids, true);
+        }
         setLocalOrders((prev) =>
           prev.map((o) => (ids.includes(o.id) ? { ...o, invoice_printed: true } : o))
         );
