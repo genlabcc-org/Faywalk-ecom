@@ -256,7 +256,7 @@
   top: calc(100% + 10px);
   right: 0;
   background: #ffffff;
-  border: 1px solid #e5e7eb;
+  border: 1px solid #e5e7eb;            
   border-radius: 12px;
   box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.05);
   min-width: 200px;
