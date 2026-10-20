@@ -28,6 +28,44 @@ export const couponService = {
   },
 
   /**
+   * Fetch all currently active & unexpired coupons for customer display
+   */
+  async getActiveCoupons() {
+    try {
+      let { data, error } = await supabase
+        .from("coupons")
+        .select("*, categories:category_id(category_id, name), subcategories:subcategory_id(subcategory_id, name)")
+        .eq("is_active", true)
+        .order("discount_value", { ascending: false });
+
+      if (error) {
+        const { data: fallbackData, error: fallbackError } = await supabase
+          .from("coupons")
+          .select("*")
+          .eq("is_active", true)
+          .order("discount_value", { ascending: false });
+        if (fallbackError) {
+          console.warn("Could not fetch active coupons:", fallbackError);
+          return [];
+        }
+        data = fallbackData;
+      }
+
+      const now = new Date();
+      return (data || []).filter((c) => {
+        if (!c.is_active) return false;
+        if (c.start_date && new Date(c.start_date) > now) return false;
+        if (c.expiry_date && new Date(c.expiry_date) < now) return false;
+        if (c.usage_limit && c.used_count >= c.usage_limit) return false;
+        return true;
+      });
+    } catch (err) {
+      console.warn("Error fetching active coupons:", err);
+      return [];
+    }
+  },
+
+  /**
    * Create a new coupon
    */
   async createCoupon(couponData) {

@@ -699,6 +699,36 @@
   color: #092c85;
 }
 
+.discount-applied-key {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.checkout-remove-discount-btn {
+  background: transparent;
+  border: 1px solid rgba(9, 44, 133, 0.3);
+  color: #092c85;
+  border-radius: 50%;
+  width: 17px;
+  height: 17px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 9px;
+  font-weight: 700;
+  cursor: pointer;
+  padding: 0;
+  transition: all 0.2s ease;
+  line-height: 1;
+}
+
+.checkout-remove-discount-btn:hover {
+  background: #092c85;
+  color: #ffffff;
+  border-color: #092c85;
+}
+
 .checkout-billing-line.gst-line {
   color: #94a3b8;
   font-size: 12px;
@@ -715,11 +745,133 @@
   font-weight: 500;
 }
 
+/* ── ACTIVE COUPONS LIST (One-by-One, Minimal Design) ────────── */
+.checkout-coupons-list-wrap {
+  background: #ffffff;
+  border: 1px solid #e9ecef;
+  border-radius: 8px;
+  padding: 10px 12px;
+  margin: 12px 0 10px;
+}
+
+.checkout-coupons-list-header {
+  margin-bottom: 6px;
+}
+
+.checkout-coupons-list-title {
+  font-size: 11px;
+  font-weight: 700;
+  color: #64748b;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.checkout-coupons-items {
+  display: flex;
+  flex-direction: column;
+}
+
+.checkout-coupon-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 7px 0;
+}
+
+.checkout-coupon-item + .checkout-coupon-item {
+  border-top: 1px solid #f1f5f9;
+}
+
+.checkout-coupon-item-left {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+  flex: 1;
+}
+
+.checkout-coupon-item-top {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.checkout-coupon-item-code {
+  font-size: 12px;
+  font-weight: 700;
+  color: #092c85;
+  letter-spacing: 0.3px;
+}
+
+.checkout-coupon-item-badge {
+  font-size: 10.5px;
+  font-weight: 600;
+  color: #1e293b;
+  background: #f1f5f9;
+  padding: 1px 6px;
+  border-radius: 4px;
+}
+
+.checkout-coupon-item-cat-badge {
+  font-size: 10px;
+  font-weight: 600;
+  color: #0369a1;
+  background: #f0f9ff;
+  border: none;
+  padding: 1px 6px;
+  border-radius: 4px;
+  letter-spacing: 0.2px;
+  white-space: nowrap;
+}
+
+.checkout-coupon-item-desc {
+  font-size: 11px;
+  color: #64748b;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 220px;
+}
+
+.checkout-coupon-item-right {
+  flex-shrink: 0;
+}
+
+.checkout-coupon-apply-action-btn {
+  height: 28px;
+  padding: 0 12px;
+  font-size: 11px;
+  font-weight: 600;
+  border: none;
+  background: #092c85;
+  color: #ffffff;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: background-color 0.15s ease;
+}
+
+.checkout-coupon-apply-action-btn:hover {
+  background: #061f5c;
+}
+
+.checkout-coupon-applied-tag {
+  display: inline-block;
+  padding: 4px 8px;
+  font-size: 10.5px;
+  font-weight: 600;
+  color: #15803d;
+  background: #f0fdf4;
+  border: none;
+  border-radius: 4px;
+}
+
 /* Inline Discount */
 .checkout-inline-discount-wrap {
   display: flex;
   gap: 8px;
-  margin: 12px 0 14px;
+  margin: 10px 0 14px;
 }
 
 .checkout-discount-input {

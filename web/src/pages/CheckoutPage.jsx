@@ -105,6 +105,7 @@ export default function CheckoutPage() {
   const [isAddingNewAddress, setIsAddingNewAddress] = useState(false);
   const [discountInput, setDiscountInput] = useState("");
   const [appliedDiscount, setAppliedDiscount] = useState(null);
+  const [activeCoupons, setActiveCoupons] = useState([]);
 
   const [isProcessingPayment, setIsProcessingPayment] = useState(false);
   const [pincodeServiceable, setPincodeServiceable] = useState(null);
@@ -116,7 +117,8 @@ export default function CheckoutPage() {
 
   const navigate = useNavigate();
   const location = useLocation();
-  const isCODAvailable = false;
+  const [codServiceable, setCodServiceable] = useState(true);
+  const isCODAvailable = pincodeServiceable !== false && codServiceable;
 
   const categories = useStore((state) => state.categories);
 
@@ -166,6 +168,12 @@ export default function CheckoutPage() {
         setForm(f => ({ ...f, email: emailVal }));
         fetchAddresses(emailVal);
       }
+    });
+
+    couponService.getActiveCoupons().then((list) => {
+      setActiveCoupons(list || []);
+    }).catch((err) => {
+      console.warn("Failed to load active coupons:", err);
     });
   }, []);
 
@@ -260,8 +268,11 @@ export default function CheckoutPage() {
 
     // 1. Instant cache hit: 0ms response!
     if (clientPincodeCache.has(pin)) {
-      const isServ = clientPincodeCache.get(pin);
+      const cached = clientPincodeCache.get(pin);
+      const isServ = typeof cached === 'object' ? cached.serviceable : cached;
+      const isCod = typeof cached === 'object' ? cached.isCodSupported : true;
       setPincodeServiceable(isServ);
+      setCodServiceable(isCod);
       setPincodeChecking(false);
       activePincodeCheckRef.current = Promise.resolve(isServ);
       if (isServ) {
@@ -291,19 +302,28 @@ export default function CheckoutPage() {
         if (!active) return resolve(true);
 
         let serviceable = true;
+        let isCodSupported = true;
         if (res && res.success === 1 && Array.isArray(res.msg) && res.msg.length > 0) {
           serviceable = res.msg.some(
             (m) => m.prepaid === 'Y' || m.prepaid === 'U' || !m.prepaid
           );
+          // Check if any courier explicitly supports COD for this pincode
+          const hasCodCourier = res.msg.some(
+            (m) => m.cod === 'Y' || m.cod === 'U'
+          );
+          isCodSupported = hasCodCourier || res.msg.some((m) => m.cod !== 'N');
         } else if (res && (res.success === 0 || (Array.isArray(res.msg) && res.msg.length === 0))) {
           serviceable = false;
+          isCodSupported = false;
         } else {
           serviceable = isValidPincodeRegex(pin);
+          isCodSupported = true;
         }
 
-        clientPincodeCache.set(pin, serviceable);
+        clientPincodeCache.set(pin, { serviceable, isCodSupported });
         if (active) {
           setPincodeServiceable(serviceable);
+          setCodServiceable(isCodSupported);
           if (serviceable) {
             setErrors((prev) => ({ ...prev, pinCode: undefined }));
           } else {
@@ -317,9 +337,10 @@ export default function CheckoutPage() {
       } catch (err) {
         console.warn("iCarry pincode check failed or timed out, failing open to regex:", err);
         const fallback = isValidPincodeRegex(pin);
-        clientPincodeCache.set(pin, fallback);
+        clientPincodeCache.set(pin, { serviceable: fallback, isCodSupported: true });
         if (active) {
           setPincodeServiceable(fallback);
+          setCodServiceable(true);
         }
         resolve(fallback);
       } finally {
@@ -364,12 +385,14 @@ export default function CheckoutPage() {
       ? `PIN ${form.pinCode} belongs to ${pinState}, not ${form.state}`
       : "";
 
-  const handleApplyDiscount = async () => {
-    const code = discountInput.trim().toUpperCase();
+  const handleApplyDiscount = async (customCode = null) => {
+    const rawCode = typeof customCode === "string" ? customCode : discountInput;
+    const code = (rawCode || "").trim().toUpperCase();
     if (!code) {
       showToast("Please enter a discount code.", "warning");
       return;
     }
+    setDiscountInput(code);
 
     try {
       const res = await couponService.validateCoupon(code, subtotal, checkoutItems, categories);
@@ -396,6 +419,20 @@ export default function CheckoutPage() {
       setAppliedDiscount(null);
       showToast(err.message || "Failed to validate coupon.", "error");
     }
+  };
+
+  const handleRemoveDiscount = () => {
+    setAppliedDiscount(null);
+    setDiscountInput("");
+    showToast("Coupon removed.", "info");
+  };
+
+  const handleCouponBadgeClick = (code) => {
+    if (appliedDiscount?.code?.toUpperCase() === code?.toUpperCase()) {
+      showToast(`Coupon ${code} is already applied!`, "info");
+      return;
+    }
+    handleApplyDiscount(code);
   };
 
   // Persistent checkout product / items across mobile reloads
@@ -642,6 +679,8 @@ export default function CheckoutPage() {
             payment: "COD",
             type: "Regular",
             status: "Order Placed",
+            delivery_status: "Pending Booking",
+            delivery_provider: "iCarry",
           })
           .select()
           .single();
@@ -668,6 +707,15 @@ export default function CheckoutPage() {
           .insert(orderItemsToInsert);
 
         if (itemsError) throw itemsError;
+
+        // Auto-book courier shipment with iCarry for COD order
+        try {
+          console.log(`[Checkout] Auto-booking COD courier shipment for order #${generatedOrderId}...`);
+          const bookingRes = await icarryService.bookCodOrder(generatedOrderId);
+          console.log("[Checkout] iCarry COD booking result:", bookingRes);
+        } catch (bookingErr) {
+          console.warn("[Checkout] iCarry COD auto-booking notice (admin can retry from dashboard):", bookingErr);
+        }
 
         emailService.sendOrderNotificationEmail({
           orderId: generatedOrderId,
@@ -1166,7 +1214,9 @@ export default function CheckoutPage() {
                           <span className="checkout-payment-label-text">Cash on Delivery (COD)</span>
                         </div>
                         {!isCODAvailable && (
-                          <span className="checkout-badge-unavailable">CURRENTLY NOT AVAILABLE</span>
+                          <span className="checkout-badge-unavailable">
+                            {pincodeServiceable === false ? "PINCODE NOT SERVICEABLE" : "COD NOT AVAILABLE"}
+                          </span>
                         )}
                       </label>
                       {paymentMethod === 'COD' && (
@@ -1220,9 +1270,19 @@ export default function CheckoutPage() {
 
                   {appliedDiscount && (
                     <div className="checkout-billing-line discount-highlight">
-                      <span className="billing-key">
-                        Discount ({appliedDiscount.code}
-                        {appliedDiscount.categoryName ? ` • ${appliedDiscount.categoryName}` : ""})
+                      <span className="billing-key discount-applied-key">
+                        <span>
+                          Discount ({appliedDiscount.code}
+                          {appliedDiscount.categoryName ? ` • ${appliedDiscount.categoryName}` : ""})
+                        </span>
+                        <button
+                          type="button"
+                          onClick={handleRemoveDiscount}
+                          className="checkout-remove-discount-btn"
+                          title="Remove coupon"
+                        >
+                          ✕
+                        </button>
                       </span>
                       <span className="billing-val">-₹{discountAmount.toFixed(2)}</span>
                     </div>
@@ -1243,6 +1303,64 @@ export default function CheckoutPage() {
                   </div>
                 </div>
 
+                {/* Active Coupons List (One by One, Minimal) */}
+                {activeCoupons.length > 0 && (
+                  <div className="checkout-coupons-list-wrap">
+                    <div className="checkout-coupons-list-header">
+                      <span className="checkout-coupons-list-title">Available Coupons</span>
+                    </div>
+                    <div className="checkout-coupons-items">
+                      {activeCoupons.map((c) => {
+                        const isApplied = appliedDiscount?.code?.toUpperCase() === c.code?.toUpperCase();
+                        const discountText =
+                          c.discount_type === "percentage"
+                            ? `${c.discount_value}% OFF`
+                            : `₹${c.discount_value} OFF`;
+                        const minText = c.min_order_amount > 0 ? ` on ₹${c.min_order_amount}+` : "";
+                        const catName =
+                          c.categories?.name ||
+                          (c.category_id && categories?.find((cat) => String(cat.category_id || cat.id) === String(c.category_id))?.name) ||
+                          null;
+                        const subName = c.subcategories?.name || null;
+                        const categoryScope = subName ? `${catName ? catName + " > " : ""}${subName}` : catName;
+
+                        return (
+                          <div key={c.code} className="checkout-coupon-item">
+                            <div className="checkout-coupon-item-left">
+                              <div className="checkout-coupon-item-top">
+                                <span className="checkout-coupon-item-code">{c.code}</span>
+                                <span className="checkout-coupon-item-badge">{discountText}{minText}</span>
+                                {categoryScope && (
+                                  <span className="checkout-coupon-item-cat-badge">
+                                    Only for {categoryScope}
+                                  </span>
+                                )}
+                              </div>
+                              <span className="checkout-coupon-item-desc">
+                                {c.description || (c.min_order_amount > 0 ? `Valid on orders above ₹${c.min_order_amount}` : "Special discount on your order")}
+                              </span>
+                            </div>
+
+                            <div className="checkout-coupon-item-right">
+                              {isApplied ? (
+                                <span className="checkout-coupon-applied-tag">Applied ✓</span>
+                              ) : (
+                                <button
+                                  type="button"
+                                  className="checkout-coupon-apply-action-btn"
+                                  onClick={() => handleCouponBadgeClick(c.code)}
+                                >
+                                  Apply
+                                </button>
+                              )}
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                )}
+
                 {/* Discount Code Input */}
                 <div className="checkout-inline-discount-wrap">
                   <input
@@ -1254,7 +1372,7 @@ export default function CheckoutPage() {
                   />
                   <button
                     type="button"
-                    onClick={handleApplyDiscount}
+                    onClick={() => handleApplyDiscount()}
                     className="checkout-discount-apply-btn"
                   >
                     Apply

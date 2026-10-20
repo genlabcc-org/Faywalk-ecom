@@ -205,7 +205,7 @@ export async function bookShipmentForOrder(
         type: parcelType,
         value: Number(order.total_price || 0),
         currency: 'INR',
-        contents: 'Fashion Jewellery',
+        contents: 'Inners',
         weight: {
           weight: totalWeightGm,
           unit: 'gm',

@@ -231,6 +231,7 @@ const OrderDetails = ({ order, onBack }) => {
   const [retryingBooking, setRetryingBooking] = useState(false);
   const [loadingLabel, setLoadingLabel] = useState(false);
   const [cancellingShipment, setCancellingShipment] = useState(false);
+  const [showCancelModal, setShowCancelModal] = useState(false);
   const [trackingLoading, setTrackingLoading] = useState(false);
   const invoiceRef = useRef(null);
 
@@ -532,7 +533,7 @@ const OrderDetails = ({ order, onBack }) => {
     }
   };
 
-  const handleCancelShipment = async () => {
+  const executeCancelShipment = async () => {
     if (!o?.id) return;
 
     const isCod =
@@ -548,13 +549,6 @@ const OrderDetails = ({ order, onBack }) => {
       (o?.payment_status || "").toString().toLowerCase() === "paid" ||
       !isCod
     );
-
-    const promptMessage = isOnline
-      ? "Are you sure you want to cancel this order and process a full refund to the customer via Razorpay?\n\n• The payment will be refunded directly to the customer's original payment method via Razorpay.\n• Any active courier shipment booked with iCarry will also be cancelled.\n\nDo you want to proceed?"
-      : "Are you sure you want to cancel this shipment with iCarry?\n\nWarning: Cancelling this shipment after courier assignment or pickup may incur Return to Origin (RTO) charges from the courier. Are you sure you want to proceed?";
-
-    const confirmed = window.confirm(promptMessage);
-    if (!confirmed) return;
 
     try {
       setCancellingShipment(true);
@@ -647,6 +641,7 @@ const OrderDetails = ({ order, onBack }) => {
       // Refetch the order row on success/failure either way, so the panel always reflects true DB state
       await fetchFreshOrder();
       setCancellingShipment(false);
+      setShowCancelModal(false);
     }
   };
 
@@ -1543,7 +1538,7 @@ const OrderDetails = ({ order, onBack }) => {
 
             {!isDelivered && !isOrderCancelled && (
               <button
-                onClick={handleCancelShipment}
+                onClick={() => setShowCancelModal(true)}
                 disabled={cancellingShipment}
                 className="od__btn-red admin-btn-with-spinner"
                 title={hasOnlinePayment ? "Cancel order & refund customer via Razorpay" : "Cancel shipment & order"}
@@ -1733,6 +1728,109 @@ const OrderDetails = ({ order, onBack }) => {
         </div>,
         document.body
       )}
+
+      {/* Centered Minimal Cancellation & Refund Modal */}
+      {showCancelModal && typeof document !== "undefined" && createPortal(
+        <div
+          className="admin-cancel-modal-overlay"
+          onClick={() => !cancellingShipment && setShowCancelModal(false)}
+        >
+          <div
+            className="admin-cancel-modal-card"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="admin-cancel-modal-header">
+              <div className="admin-cancel-modal-title-wrap">
+                <span className="admin-cancel-modal-icon-badge">
+                  <IconAlertTriangle size={18} />
+                </span>
+                <div>
+                  <h3 className="admin-cancel-modal-title">
+                    {hasOnlinePayment ? "Cancel Order & Refund" : "Cancel Shipment"}
+                  </h3>
+                  <p className="admin-cancel-modal-subtitle">
+                    Order #{String(o.id || o.order_id || "").slice(-8).toUpperCase()}
+                  </p>
+                </div>
+              </div>
+              <button
+                type="button"
+                className="admin-cancel-modal-close-btn"
+                onClick={() => !cancellingShipment && setShowCancelModal(false)}
+                disabled={cancellingShipment}
+                aria-label="Close"
+              >
+                ✕
+              </button>
+            </div>
+
+            <div className="admin-cancel-modal-body">
+              <p className="admin-cancel-modal-msg">
+                {hasOnlinePayment
+                  ? "Are you sure you want to cancel this order and process a full refund to the customer?"
+                  : "Are you sure you want to cancel this order and its active shipment with iCarry?"}
+              </p>
+
+              <div className="admin-cancel-modal-bullets">
+                {hasOnlinePayment ? (
+                  <>
+                    <div className="admin-cancel-bullet-item">
+                      <span className="admin-cancel-bullet-dot">•</span>
+                      <span>The full payment of <strong>₹{o.total_price || 0}</strong> will be refunded to customer's original payment method via Razorpay.</span>
+                    </div>
+                    <div className="admin-cancel-bullet-item">
+                      <span className="admin-cancel-bullet-dot">•</span>
+                      <span>Any active courier booking with iCarry will also be cancelled.</span>
+                    </div>
+                  </>
+                ) : (
+                  <>
+                    <div className="admin-cancel-bullet-item">
+                      <span className="admin-cancel-bullet-dot">•</span>
+                      <span>The shipment with iCarry courier will be cancelled.</span>
+                    </div>
+                    <div className="admin-cancel-bullet-item">
+                      <span className="admin-cancel-bullet-dot">•</span>
+                      <span>Order and delivery status will be marked as Cancelled.</span>
+                    </div>
+                  </>
+                )}
+              </div>
+
+              <p className="admin-cancel-modal-warning-text">
+                This action is permanent and cannot be undone.
+              </p>
+            </div>
+
+            <div className="admin-cancel-modal-footer">
+              <button
+                type="button"
+                className="admin-cancel-btn-cancel"
+                onClick={() => setShowCancelModal(false)}
+                disabled={cancellingShipment}
+              >
+                Keep Order
+              </button>
+              <button
+                type="button"
+                className="admin-cancel-btn-confirm"
+                onClick={executeCancelShipment}
+                disabled={cancellingShipment}
+              >
+                {cancellingShipment ? (
+                  <>
+                    <span className="admin-btn-spinner" /> Processing...
+                  </>
+                ) : (
+                  hasOnlinePayment ? "Confirm & Refund" : "Confirm Cancel"
+                )}
+              </button>
+            </div>
+          </div>
+        </div>,
+        document.body
+      )}
+
       <Toast
         message={toast.message}
         type={toast.type}

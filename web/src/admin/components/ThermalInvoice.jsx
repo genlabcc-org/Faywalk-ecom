@@ -104,7 +104,7 @@ const ThermalInvoice = React.forwardRef(({ order, address, isPreview = false }, 
   })();
 
   // Total quantity of items bought
-  const totalJewelleryQty = orderItems.reduce((sum, item) => {
+  const totalItemsQty = orderItems.reduce((sum, item) => {
     return sum + Number(item.quantity || item.qty || 1);
   }, 0);
 
@@ -208,7 +208,7 @@ const ThermalInvoice = React.forwardRef(({ order, address, isPreview = false }, 
         <div className="ti-total-left">
           <div className="ti-label">TOTAL ITEMS:</div>
           <div className="ti-val ti-val--items">
-            {totalJewelleryQty} {totalJewelleryQty === 1 ? "Piece" : "Pieces"}
+            {totalItemsQty} {totalItemsQty === 1 ? "Piece" : "Pieces"}
           </div>
         </div>
         <div className="ti-divider-v" />

@@ -209,6 +209,59 @@ Deno.serve(async (req: Request) => {
     }
 
     // ─────────────────────────────────────────────────────────────
+    // 2.5. BOOK SHIPMENT FOR COD / NEW ORDER (Customer own order or Admin)
+    // ─────────────────────────────────────────────────────────────
+    if (action === "bookCodOrder" || action === "book") {
+      const orderId = String(payload.orderId ?? "").trim();
+      if (!orderId) {
+        return new Response(JSON.stringify({ error: "orderId is required to book shipment" }), {
+          status: 400,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
+      let query = supabaseAdmin
+        .from("orders")
+        .select("id, user_id, payment, delivery_status, shipment_id, waybill")
+        .eq("id", orderId);
+
+      // Non-admin can only book their own order
+      if (!isAdmin) {
+        query = query.eq("user_id", user.id);
+      }
+
+      const { data: order, error: orderErr } = await query.maybeSingle();
+
+      if (orderErr || !order) {
+        return new Response(JSON.stringify({ error: "Order not found or access denied" }), {
+          status: 404,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
+      // If already booked, return existing info (idempotent)
+      if (order.delivery_status === "Booked" && (order.shipment_id || order.waybill)) {
+        return new Response(JSON.stringify({
+          ok: true,
+          alreadyBooked: true,
+          shipment_id: order.shipment_id,
+          waybill: order.waybill,
+        }), {
+          status: 200,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
+      console.log(`[iCarry] Booking shipment for COD/Order #${orderId} (requested by user ${user.id})...`);
+      const result = await bookShipmentForOrder(supabaseAdmin, orderId);
+
+      return new Response(JSON.stringify(result), {
+        status: 200,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    // ─────────────────────────────────────────────────────────────
     // ADMIN-ONLY ACTIONS: label, cancel, retryBooking
     // ─────────────────────────────────────────────────────────────
     if (!isAdmin) {

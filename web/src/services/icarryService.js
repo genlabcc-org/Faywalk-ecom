@@ -40,6 +40,8 @@ const invoke = async (action, payload) => {
 
 export const icarryService = {
   checkPincode: (pincode) => invoke('pincode', { pincode: String(pincode) }),
+  bookCodOrder: (orderId) => invoke('bookCodOrder', { orderId }),
+  book:         (orderId) => invoke('book', { orderId }),
   track:        (orderId) => invoke('track', { orderId }),
   label:        (orderId) => invoke('label', { orderId }),
   cancel:       (orderId) => invoke('cancel', { orderId }),
