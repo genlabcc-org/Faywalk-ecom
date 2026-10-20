@@ -1,6 +1,7 @@
 .topbar {
-  background-color: var(--blue-primary); /* Deep vibrant navy blue */
-  color: #ffffff;
+  background-color: var(--blue-primary, #002277) !important;
+  background: var(--blue-primary, #002277) !important;
+  color: #ffffff !important;
   padding: 8px 16px;
   width: 100%;
   box-sizing: border-box;

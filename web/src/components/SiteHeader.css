@@ -210,7 +210,7 @@
   position: absolute;
   top: 1px;
   right: 1px;
-  background: #dc2626;
+  background: var(--blue-primary, #002277);
   color: #ffffff;
   border-radius: 9999px;
   min-width: 17px;
