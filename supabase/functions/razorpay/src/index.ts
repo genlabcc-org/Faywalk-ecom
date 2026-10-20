@@ -11,26 +11,34 @@ export default {
 
     try {
       const authHeader = req.headers.get("Authorization");
-      if (!authHeader) {
-        return new Response(
-          JSON.stringify({ error: "Missing Authorization header" }),
-          { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-        );
-      }
+      const token = authHeader ? authHeader.replace(/^Bearer\s+/i, "") : "";
 
-      // Verify user auth
-      const token = authHeader.replace("Bearer ", "");
-      const { data: { user }, error: authError } = await ctx.supabase.auth.getUser(token);
-      if (authError || !user) {
-        return new Response(
-          JSON.stringify({ error: "Unauthorized user" }),
-          { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-        );
+      let user = null;
+      if (token) {
+        try {
+          const { data: authData } = await ctx.supabaseAdmin.auth.getUser(token);
+          user = authData?.user || null;
+        } catch {
+          try {
+            const { data: authData } = await ctx.supabase.auth.getUser(token);
+            user = authData?.user || null;
+          } catch {}
+        }
       }
 
       // Parse request body
-      const body = await req.json();
+      const body = await req.json().catch(() => ({}));
       const { action } = body;
+
+      // Customer actions require authenticated customer
+      if (action === "create_order" || action === "verify_payment") {
+        if (!user) {
+          return new Response(
+            JSON.stringify({ error: "Unauthorized user" }),
+            { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+          );
+        }
+      }
 
       const razorpayService = new RazorpayService(ctx.supabaseAdmin);
 
@@ -92,6 +100,22 @@ export default {
 
         return new Response(
           JSON.stringify({ success: true, order: finalOrder }),
+          { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+
+      if (action === "refund_order") {
+        const { orderId, reason } = body;
+        if (!orderId) {
+          return new Response(
+            JSON.stringify({ error: "Missing required orderId parameter" }),
+            { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+          );
+        }
+
+        const refundResult = await razorpayService.refundOrder(orderId, reason);
+        return new Response(
+          JSON.stringify(refundResult),
           { headers: { ...corsHeaders, "Content-Type": "application/json" } }
         );
       }

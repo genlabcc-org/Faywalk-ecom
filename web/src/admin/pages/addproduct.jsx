@@ -2,30 +2,36 @@ import React, { useState, useRef, useEffect } from "react";
 import { useSearchParams } from "react-router-dom";
 import { productService } from "../../services/productService";
 import { useStore } from "../../hooks/useStore";
+import { getColorName } from "../../utils/colorUtils";
 import back from "../../assets/admin/back.png";
 import "./addproduct.css";
 
 const COLOR_SWATCHES = [
-  "#EF4444", // red
-  "#9B111E", // ruby red
-  "#E75480", //Pink
-  "#FFC0CB", //bady pink
-  "#734F96", //lavender
-  "#8B2FC9", // purple
-  "#87CEEB", // sky blue
-  "#4169E1", // royal blue
-  "#040273", // deep blue
-  "#429E9D", // mint blue
-  "#05C3DD", // aqua blue
-  "#008000", // green
-  "#50C878", //emerald green
-  "#98FF98", // mint green
-  "#FFFF00", // yellow
-  "#FFA500", // orange
-  "#111827", // black
-  "#FFFFFF", // white
-  "#9CA3AF", // gray
-  "#2DD4BF", // teal
+  "#000000", // Black
+  "#FFFFFF", // White
+  "#000080", // Navy Blue
+  "#0000FF", // Blue
+  "#800000", // Maroon (merrun)
+  "#EF4444", // Red
+  "#9B111E", // Ruby Red
+  "#E75480", // Pink
+  "#FFC0CB", // Baby Pink
+  "#734F96", // Lavender
+  "#8B2FC9", // Purple
+  "#4169E1", // Royal Blue
+  "#87CEEB", // Sky Blue
+  "#040273", // Deep Blue
+  "#05C3DD", // Aqua Blue
+  "#2DD4BF", // Teal
+  "#008000", // Green
+  "#50C878", // Emerald Green
+  "#98FF98", // Mint Green
+  "#FFFF00", // Yellow
+  "#FFA500", // Orange
+  "#78350F", // Brown
+  "#9CA3AF", // Gray
+  "#FFD700", // Gold
+  "#C0C0C0", // Silver
 ];
 
 export const parseColors = (rawColors) => {
@@ -192,6 +198,7 @@ export default function AddProduct({ onBack, onPublish, onSaveDraft, onAddVarian
   const sanitizeInteger = (value) => value.replace(/[^0-9]/g, "");
   const [sizeList, setSizeList] = useState([]);
   const [sizeInput, setSizeInput] = useState("");
+  const [hoveredColor, setHoveredColor] = useState(null);
   const [visibility, setVisibility] = useState([
     initialData?.is_active ?? false,
     initialData?.is_featured ?? false,
@@ -564,7 +571,7 @@ export default function AddProduct({ onBack, onPublish, onSaveDraft, onAddVarian
         {!isEditing && (
           <button
             type="button"
-            className="btn-draft ap-header-variant-btn"
+            className="ap-header-variant-btn"
             onClick={handleAddVariant}
           >
             + Add Multiple Product
@@ -591,21 +598,21 @@ export default function AddProduct({ onBack, onPublish, onSaveDraft, onAddVarian
             onChange={set("description")}
           />
         </div>
+        <div className="field">
+          <label>SKU</label>
+          <input
+            placeholder="Auto Generated"
+            value={form.sku}
+            readOnly
+          />
+          <div className="auto-hint">Auto Generated</div>
+        </div>
         <div className="row-2">
-          <div className="field">
-            <label>SKU</label>
-            <input
-              placeholder="Auto Generated"
-              value={form.sku}
-              readOnly
-            />
-            <div className="auto-hint">Auto Generated</div>
-          </div>
           <div className="field">
             <label>Category</label>
             <select
               value={form.category_id}
-              onChange={set("category_id")}
+              onChange={handleCategoryChange}
             >
               <option value="">Select Category</option>
               {categories.map((cat) => (
@@ -615,15 +622,8 @@ export default function AddProduct({ onBack, onPublish, onSaveDraft, onAddVarian
               ))}
             </select>
           </div>
-        </div>
-      </div>
-
-      {/* ── Product Details ── */}
-      <div className="card">
-        <div className="card-title">Product Details</div>
-        <div className="row-2">
           <div className="field">
-            <label>Type <span className="scc-optional-tag">optional</span></label>
+            <label>Subcategory <span className="scc-optional-tag">optional</span></label>
             {!form.category_id ? (
               <select disabled>
                 <option>Select a category first</option>
@@ -643,18 +643,23 @@ export default function AddProduct({ onBack, onPublish, onSaveDraft, onAddVarian
               <div className="auto-hint">No subcategories — listed under category directly.</div>
             )}
           </div>
-          <div className="field">
-            <label>Product Material</label>
-            <input
-              type="text"
-              placeholder="Enter Product Material"
-              value={form.product_material || form.material || ""}
-              onChange={(e) => {
-                const val = e.target.value;
-                setForm((f) => ({ ...f, product_material: val, material: val }));
-              }}
-            />
-          </div>
+        </div>
+      </div>
+
+      {/* ── Product Details ── */}
+      <div className="card">
+        <div className="card-title">Product Details</div>
+        <div className="field">
+          <label>Product Material</label>
+          <input
+            type="text"
+            placeholder="Enter Product Material"
+            value={form.product_material || form.material || ""}
+            onChange={(e) => {
+              const val = e.target.value;
+              setForm((f) => ({ ...f, product_material: val, material: val }));
+            }}
+          />
         </div>
 
         <div className="field">
@@ -665,6 +670,8 @@ export default function AddProduct({ onBack, onPublish, onSaveDraft, onAddVarian
               className={`ap-color-swatch ap-color-swatch--none${!(form.colors && form.colors.length) ? " ap-color-swatch--selected" : ""
                 }`}
               onClick={clearColors}
+              onMouseEnter={() => setHoveredColor("None")}
+              onMouseLeave={() => setHoveredColor(null)}
               aria-label="No color (None)"
               title="No color (None)"
             >
@@ -676,6 +683,7 @@ export default function AddProduct({ onBack, onPublish, onSaveDraft, onAddVarian
             {COLOR_SWATCHES.map((c) => {
               const selected = isColorSelected(form.colors, c);
               const isWhite = c.toUpperCase() === "#FFFFFF";
+              const cName = getColorName(c) || c;
               return (
                 <button
                   key={c}
@@ -684,8 +692,10 @@ export default function AddProduct({ onBack, onPublish, onSaveDraft, onAddVarian
                     }`}
                   style={{ backgroundColor: c }}
                   onClick={() => toggleColor(c)}
-                  aria-label={`Toggle color ${c}`}
-                  title={c}
+                  onMouseEnter={() => setHoveredColor(c)}
+                  onMouseLeave={() => setHoveredColor(null)}
+                  aria-label={`Toggle color ${cName}`}
+                  title={cName}
                 >
                   {selected && (
                     <svg width="12" height="10" viewBox="0 0 12 10" fill="none">
@@ -704,28 +714,57 @@ export default function AddProduct({ onBack, onPublish, onSaveDraft, onAddVarian
             {/* Render any additional/custom colors already on the product */}
             {(parseColors(form.colors) || [])
               .filter((c) => !COLOR_SWATCHES.some((s) => s.toLowerCase() === c.toLowerCase()))
-              .map((c) => (
-                <button
-                  key={c}
-                  type="button"
-                  className="ap-color-swatch ap-color-swatch--selected"
-                  style={{ backgroundColor: c }}
-                  onClick={() => toggleColor(c)}
-                  aria-label={`Toggle color ${c}`}
-                  title={c}
-                >
-                  <svg width="12" height="10" viewBox="0 0 12 10" fill="none">
-                    <path
-                      d="M1 5L4.2 8.2L11 1"
-                      stroke="#fff"
-                      strokeWidth="2"
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                    />
-                  </svg>
-                </button>
-              ))}
+              .map((c) => {
+                const cName = getColorName(c) || c;
+                return (
+                  <button
+                    key={c}
+                    type="button"
+                    className="ap-color-swatch ap-color-swatch--selected"
+                    style={{ backgroundColor: c }}
+                    onClick={() => toggleColor(c)}
+                    onMouseEnter={() => setHoveredColor(c)}
+                    onMouseLeave={() => setHoveredColor(null)}
+                    aria-label={`Toggle color ${cName}`}
+                    title={cName}
+                  >
+                    <svg width="12" height="10" viewBox="0 0 12 10" fill="none">
+                      <path
+                        d="M1 5L4.2 8.2L11 1"
+                        stroke="#fff"
+                        strokeWidth="2"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                      />
+                    </svg>
+                  </button>
+                );
+              })}
           </div>
+          {form.colors && form.colors.length > 0 && (
+            <div className="ap-color-selected-list">
+              {form.colors.map((c) => {
+                const cName = getColorName(c) || c;
+                return (
+                  <span key={c} className="ap-color-selected-chip">
+                    <span
+                      className="ap-color-selected-dot"
+                      style={{ backgroundColor: c }}
+                    />
+                    <span className="ap-color-selected-name">{cName}</span>
+                    <button
+                      type="button"
+                      className="ap-color-selected-del"
+                      onClick={() => toggleColor(c)}
+                      title={`Remove ${cName}`}
+                    >
+                      ×
+                    </button>
+                  </span>
+                );
+              })}
+            </div>
+          )}
         </div>
 
         {/* ── Add Sizes row ── */}
@@ -937,13 +976,13 @@ export default function AddProduct({ onBack, onPublish, onSaveDraft, onAddVarian
         </div>
       </div>
 
-      {/* ── Price & Stock ── */}
+      {/* ── Price ── */}
       <div className="card">
-        <div className="card-title">Price &amp; Stock</div>
+        <div className="card-title">Price</div>
 
         <div className="row-2">
           <div className="field">
-            <label>Price (₹)</label>
+            <label>Selling Price (₹)</label>
             <input
               type="text"
               inputMode="numeric"

@@ -31,23 +31,23 @@
   display: inline-flex;
   align-items: center;
   gap: 7px;
-  background: #ffffff;
-  border: 1px solid #e2e8f0;
+  background: var(--admin-primary, #0A2582);
+  border: none;
   border-radius: 8px;
-  color: #475569;
+  color: #ffffff;
   font-size: 13px;
   font-weight: 600;
   cursor: pointer;
   padding: 8px 14px;
-  transition: all 0.15s ease;
-  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04);
+  transition: background-color 0.15s ease, opacity 0.15s ease;
+  box-shadow: none;
   font-family: inherit;
 }
 
 .od__back-btn:hover {
-  background-color: #f1f5f9;
-  border-color: #cbd5e1;
-  color: #0f172a;
+  background-color: var(--admin-primary-hover, #071c68);
+  color: #ffffff;
+  opacity: 0.95;
 }
 
 .od__header-actions {
@@ -110,6 +110,7 @@
   font-weight: 600;
   white-space: nowrap;
   box-sizing: border-box;
+  border: none !important;
 }
 
 .od__status-dot {
@@ -189,7 +190,7 @@
   gap: 5px;
   background: #f1f5f9;
   color: #475569;
-  border: 1px solid #e2e8f0;
+  border: none;
   border-radius: 6px;
   font-size: 11.5px;
   font-weight: 600;
@@ -292,7 +293,7 @@
   background-color: #f1f5f9;
   padding: 1px 7px;
   border-radius: 4px;
-  border: 1px solid #e2e8f0;
+  border: none;
   letter-spacing: 0.3px;
   display: inline-flex;
   align-items: center;
@@ -562,26 +563,29 @@
 }
 
 .od__btn-secondary {
-  background: #ffffff;
-  color: #475569;
-  border: 1px solid #cbd5e1;
+  background: var(--admin-primary, #0A2582);
+  color: #ffffff;
+  border: none;
   border-radius: 8px;
   padding: 9px 18px;
   font-size: 13px;
   font-weight: 600;
   cursor: pointer;
-  transition: all 0.15s ease;
+  transition: background-color 0.15s ease, opacity 0.15s ease;
   font-family: inherit;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
 }
 
 .od__btn-secondary:hover {
-  background: #f1f5f9;
-  color: #0f172a;
-  border-color: #94a3b8;
+  background: var(--admin-primary-hover, #071c68);
+  color: #ffffff;
+  opacity: 0.95;
 }
 
 .od__btn-primary {
-  background: #0f172a;
+  background: var(--admin-primary, #0A2582);
   color: #ffffff;
   border: none;
   border-radius: 8px;
@@ -589,7 +593,7 @@
   font-size: 13px;
   font-weight: 600;
   cursor: pointer;
-  transition: all 0.15s ease;
+  transition: background-color 0.15s ease, opacity 0.15s ease;
   font-family: inherit;
   display: inline-flex;
   align-items: center;
@@ -597,7 +601,8 @@
 }
 
 .od__btn-primary:hover:not(:disabled) {
-  background: #1e293b;
+  background: var(--admin-primary-hover, #071c68);
+  opacity: 0.95;
 }
 
 .od__btn-primary:disabled {
@@ -605,16 +610,23 @@
   cursor: not-allowed;
 }
 
+.od__icon-printed-green {
+  color: #22c55e !important;
+  stroke: #22c55e !important;
+  stroke-width: 3px !important;
+  filter: drop-shadow(0 0 1px rgba(34, 197, 94, 0.4));
+}
+
 .od__btn-sync {
-  background-color: #f8fafc;
-  color: #1d4ed8;
-  border: 1.5px solid #93c5fd;
+  background-color: var(--admin-primary, #0A2582);
+  color: #ffffff;
+  border: none;
   border-radius: 8px;
   padding: 8px 16px;
   font-size: 12.5px;
   font-weight: 600;
   cursor: pointer;
-  transition: all 0.15s ease;
+  transition: background-color 0.15s ease, opacity 0.15s ease;
   font-family: inherit;
   display: inline-flex;
   align-items: center;
@@ -622,14 +634,66 @@
 }
 
 .od__btn-sync:hover:not(:disabled) {
-  background-color: #eff6ff;
-  border-color: #3b82f6;
-  color: #1e40af;
+  background-color: var(--admin-primary-hover, #071c68);
+  color: #ffffff;
+  opacity: 0.95;
 }
 
 .od__btn-sync:disabled {
   opacity: 0.6;
   cursor: not-allowed;
+}
+
+.od__btn-blue {
+  background-color: var(--admin-primary, #0A2582) !important;
+  color: #ffffff !important;
+  border: none !important;
+  border-radius: 8px !important;
+  padding: 8px 16px !important;
+  font-size: 12.5px !important;
+  font-weight: 600 !important;
+  cursor: pointer !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  gap: 6px !important;
+  font-family: inherit !important;
+  transition: background-color 0.15s ease, opacity 0.15s ease !important;
+}
+
+.od__btn-blue:hover:not(:disabled) {
+  background-color: var(--admin-primary-hover, #071c68) !important;
+  opacity: 0.95 !important;
+}
+
+.od__btn-blue:disabled {
+  opacity: 0.65 !important;
+  cursor: not-allowed !important;
+}
+
+.od__btn-red {
+  background-color: #dc2626 !important;
+  color: #ffffff !important;
+  border: none !important;
+  border-radius: 8px !important;
+  padding: 8px 16px !important;
+  font-size: 12.5px !important;
+  font-weight: 600 !important;
+  cursor: pointer !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  gap: 6px !important;
+  font-family: inherit !important;
+  transition: background-color 0.15s ease, opacity 0.15s ease !important;
+}
+
+.od__btn-red:hover:not(:disabled) {
+  background-color: #b91c1c !important;
+  opacity: 0.95 !important;
+}
+
+.od__btn-red:disabled {
+  opacity: 0.65 !important;
+  cursor: not-allowed !important;
 }
 
 /* ── Thermal Invoice Modal ───────────────────────────────────────── */
@@ -733,18 +797,19 @@
 .inv__modal-close-btn {
   padding: 8px 16px;
   border-radius: 8px;
-  border: 1px solid #cbd5e1;
-  background: #ffffff;
-  color: #334155;
+  border: none;
+  background: var(--admin-primary, #0A2582);
+  color: #ffffff;
   font-size: 13px;
   font-weight: 600;
   cursor: pointer;
   font-family: inherit;
-  transition: all 0.15s ease;
+  transition: background-color 0.15s ease, opacity 0.15s ease;
 }
 
 .inv__modal-close-btn:hover {
-  background: #f1f5f9;
+  background: var(--admin-primary-hover, #071c68);
+  opacity: 0.95;
 }
 
 .inv__modal-print-btn {
@@ -753,18 +818,19 @@
   gap: 6px;
   padding: 8px 18px;
   border-radius: 8px;
-  background: #0f172a;
+  background: var(--admin-primary, #0A2582);
   color: #ffffff;
   border: none;
   font-size: 13px;
   font-weight: 600;
   cursor: pointer;
   font-family: inherit;
-  transition: all 0.15s ease;
+  transition: background-color 0.15s ease, opacity 0.15s ease;
 }
 
 .inv__modal-print-btn:hover:not(:disabled) {
-  background: #1e293b;
+  background: var(--admin-primary-hover, #071c68);
+  opacity: 0.95;
 }
 
 .inv__modal-print-btn:disabled {

@@ -234,36 +234,42 @@ Deno.serve(async (req: Request) => {
 
     // ─────────────────────────────────────────────────────────────
     // 5. Order does not exist yet in orders table.
-    // Atomically claim checkout session to ensure ONLY ONE order is created
-    // even if order.paid and payment.captured arrive concurrently!
+    // Ensure idempotency: check if already created by a concurrent webhook
     // ─────────────────────────────────────────────────────────────
-    console.log(`[Razorpay Webhook] Atomically claiming checkout session for ${razorpayOrderId}...`);
-    const { data: session, error: sessionErr } = await supabaseAdmin
-      .from("checkout_sessions")
-      .delete()
-      .eq("id", razorpayOrderId)
-      .select()
+    const { data: existingCheck } = await supabaseAdmin
+      .from("orders")
+      .select("*")
+      .or(`razorpay_order_id.eq.${razorpayOrderId},razorpay_payment_id.eq.${razorpayPaymentId}`)
       .maybeSingle();
 
-    if (sessionErr) {
-      console.error(`[Razorpay Webhook] Error querying checkout session for ${razorpayOrderId}:`, sessionErr);
-    }
-
-    if (!session) {
-      console.log(`[Razorpay Webhook] No checkout session found (or already processed) for ${razorpayOrderId}. Exiting.`);
-      return new Response(JSON.stringify({ ok: true, message: "Order already processed or session expired" }), {
+    if (existingCheck) {
+      console.log(`[Razorpay Webhook] Order #${existingCheck.id} already exists in orders table.`);
+      if (existingCheck.status !== "Paid") {
+        await supabaseAdmin
+          .from("orders")
+          .update({
+            status: "Paid",
+            payment: "Razorpay",
+            razorpay_payment_id: razorpayPaymentId,
+          })
+          .eq("id", existingCheck.id);
+      }
+      return new Response(JSON.stringify({ ok: true, message: `Order #${existingCheck.id} already processed` }), {
         status: 200,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
 
-    const userId = session.user_id || notes.user_id || null;
-    const addressId = session.address_id || (notes.address_id ? Number(notes.address_id) : null);
-    const amountInRupees = session.total_price || (paymentEntity?.amount ? Number(paymentEntity.amount) / 100 : 0);
-    const shippingFee = session.shipping_fee || 0;
-    const itemName = session.product_name || notes.product_name || "Online Order";
-    const quantity = session.quantity || 1;
+    const userId = notes.user_id || null;
+    const addressId = notes.address_id ? Number(notes.address_id) : null;
+    const amountInRupees = notes.total_price
+      ? Number(String(notes.total_price).replace(/[^0-9.]/g, ''))
+      : (paymentEntity?.amount ? Number(paymentEntity.amount) / 100 : 0);
+    const shippingFee = notes.shipping_fee ? Number(notes.shipping_fee) : 0;
+    const itemName = notes.product_name || "Online Order";
+    const quantity = notes.quantity ? Number(notes.quantity) : 1;
 
+    // Create the order strictly upon verified payment!
     const { data: newOrder, error: createErr } = await supabaseAdmin
       .from("orders")
       .insert({
@@ -292,20 +298,58 @@ Deno.serve(async (req: Request) => {
 
     console.log(`[Razorpay Webhook] Order #${newOrder.id} successfully created upon payment.`);
 
-    let orderItemsToInsert: any[] = [];
-    if (session.items && Array.isArray(session.items) && session.items.length > 0) {
-      orderItemsToInsert = session.items.map((item: any) => ({
-        order_id: newOrder.id,
-        product_id: item.productId,
-        product_name: item.name,
-        quantity: item.quantity,
-        price: item.price,
-        size: item.size,
-        color: item.color,
-        image_url: item.image,
-        sku: item.sku,
-      }));
+    // Extract product items directly from Razorpay notes
+    let rawItems: any[] = [];
+    if (notes.items_json) {
+      try {
+        rawItems = JSON.parse(notes.items_json);
+      } catch {}
+    }
+    if (rawItems.length === 0) {
+      for (let i = 1; i <= 10; i++) {
+        const itemVal = notes[`item_${i}`];
+        if (!itemVal) break;
+        try {
+          if (itemVal.startsWith("{")) {
+            rawItems.push(JSON.parse(itemVal));
+          } else {
+            const parts = itemVal.split(" | ");
+            const name = parts[0] || itemName;
+            let sku = null, size = null, color = null, qty = 1, price = 0;
+            parts.forEach((p: string) => {
+              if (p.startsWith("SKU:")) sku = p.replace("SKU:", "").trim();
+              if (p.startsWith("Size:")) size = p.replace("Size:", "").trim();
+              if (p.startsWith("Color:")) color = p.replace("Color:", "").trim();
+              if (p.startsWith("Qty:")) qty = Number(p.replace("Qty:", "").trim()) || 1;
+              if (p.startsWith("₹")) price = Number(p.replace("₹", "").trim()) || 0;
+            });
+            rawItems.push({ name, sku, size, color, quantity: qty, price });
+          }
+        } catch {}
+      }
+    }
 
+    if (rawItems.length === 0) {
+      rawItems.push({
+        name: itemName,
+        quantity: quantity,
+        price: Math.max(0, amountInRupees - shippingFee),
+      });
+    }
+
+    const orderItemsToInsert = rawItems.map((item: any) => ({
+      order_id: newOrder.id,
+      product_id: item.productId || item.product_id || item.p || null,
+      product_name: item.name || item.product_name || item.n || itemName,
+      quantity: item.quantity || item.qty || item.q || 1,
+      price: item.price || item.pr || 0,
+      size: item.size || item.s || null,
+      color: item.color || item.c || null,
+      sku: item.sku || null,
+      image_url: item.image || item.image_url || null,
+    }));
+
+    if (orderItemsToInsert.length > 0) {
       const { error: itemsErr } = await supabaseAdmin
         .from("order_items")
         .insert(orderItemsToInsert);

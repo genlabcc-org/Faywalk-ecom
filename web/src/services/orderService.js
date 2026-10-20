@@ -55,6 +55,35 @@ export const orderService = {
   },
 
   /**
+   * Retrieves a single address by its ID (supports address_id or id).
+   * @param {string|number} addressId 
+   * @returns {Promise<any>}
+   */
+  async getAddressById(addressId) {
+    if (!addressId) return null;
+    try {
+      // 1. Try matching by address_id
+      const { data, error } = await supabase
+        .from('addresses')
+        .select('*')
+        .eq('address_id', addressId)
+        .maybeSingle();
+      if (!error && data) return data;
+
+      // 2. Try matching by id (uuid or numeric)
+      const { data: dataById, error: errById } = await supabase
+        .from('addresses')
+        .select('*')
+        .eq('id', addressId)
+        .maybeSingle();
+      if (!errById && dataById) return dataById;
+    } catch (err) {
+      console.warn('orderService.getAddressById error:', err);
+    }
+    return null;
+  },
+
+  /**
    * Creates a new address for a user.
    * @param {object} addressData 
    * @returns {Promise<any>}

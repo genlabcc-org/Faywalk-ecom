@@ -5,6 +5,7 @@ import { supabase } from "../../lib/supabase";
 import { orderService } from "../../services/orderService";
 
 import { icarryService } from "../../services/icarryService";
+import { razorpayService } from "../../services/razorpayService";
 import { useStore } from "../../hooks/useStore";
 import Toast from "../../components/Toast";
 import ThermalInvoice from "../components/ThermalInvoice";
@@ -90,8 +91,20 @@ const IconCross = ({ size = 14, className = "" }) => (
   </svg>
 );
 
-const IconCheck = ({ size = 13, className = "" }) => (
-  <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className={className}>
+const IconCheck = ({ size = 13, className = "", color, stroke, style, strokeWidth = 2.5, ...props }) => (
+  <svg
+    width={size}
+    height={size}
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke={stroke || color || "currentColor"}
+    strokeWidth={strokeWidth}
+    strokeLinecap="round"
+    strokeLinejoin="round"
+    className={className}
+    style={{ ...style, color: stroke || color || style?.color }}
+    {...props}
+  >
     <polyline points="20 6 9 17 4 12" />
   </svg>
 );
@@ -123,7 +136,7 @@ const StatusBadge = ({ status }) => {
       style={{
         backgroundColor: cfg.bg,
         color: cfg.color,
-        border: `1px solid ${cfg.border || 'transparent'}`
+        border: 'none'
       }}
     >
       <span className="od__status-dot" style={{ backgroundColor: cfg.dot }} />
@@ -149,17 +162,59 @@ const parseAddressData = (raw) => {
   return parsed;
 };
 
+const isValidAddress = (addr) => {
+  if (!addr || typeof addr !== "object") return false;
+  return Boolean(
+    addr.address_line1 ||
+    addr.address_line ||
+    addr.line1 ||
+    addr.address ||
+    addr.flat ||
+    addr.street ||
+    addr.city ||
+    addr.state ||
+    addr.postal_code ||
+    addr.pincode ||
+    addr.phone_number ||
+    addr.phone
+  );
+};
+
 const getExistingOrderAddress = (orderObj) => {
   if (!orderObj) return null;
-  return (
-    parseAddressData(orderObj.addresses) ||
-    parseAddressData(orderObj.shipping_address) ||
-    parseAddressData(orderObj.address) ||
-    parseAddressData(orderObj.shipping_details) ||
-    parseAddressData(orderObj.destination) ||
-    parseAddressData(orderObj.customer?.address) ||
-    null
-  );
+  const candidates = [
+    parseAddressData(orderObj.addresses),
+    parseAddressData(orderObj.shipping_address),
+    parseAddressData(orderObj.address),
+    parseAddressData(orderObj.delivery_address),
+    parseAddressData(orderObj.shipping_details),
+    parseAddressData(orderObj.destination),
+    parseAddressData(orderObj.customer?.address),
+    parseAddressData(orderObj.customer_address),
+  ];
+  for (const c of candidates) {
+    if (isValidAddress(c)) return c;
+  }
+  if (
+    orderObj.address_line1 ||
+    orderObj.address_line ||
+    orderObj.city ||
+    orderObj.state ||
+    orderObj.postal_code ||
+    orderObj.pincode
+  ) {
+    return {
+      full_name: orderObj.full_name || orderObj.customer_name || orderObj.customer?.name,
+      phone_number: orderObj.phone_number || orderObj.phone || orderObj.customer_phone || orderObj.customer?.phone,
+      address_line1: orderObj.address_line1 || orderObj.address_line,
+      address_line2: orderObj.address_line2,
+      city: orderObj.city,
+      state: orderObj.state,
+      postal_code: orderObj.postal_code || orderObj.pincode,
+      country: orderObj.country || "India",
+    };
+  }
+  return null;
 };
 
 const OrderDetails = ({ order, onBack }) => {
@@ -226,6 +281,28 @@ const OrderDetails = ({ order, onBack }) => {
     };
   }, [order?.id]);
 
+  useEffect(() => {
+    const orderId = order?.id || currentOrder?.id;
+    if (!orderId || orderId === "ORD-UNKNOWN") return;
+
+    const loadFreshOrderStatus = async () => {
+      try {
+        const { data: dbOrder } = await supabase
+          .from("orders")
+          .select("invoice_printed")
+          .eq("id", orderId)
+          .maybeSingle();
+        if (dbOrder && (dbOrder.invoice_printed === true || dbOrder.invoice_printed === "true" || dbOrder.invoice_printed === 1)) {
+          setInvoicePrinted(true);
+          setCurrentOrder((prev) => ({ ...(prev || {}), invoice_printed: true }));
+        }
+      } catch (err) {
+        console.warn("Could not check fresh order invoice_printed:", err);
+      }
+    };
+    loadFreshOrderStatus();
+  }, [order?.id, currentOrder?.id]);
+
 
 
   const handleItemClick = async (item) => {
@@ -275,7 +352,7 @@ const OrderDetails = ({ order, onBack }) => {
 
   useEffect(() => {
     const existing = getExistingOrderAddress(o) || getExistingOrderAddress(order) || getExistingOrderAddress(currentOrder);
-    if (existing) {
+    if (isValidAddress(existing)) {
       setAddress(existing);
       return;
     }
@@ -285,10 +362,13 @@ const OrderDetails = ({ order, onBack }) => {
       try {
         setAddressLoading(true);
 
+        const targetAddressId = o?.address_id || order?.address_id || currentOrder?.address_id;
+        const targetUserId = o?.user_id || order?.user_id || currentOrder?.user_id;
+
         // Tier 1: Try fetching by address_id if order has one
-        if (o.address_id) {
-          const addrById = await orderService.getAddressById(o.address_id);
-          if (isMounted && addrById) {
+        if (targetAddressId) {
+          const addrById = await orderService.getAddressById(targetAddressId);
+          if (isMounted && isValidAddress(addrById)) {
             setAddress(addrById);
             setAddressLoading(false);
             return;
@@ -296,13 +376,13 @@ const OrderDetails = ({ order, onBack }) => {
         }
 
         // Tier 2: Try fetching by user_id
-        if (o.user_id) {
-          const userAddrs = await orderService.getAddresses(o.user_id);
+        if (targetUserId) {
+          const userAddrs = await orderService.getAddresses(targetUserId);
           if (isMounted && userAddrs && userAddrs.length > 0) {
-            const matched = (o.address_id && userAddrs.find(a => String(a.address_id) === String(o.address_id)))
+            const matched = (targetAddressId && userAddrs.find(a => String(a.address_id) === String(targetAddressId) || String(a.id) === String(targetAddressId)))
               || userAddrs.find(a => a.is_default)
               || userAddrs[0];
-            if (matched) {
+            if (isValidAddress(matched)) {
               setAddress(matched);
               setAddressLoading(false);
               return;
@@ -310,19 +390,25 @@ const OrderDetails = ({ order, onBack }) => {
           }
 
           // Fallback: Check users table
-          const { data: userRec } = await supabase
-            .from("users")
-            .select("address, phone, name")
-            .eq("id", o.user_id)
-            .maybeSingle();
-          if (isMounted && userRec?.address) {
-            setAddress(parseAddressData(userRec.address));
-            setAddressLoading(false);
-            return;
+          try {
+            const { data: userRec } = await supabase
+              .from("users")
+              .select("phone, name")
+              .eq("id", targetUserId)
+              .maybeSingle();
+            if (isMounted && userRec) {
+              setAddress((prev) => ({
+                ...prev,
+                full_name: prev?.full_name || userRec.name,
+                phone_number: prev?.phone_number || userRec.phone,
+              }));
+            }
+          } catch (uErr) {
+            console.warn("Could not query user record:", uErr);
           }
         }
 
-        if (isMounted && o.customer?.address) {
+        if (isMounted && isValidAddress(o?.customer?.address)) {
           setAddress(parseAddressData(o.customer.address));
         }
       } catch (err) {
@@ -339,7 +425,7 @@ const OrderDetails = ({ order, onBack }) => {
     return () => {
       isMounted = false;
     };
-  }, [o.id, o.address_id, o.user_id, o.addresses, o.shipping_address, o.address]);
+  }, [o?.id, o?.address_id, o?.user_id, o?.addresses, o?.shipping_address, o?.address, order, currentOrder]);
 
   const handleSaveNote = async () => {
     if (!o?.id) return;
@@ -358,14 +444,19 @@ const OrderDetails = ({ order, onBack }) => {
     if (printing) return;
     try {
       setPrinting(true);
+      // Immediately set printed state optimistically so green icon displays
+      setInvoicePrinted(true);
+      setCurrentOrder((prev) => ({ ...(prev || {}), invoice_printed: true }));
       await new Promise((res) => setTimeout(res, 250));
       window.print();
       // Mark as printed in Supabase
-      await orderService.markInvoicePrinted(o.id);
-      setInvoicePrinted(true);
+      if (o?.id) {
+        await orderService.markInvoicePrinted(o.id);
+      }
       showToast("Invoice printed successfully!", "success");
     } catch (err) {
-      showToast("Failed to mark invoice: " + err.message, "error");
+      console.warn("Notice updating invoice printed in DB:", err);
+      setInvoicePrinted(true);
     } finally {
       setTimeout(() => setPrinting(false), 1000);
     }
@@ -378,7 +469,7 @@ const OrderDetails = ({ order, onBack }) => {
         .from("orders")
         .select("*")
         .eq("id", o.id)
-        .single();
+        .maybeSingle();
       if (!error && refreshedOrder) {
         const { data: items } = await supabase
           .from("order_items")
@@ -443,29 +534,115 @@ const OrderDetails = ({ order, onBack }) => {
 
   const handleCancelShipment = async () => {
     if (!o?.id) return;
-    const confirmed = window.confirm(
-      "Are you sure you want to cancel this shipment with iCarry?\n\nWarning: Cancelling this shipment after courier assignment or pickup may incur Return to Origin (RTO) charges from the courier. Are you sure you want to proceed?"
+
+    const isCod =
+      (o?.payment || "").toString().toUpperCase() === "COD" ||
+      (o?.payment_method || "").toString().toUpperCase() === "COD";
+
+    const isOnline = !isCod && Boolean(
+      o?.razorpay_payment_id ||
+      o?.payment_id ||
+      (o?.payment || "").toString().toUpperCase() === "PAID" ||
+      (o?.payment || "").toString().toLowerCase().includes("razorpay") ||
+      (o?.payment_method || "").toString().toLowerCase().includes("razorpay") ||
+      (o?.payment_status || "").toString().toLowerCase() === "paid" ||
+      !isCod
     );
+
+    const promptMessage = isOnline
+      ? "Are you sure you want to cancel this order and process a full refund to the customer via Razorpay?\n\n• The payment will be refunded directly to the customer's original payment method via Razorpay.\n• Any active courier shipment booked with iCarry will also be cancelled.\n\nDo you want to proceed?"
+      : "Are you sure you want to cancel this shipment with iCarry?\n\nWarning: Cancelling this shipment after courier assignment or pickup may incur Return to Origin (RTO) charges from the courier. Are you sure you want to proceed?";
+
+    const confirmed = window.confirm(promptMessage);
     if (!confirmed) return;
 
     try {
       setCancellingShipment(true);
-      const res = await icarryService.cancel(o.id);
-      if (res && res.error) {
-        showToast("Failed to cancel shipment: " + res.error, "error");
-      } else {
+
+      // 1. If courier shipment was booked with iCarry, cancel with iCarry
+      // Only attempt if there is an actual shipment/waybill ID — delivery_status alone is not enough
+      const hasActualShipmentId = Boolean(
+        o.shipment_id ||
+        o.waybill ||
+        o.tracking_number ||
+        o.icarry_shipment_id ||
+        o.icarry_order_id
+      );
+
+      if (hasActualShipmentId) {
         try {
-          await supabase
-            .from("orders")
-            .update({ status: "Cancelled", delivery_status: "Cancelled" })
-            .eq("id", o.id);
-        } catch (dbErr) {
-          console.warn("Could not update order status in DB:", dbErr);
+          const res = await icarryService.cancel(o.id);
+          if (res && res.skipped) {
+            console.log("iCarry: No active shipment to cancel — skipping courier cancel.");
+          } else if (res && res.error) {
+            console.warn("iCarry shipment cancellation notice:", res.error);
+          }
+        } catch (shipErr) {
+          console.warn("Could not cancel iCarry shipment:", shipErr);
         }
+      }
+
+      // 2. If online payment, process Razorpay refund
+      if (isOnline) {
+        try {
+          const extraNotes = {};
+          if (o.item_name) extraNotes.product_name = String(o.item_name).slice(0, 255);
+          if (o.total_price) extraNotes.total_price = `₹${o.total_price}`;
+          if (displayFullName) extraNotes.customer_name = String(displayFullName).slice(0, 255);
+          if (resolvedAddress?.phone_number || resolvedAddress?.phone) {
+            extraNotes.customer_phone = String(resolvedAddress.phone_number || resolvedAddress.phone).slice(0, 40);
+          }
+
+          const refundRes = await razorpayService.refundOrder(o.id, "Admin cancellation & refund", extraNotes);
+          setCurrentOrder((prev) => ({
+            ...prev,
+            status: "Refund Completed",
+            delivery_status: "Cancelled",
+            payment_status: "refunded",
+          }));
+          showToast(
+            `Order cancelled & refunded successfully.${refundRes?.refundId ? ` (Refund ID: ${refundRes.refundId})` : ""}`,
+            "success"
+          );
+        } catch (refundErr) {
+          console.error("Razorpay refund error:", refundErr);
+          // If no payment ID on record, still allow cancellation
+          if (refundErr?.message && refundErr.message.includes("does not have a Razorpay payment ID")) {
+            await supabase
+              .from("orders")
+              .update({ status: "Cancelled", delivery_status: "Cancelled" })
+              .eq("id", o.id);
+            setCurrentOrder((prev) => ({
+              ...prev,
+              status: "Cancelled",
+              delivery_status: "Cancelled",
+            }));
+            showToast("Order cancelled (No Razorpay payment ID found on record to refund).", "warning");
+          } else {
+            showToast("Refund failed: " + refundErr.message, "error");
+            return;
+          }
+        }
+      } else {
+        // Standard cancellation for COD
+        await supabase
+          .from("orders")
+          .update({
+            status: "Cancelled",
+            delivery_status: "Cancelled",
+            payment_status: "cancelled",
+          })
+          .eq("id", o.id);
+        setCurrentOrder((prev) => ({
+          ...prev,
+          status: "Cancelled",
+          delivery_status: "Cancelled",
+          payment_status: "cancelled",
+        }));
         showToast("Shipment and order cancelled successfully.", "success");
       }
     } catch (err) {
-      showToast("Failed to cancel shipment: " + err.message, "error");
+      showToast("Failed to cancel: " + err.message, "error");
     } finally {
       // Refetch the order row on success/failure either way, so the panel always reflects true DB state
       await fetchFreshOrder();
@@ -473,60 +650,110 @@ const OrderDetails = ({ order, onBack }) => {
     }
   };
 
-  const handleRefreshTracking = async (silent = false) => {
+  const ICARRY_STATUS_MAP = {
+    1: "Pending Pickup",
+    2: "Processing",
+    3: "Shipped",
+    7: "Cancelled",
+    12: "Damaged",
+    14: "Lost",
+    16: "Cancelled",
+    21: "Delivered",
+    22: "In Transit",
+    23: "Returned to Origin",
+    24: "Manifested",
+    25: "Pickup Scheduled",
+    26: "Out For Delivery",
+    27: "Pending Return",
+  };
+
+  const handleRefreshTracking = async (silentParam = false) => {
     if (!o?.id) return;
+    const silent = silentParam === true;
     try {
       if (!silent) setTrackingLoading(true);
       const res = await icarryService.track(o.id);
       if (res && res.error) {
-        if (!silent) showToast("iCarry tracking note: " + res.error, "info");
+        if (!silent) showToast("iCarry tracking: " + res.error, "info");
       } else {
-        const newStatus =
+        const rawStatus =
           res?.shipment_status ||
           res?.current_status ||
           res?.delivery_status ||
           res?.status ||
-          res?.tracking_status;
+          res?.tracking_status ||
+          res?.status_code ||
+          res?.data?.status;
 
-        if (newStatus) {
-          try {
-            const updates = {
-              delivery_status: String(newStatus),
-            };
-            const sLower = String(newStatus).toLowerCase();
-            if (sLower.includes("cancel") || sLower === "voided" || sLower === "7" || sLower === "16") {
-              updates.status = "Cancelled";
-              updates.delivery_status = "Cancelled";
-            } else if (sLower === "delivered" || sLower === "21") {
-              updates.status = "Delivered";
-              updates.delivery_status = "Delivered";
-              updates.delivered_at = new Date().toISOString();
-            } else if (sLower === "shipped" || sLower === "3") {
+        let mappedStatus = rawStatus;
+        if (rawStatus !== null && rawStatus !== undefined && !isNaN(Number(rawStatus)) && Number(rawStatus) in ICARRY_STATUS_MAP) {
+          mappedStatus = ICARRY_STATUS_MAP[Number(rawStatus)];
+        }
+
+        const updates = {};
+        if (mappedStatus) {
+          updates.delivery_status = String(mappedStatus);
+          updates.icarry_status = String(mappedStatus);
+
+          const sLower = String(mappedStatus).toLowerCase();
+          if (sLower.includes("cancel") || sLower === "voided" || sLower === "7" || sLower === "16") {
+            updates.status = "Cancelled";
+            updates.delivery_status = "Cancelled";
+          } else if (sLower === "delivered" || sLower === "21") {
+            updates.status = "Delivered";
+            updates.delivery_status = "Delivered";
+            updates.delivered_at = new Date().toISOString();
+          } else if (sLower === "shipped" || sLower === "3" || sLower === "in transit" || sLower === "out for delivery") {
+            if (o.status !== "Delivered") {
               updates.status = "Shipped";
-              updates.delivery_status = "Shipped";
             }
-            if (updates.status !== o.status || updates.delivery_status !== o.delivery_status) {
-              await supabase
-                .from("orders")
-                .update(updates)
-                .eq("id", o.id);
-              await fetchFreshOrder();
-            }
+          }
+        }
+
+        if (res?.courier_name && !o.courier_name) {
+          updates.courier_name = res.courier_name;
+        }
+        if (res?.tracking_url && !o.tracking_url) {
+          updates.tracking_url = res.tracking_url;
+        }
+
+        if (Object.keys(updates).length > 0) {
+          try {
+            await supabase
+              .from("orders")
+              .update(updates)
+              .eq("id", o.id);
           } catch (dbErr) {
             console.warn("Could not save tracking status in DB:", dbErr);
           }
         }
-        if (!silent) showToast("iCarry shipment status synced successfully!", "success");
+
+        await fetchFreshOrder();
+        if (!silent) {
+          showToast(mappedStatus ? `iCarry status synced: ${mappedStatus}` : "iCarry shipment status synced successfully!", "success");
+        }
       }
     } catch (err) {
-      if (!silent) showToast("iCarry sync: " + (err.message || "Failed contacting iCarry"), "warning");
+      if (!silent) console.error("iCarry tracking error:", err);
+      else console.warn("iCarry auto-tracking skipped (silent):", err?.message || err);
+      await fetchFreshOrder();
+      if (!silent) {
+        showToast("iCarry sync: " + (err.message || "Failed contacting iCarry"), "warning");
+      }
     } finally {
       if (!silent) setTrackingLoading(false);
     }
   };
 
   useEffect(() => {
-    if (o?.id && (o.waybill || o.shipment_id) && o.delivery_status !== "Cancelled") {
+    const hasWaybillOrShipment = Boolean(
+      o?.waybill ||
+      o?.shipment_id ||
+      o?.icarry_awb ||
+      o?.icarry_shipment_id ||
+      o?.tracking_number
+    );
+    if (o?.id && hasWaybillOrShipment && o.delivery_status !== "Cancelled") {
       handleRefreshTracking(true);
     }
   }, [o?.id]);
@@ -733,12 +960,27 @@ const OrderDetails = ({ order, onBack }) => {
 
   const isOrderCancelled =
     (o?.status || "").toLowerCase().includes("cancel") ||
+    (o?.status || "").toLowerCase().includes("refund") ||
     (o?.delivery_status || "").toLowerCase().includes("cancel") ||
     (o?.delivery_status || "").toLowerCase() === "voided";
 
   const isDelivered =
     (o?.status || "").toLowerCase() === "delivered" ||
     (o?.delivery_status || "").toLowerCase() === "delivered";
+
+  const isCodOrder =
+    (o?.payment || "").toString().toUpperCase() === "COD" ||
+    (o?.payment_method || "").toString().toUpperCase() === "COD";
+
+  const hasOnlinePayment = !isCodOrder && Boolean(
+    o?.razorpay_payment_id ||
+    o?.payment_id ||
+    (o?.payment || "").toString().toUpperCase() === "PAID" ||
+    (o?.payment || "").toString().toLowerCase().includes("razorpay") ||
+    (o?.payment_method || "").toString().toLowerCase().includes("razorpay") ||
+    (o?.payment_status || "").toString().toLowerCase() === "paid" ||
+    !isCodOrder
+  );
 
   const timelineSteps = getTimelineSteps();
 
@@ -750,15 +992,22 @@ const OrderDetails = ({ order, onBack }) => {
     resolvedAddress?.full_name ||
     resolvedAddress?.name ||
     resolvedAddress?.customer_name ||
+    resolvedAddress?.recipient_name ||
+    resolvedAddress?.receiver_name ||
+    o.customer_name ||
     o.customer?.name ||
     "Customer";
 
   const displayLine1 =
     resolvedAddress?.address_line1 ||
+    resolvedAddress?.address_line ||
     resolvedAddress?.line1 ||
     resolvedAddress?.flat ||
     resolvedAddress?.street ||
+    resolvedAddress?.street_address ||
     resolvedAddress?.address ||
+    o.address_line1 ||
+    o.address_line ||
     "";
 
   const displayLine2 =
@@ -766,18 +1015,22 @@ const OrderDetails = ({ order, onBack }) => {
     resolvedAddress?.line2 ||
     resolvedAddress?.area ||
     resolvedAddress?.landmark ||
+    o.address_line2 ||
+    o.area ||
     "";
 
   const displayCity =
     resolvedAddress?.city ||
     resolvedAddress?.town ||
     resolvedAddress?.district ||
+    o.city ||
     "";
 
   const displayState =
     resolvedAddress?.state ||
     resolvedAddress?.province ||
     resolvedAddress?.region ||
+    o.state ||
     "";
 
   const displayPin =
@@ -787,6 +1040,8 @@ const OrderDetails = ({ order, onBack }) => {
     resolvedAddress?.zip ||
     resolvedAddress?.zipcode ||
     resolvedAddress?.postalCode ||
+    o.postal_code ||
+    o.pincode ||
     "";
 
   const displayCityStatePin = (() => {
@@ -797,18 +1052,43 @@ const OrderDetails = ({ order, onBack }) => {
     return "";
   })();
 
-  const displayCountry = resolvedAddress?.country || "India";
+  const displayCountry =
+    resolvedAddress?.country ||
+    o.country ||
+    "India";
 
   const displayPhone =
     resolvedAddress?.phone_number ||
     resolvedAddress?.phone ||
     resolvedAddress?.mobile ||
     resolvedAddress?.contact ||
+    o.customer_phone ||
+    o.phone ||
+    o.phone_number ||
     o.customer?.phone ||
     "";
 
   const hasAddressInfo = Boolean(
-    displayLine1 || displayLine2 || displayCityStatePin || (resolvedAddress && (displayCity || displayState || displayPin))
+    displayLine1 ||
+    displayLine2 ||
+    displayCity ||
+    displayState ||
+    displayPin ||
+    (resolvedAddress && typeof resolvedAddress === "string" && resolvedAddress.trim().length > 0) ||
+    (resolvedAddress && typeof resolvedAddress === "object" && Object.keys(resolvedAddress).length > 0)
+  );
+
+  const isInvoicePrinted = Boolean(
+    invoicePrinted ||
+    o?.invoice_printed === true ||
+    o?.invoice_printed === "true" ||
+    o?.invoice_printed === 1 ||
+    order?.invoice_printed === true ||
+    order?.invoice_printed === "true" ||
+    order?.invoice_printed === 1 ||
+    currentOrder?.invoice_printed === true ||
+    currentOrder?.invoice_printed === "true" ||
+    currentOrder?.invoice_printed === 1
   );
 
   return (
@@ -822,24 +1102,6 @@ const OrderDetails = ({ order, onBack }) => {
           </div>
 
           <div className="od__header-actions">
-            {(o.waybill || o.shipment_id || o.icarry_awb || o.icarry_shipment_id) && (
-              <button
-                onClick={handleRefreshTracking}
-                disabled={trackingLoading}
-                className="od__btn-sync admin-btn-with-spinner"
-                title="Sync live tracking update directly from iCarry"
-              >
-                {trackingLoading ? (
-                  <>
-                    <span className="admin-btn-spinner admin-btn-spinner--dark" /> Syncing iCarry...
-                  </>
-                ) : (
-                  <>
-                    <IconSync /> Sync iCarry
-                  </>
-                )}
-              </button>
-            )}
             <button
               className="od__btn-secondary"
               onClick={() => setShowInvoiceModal(true)}
@@ -855,10 +1117,23 @@ const OrderDetails = ({ order, onBack }) => {
                 <>
                   <span className="admin-btn-spinner" /> Printing...
                 </>
-              ) : invoicePrinted ? (
-                <><IconCheck /> Print Again (Printed)</>
+              ) : isInvoicePrinted ? (
+                <>
+                  <IconCheck
+                    size={16}
+                    color="#22c55e"
+                    stroke="#22c55e"
+                    strokeWidth={3}
+                    className="od__icon-printed-green"
+                    style={{ color: '#22c55e', stroke: '#22c55e' }}
+                  />
+                  <span>Print Again (Printed)</span>
+                </>
               ) : (
-                <><IconPrinter /> Print Invoice</>
+                <>
+                  <IconPrinter />
+                  <span>Print Invoice</span>
+                </>
               )}
             </button>
           </div>
@@ -1058,7 +1333,7 @@ const OrderDetails = ({ order, onBack }) => {
                 gap: '4px',
                 backgroundColor: (o.payment || '').toUpperCase() === 'PAID' || o.payment_id || o.razorpay_payment_id ? '#dcfce7' : '#fef3c7',
                 color: (o.payment || '').toUpperCase() === 'PAID' || o.payment_id || o.razorpay_payment_id ? '#15803d' : '#b45309',
-                border: `1px solid ${(o.payment || '').toUpperCase() === 'PAID' || o.payment_id || o.razorpay_payment_id ? '#bbf7d0' : '#fde68a'}`
+                border: 'none'
               }}
             >
               {(o.payment || '').toUpperCase() === 'PAID' || o.payment_id || o.razorpay_payment_id ? (
@@ -1084,7 +1359,7 @@ const OrderDetails = ({ order, onBack }) => {
                   fontWeight: '600',
                   backgroundColor: (o.payment || '').toLowerCase().includes('razorpay') || o.payment_id ? '#eff6ff' : '#f8fafc',
                   color: (o.payment || '').toLowerCase().includes('razorpay') || o.payment_id ? '#1d4ed8' : '#334155',
-                  border: `1px solid ${(o.payment || '').toLowerCase().includes('razorpay') || o.payment_id ? '#bfdbfe' : '#e2e8f0'}`
+                  border: 'none'
                 }}
               >
                 {o.payment || "Online Payment"}
@@ -1179,7 +1454,7 @@ const OrderDetails = ({ order, onBack }) => {
             {(o.delivery_status === 'Booking Failed' || o.shipment_error) && (
               <>
                 <span className="od__info-label" style={{ color: '#dc2626', fontWeight: '600' }}>Shipment Error</span>
-                <span className="od__info-value" style={{ color: '#dc2626', wordBreak: 'break-word', fontSize: '12.5px', background: '#fef2f2', padding: '6px 10px', borderRadius: '4px', border: '1px solid #fecaca' }}>
+                <span className="od__info-value" style={{ color: '#dc2626', wordBreak: 'break-word', fontSize: '12.5px', background: '#fef2f2', padding: '6px 10px', borderRadius: '4px', border: 'none' }}>
                   {o.shipment_error || "Carrier booking failed. Please check address details and retry booking."}
                 </span>
               </>
@@ -1195,14 +1470,14 @@ const OrderDetails = ({ order, onBack }) => {
           </div>
 
           {o.delivery_status?.toUpperCase()?.startsWith('NDR') && (
-            <div style={{ marginTop: '12px', padding: '9px 12px', background: '#fffbeb', border: '1px solid #fde68a', borderRadius: '6px', color: '#92400e', fontSize: '12.5px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <div style={{ marginTop: '12px', padding: '9px 12px', background: '#fffbeb', border: 'none', borderRadius: '6px', color: '#92400e', fontSize: '12.5px', display: 'flex', alignItems: 'center', gap: '8px' }}>
               <IconAlertTriangle size={15} />
               <span><strong>Delivery Exception (NDR):</strong> The carrier reported: <em>{o.delivery_status}</em>. Please review or coordinate with the customer.</span>
             </div>
           )}
 
           {o.delivery_status === 'Cancelled' && (
-            <div style={{ marginTop: '12px', padding: '9px 12px', background: '#fef2f2', border: '1px solid #fecaca', borderRadius: '6px', color: '#b91c1c', fontSize: '12.5px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <div style={{ marginTop: '12px', padding: '9px 12px', background: '#fef2f2', border: 'none', borderRadius: '6px', color: '#b91c1c', fontSize: '12.5px', display: 'flex', alignItems: 'center', gap: '8px' }}>
               <IconCross size={15} />
               <span><strong>Shipment Cancelled:</strong> The shipping order has been cancelled with the carrier.</span>
             </div>
@@ -1214,20 +1489,7 @@ const OrderDetails = ({ order, onBack }) => {
               <button
                 onClick={handleRetryBooking}
                 disabled={retryingBooking}
-                className="admin-btn-with-spinner"
-                style={{
-                  backgroundColor: (o.delivery_status === 'Booking Failed' || o.shipment_error) ? '#dc2626' : '#002277',
-                  color: '#fff',
-                  border: 'none',
-                  borderRadius: '6px',
-                  padding: '7px 14px',
-                  fontSize: '12.5px',
-                  fontWeight: '600',
-                  cursor: retryingBooking ? 'not-allowed' : 'pointer',
-                  display: 'inline-flex',
-                  alignItems: 'center',
-                  gap: '5px'
-                }}
+                className="od__btn-blue admin-btn-with-spinner"
               >
                 {retryingBooking ? (
                   <>
@@ -1245,24 +1507,11 @@ const OrderDetails = ({ order, onBack }) => {
               <button
                 onClick={handlePrintLabel}
                 disabled={loadingLabel}
-                className="admin-btn-with-spinner"
-                style={{
-                  backgroundColor: '#eff6ff',
-                  color: 'var(--admin-primary, #002277)',
-                  border: 'none',
-                  borderRadius: '8px',
-                  padding: '8px 16px',
-                  fontSize: '12.5px',
-                  fontWeight: '600',
-                  cursor: loadingLabel ? 'not-allowed' : 'pointer',
-                  display: 'inline-flex',
-                  alignItems: 'center',
-                  gap: '5px'
-                }}
+                className="od__btn-blue admin-btn-with-spinner"
               >
                 {loadingLabel ? (
                   <>
-                    <span className="admin-btn-spinner admin-btn-spinner--dark" /> Loading Label...
+                    <span className="admin-btn-spinner" /> Loading Label...
                   </>
                 ) : (
                   <>
@@ -1274,27 +1523,15 @@ const OrderDetails = ({ order, onBack }) => {
 
             {(o.waybill || o.shipment_id || o.icarry_awb || o.icarry_shipment_id) && (
               <button
-                onClick={handleRefreshTracking}
+                type="button"
+                onClick={() => handleRefreshTracking(false)}
                 disabled={trackingLoading}
-                className="admin-btn-with-spinner"
-                style={{
-                  backgroundColor: '#f8fafc',
-                  color: '#1d4ed8',
-                  border: '1px solid #bfdbfe',
-                  borderRadius: '8px',
-                  padding: '8px 16px',
-                  fontSize: '12.5px',
-                  fontWeight: '600',
-                  cursor: trackingLoading ? 'not-allowed' : 'pointer',
-                  display: 'inline-flex',
-                  alignItems: 'center',
-                  gap: '5px'
-                }}
+                className="od__btn-blue admin-btn-with-spinner"
                 title="Check live delivery tracking update directly from iCarry"
               >
                 {trackingLoading ? (
                   <>
-                    <span className="admin-btn-spinner admin-btn-spinner--dark" /> Syncing iCarry...
+                    <span className="admin-btn-spinner" /> Syncing iCarry...
                   </>
                 ) : (
                   <>
@@ -1308,24 +1545,17 @@ const OrderDetails = ({ order, onBack }) => {
               <button
                 onClick={handleCancelShipment}
                 disabled={cancellingShipment}
-                className="admin-btn-with-spinner"
-                style={{
-                  backgroundColor: '#fff',
-                  color: '#dc2626',
-                  border: '1px solid #fca5a5',
-                  borderRadius: '6px',
-                  padding: '7px 14px',
-                  fontSize: '12.5px',
-                  fontWeight: '600',
-                  cursor: cancellingShipment ? 'not-allowed' : 'pointer'
-                }}
+                className="od__btn-red admin-btn-with-spinner"
+                title={hasOnlinePayment ? "Cancel order & refund customer via Razorpay" : "Cancel shipment & order"}
               >
                 {cancellingShipment ? (
                   <>
-                    <span className="admin-btn-spinner admin-btn-spinner--dark" /> Cancelling...
+                    <span className="admin-btn-spinner" /> {hasOnlinePayment ? "Cancelling & Refunding..." : "Cancelling..."}
                   </>
                 ) : (
-                  'Cancel Shipment'
+                  <>
+                    <IconCross size={13} /> {hasOnlinePayment ? "Cancel and Refund" : "Cancel Shipment"}
+                  </>
                 )}
               </button>
             )}
@@ -1428,30 +1658,6 @@ const OrderDetails = ({ order, onBack }) => {
         </div>
       </div> */}
 
-      {/* Footer Actions */}
-      <div className="od__footer">
-        <button
-          className="od__btn-secondary"
-          onClick={() => setShowInvoiceModal(true)}
-        >
-          <IconEye /> Preview Invoice
-        </button>
-        <button
-          onClick={handlePrintInvoice}
-          disabled={printing}
-          className="od__btn-primary admin-btn-with-spinner"
-        >
-          {printing ? (
-            <>
-              <span className="admin-btn-spinner" /> Printing...
-            </>
-          ) : invoicePrinted ? (
-            <><IconCheck /> Print Again (Printed)</>
-          ) : (
-            <><IconPrinter /> Print Invoice</>
-          )}
-        </button>
-      </div>
 
       {/* Invoice Preview Modal — Teleported to document.body for full-screen centering */}
       {showInvoiceModal && typeof document !== "undefined" && createPortal(
@@ -1495,9 +1701,22 @@ const OrderDetails = ({ order, onBack }) => {
                   <>
                     <span className="admin-btn-spinner" /> Printing...
                   </>
+                ) : isInvoicePrinted ? (
+                  <>
+                    <IconCheck
+                      size={16}
+                      color="#22c55e"
+                      stroke="#22c55e"
+                      strokeWidth={3}
+                      className="od__icon-printed-green"
+                      style={{ color: '#22c55e', stroke: '#22c55e' }}
+                    />
+                    <span>Print Again (Printed)</span>
+                  </>
                 ) : (
                   <>
-                    <IconPrinter size={14} /> {invoicePrinted ? "Print Again" : "Print Invoice"}
+                    <IconPrinter size={14} />
+                    <span>Print Invoice</span>
                   </>
                 )}
               </button>

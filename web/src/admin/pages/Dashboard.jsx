@@ -209,7 +209,7 @@ const HIDE_ADD_PRODUCT_PATHS = [
 ];
 
 // ── Sub-Components ──────────────────────────────────────────────
-const StatCard = ({ label, value, trend, trendLabel, subtext, showTrend = true, loading }) => {
+const StatCard = ({ label, value, trend, trendLabel, subtext, showTrend = true, loading, onClick }) => {
   if (loading) {
     return (
       <div className="dc__stat-card skeleton-shimmer" style={{ minHeight: '136px', opacity: 0.85 }} />
@@ -217,7 +217,7 @@ const StatCard = ({ label, value, trend, trendLabel, subtext, showTrend = true, 
   }
 
   return (
-    <div className="dc__stat-card">
+    <div className="dc__stat-card" onClick={onClick} style={onClick ? { cursor: 'pointer' } : undefined}>
       <div className="dc__stat-header">
         <span className="dc__stat-label">{label}</span>
         <span className="dc__stat-arrow-icon">
@@ -946,30 +946,30 @@ const AddNewProductCard = ({ categories = [] }) => {
 };
 
 const DashboardHome = ({ orders = [], customers = [], products = [], categories = [], loading = false }) => {
+  const navigate = useNavigate();
+
   const stats = useMemo(() => {
     const totalOrders = orders.length;
 
-    const now = new Date();
-    const thisMonthOrders = orders.filter(o => {
-      const oDate = new Date(o.order_date);
-      return oDate.getMonth() === now.getMonth() && oDate.getFullYear() === now.getFullYear() && !['cancelled', 'returned'].includes(o.status?.toLowerCase());
+    // Real all-time total revenue from non-cancelled/non-returned orders
+    const validOrders = orders.filter((o) => {
+      const s = (o.status || "").toLowerCase().trim();
+      return !["cancelled", "returned"].includes(s);
     });
-    const revenue = thisMonthOrders.reduce((sum, o) => sum + Number(o.total_price || 0), 0);
-    const formatRevenue = (value) => {
-      if (value >= 100000) {
-        return `₹${(value / 100000).toFixed(1)}L`;
-      }
-      return `₹${Number(value).toLocaleString('en-IN')}`;
-    };
+
+    const revenue = validOrders.reduce((sum, o) => {
+      const val = Number(o.total_price ?? o.grandTotal ?? o.amount ?? 0);
+      return sum + (isNaN(val) ? 0 : val);
+    }, 0);
 
     const totalCustomers = customers.length;
     const totalProducts = products?.length || 0;
 
     return {
       totalOrders,
-      revenue: formatRevenue(revenue),
+      revenue: `₹${Math.round(revenue).toLocaleString("en-IN")}`,
       totalCustomers,
-      totalProducts
+      totalProducts,
     };
   }, [orders, customers, products]);
 
@@ -980,30 +980,30 @@ const DashboardHome = ({ orders = [], customers = [], products = [], categories 
         <StatCard
           label="Total Revenue"
           value={loading ? "—" : stats.revenue}
-          trend="10.6%"
-          trendLabel="From last week"
-          showTrend={true}
-          loading={loading}
-        />
-        <StatCard
-          label="Total Customer"
-          value={loading ? "—" : stats.totalCustomers}
-          trend="1.5%"
-          trendLabel="From last week"
-          showTrend={true}
-          loading={loading}
-        />
-        <StatCard
-          label="Pending Orders"
-          value={loading ? "—" : orders.filter(o => o.status?.toLowerCase() === 'pending').length}
           showTrend={false}
           loading={loading}
+          onClick={() => navigate("/admin/orders")}
+        />
+        <StatCard
+          label="Total Customers"
+          value={loading ? "—" : stats.totalCustomers.toLocaleString("en-IN")}
+          showTrend={false}
+          loading={loading}
+          onClick={() => navigate("/admin/customers")}
+        />
+        <StatCard
+          label="Total Orders"
+          value={loading ? "—" : stats.totalOrders.toLocaleString("en-IN")}
+          showTrend={false}
+          loading={loading}
+          onClick={() => navigate("/admin/orders")}
         />
         <StatCard
           label="Total Products"
-          value={loading ? "—" : stats.totalProducts}
+          value={loading ? "—" : stats.totalProducts.toLocaleString("en-IN")}
           showTrend={false}
           loading={loading}
+          onClick={() => navigate("/admin/products")}
         />
       </div>
 
@@ -1118,7 +1118,8 @@ const Dashboard = () => {
 
   const selectedOrderObj = useMemo(() => {
     if (!selectedOrder) return null;
-    return orders.find((o) => o.id === selectedOrder.id) || selectedOrder;
+    const fromOrders = orders.find((o) => o.id === selectedOrder.id);
+    return fromOrders ? { ...fromOrders, ...selectedOrder } : selectedOrder;
   }, [selectedOrder, orders]);
 
   const selectedCustomerObj = useMemo(() => {
@@ -1282,7 +1283,7 @@ const Dashboard = () => {
     if (currentPath === "/admin" || currentPath === "/admin/") return "Dashboard";
     if (currentPath === "/admin/analytics") return "Analytics";
 
-    if (currentPath === "/admin/products/add-multiple") return "Create Multiple Product";
+    if (currentPath === "/admin/products/add-multiple") return "Add Multiple Product";
     if (currentPath === "/admin/products/edit-multiple") return "Edit Multiple Product";
     if (currentPath === "/admin/products/add") return editingProduct ? "Edit Product" : "Add Product";
     if (currentPath.startsWith("/admin/products")) return "All Products";
@@ -1327,7 +1328,7 @@ const Dashboard = () => {
     }
 
     if (currentPath === "/admin/products/add-multiple") {
-      return "Create products with multiple variants, colors, and sizes";
+      return "Add products with multiple variants, colors, and sizes";
     }
     if (currentPath === "/admin/products/edit-multiple") {
       return "Edit product variants, inventory, and pricing";

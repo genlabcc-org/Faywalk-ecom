@@ -2,7 +2,7 @@
 import { createClient } from "npm:@supabase/supabase-js@2";
 import { handleCorsPreflight, corsHeaders } from "../_shared/cors.ts";
 import { icarryCall, ENDPOINTS } from "../_shared/icarry.ts";
-import { bookShipmentForOrder } from "../_shared/bookShipment.ts";
+import { bookShipmentForOrder, cancelShipmentForOrder } from "../_shared/bookShipment.ts";
 
 const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
 const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
@@ -14,15 +14,39 @@ const supabaseAdmin = createClient(supabaseUrl, supabaseServiceKey);
 const pincodeCache = new Map<string, { data: any; exp: number }>();
 
 /**
- * Checks if the given user ID belongs to public.users with role = 'admin'.
+ * Checks if the given user ID belongs to public.users with role = 'admin' (case-insensitive).
  */
-async function checkIsAdmin(userId: string): Promise<boolean> {
-  const { data } = await supabaseAdmin
-    .from("users")
-    .select("role")
-    .eq("id", userId)
-    .maybeSingle();
-  return data?.role === "admin";
+async function checkIsAdmin(user: any): Promise<boolean> {
+  if (!user) return false;
+  if (user.is_service_role) return true;
+  const userId = typeof user === "string" ? user : user.id;
+  try {
+    const { data, error } = await supabaseAdmin
+      .from("users")
+      .select("role")
+      .eq("id", userId)
+      .maybeSingle();
+
+    if (error) {
+      console.warn(`[iCarry] checkIsAdmin DB error for user ${userId}:`, error.message);
+    }
+
+    const role = (data?.role || "").toString().trim().toLowerCase();
+    console.log(`[iCarry] checkIsAdmin: userId=${userId}, dbRole='${data?.role}'`);
+    if (role === "admin" || role === "super admin" || role === "superadmin") {
+      return true;
+    }
+
+    // Also check auth.users metadata as fallback
+    const { data: authUser } = await supabaseAdmin.auth.admin.getUserById(userId);
+    const metaRole = (authUser?.user?.app_metadata?.role || authUser?.user?.user_metadata?.role || "").toString().trim().toLowerCase();
+    if (metaRole === "admin" || metaRole === "super admin" || metaRole === "superadmin") {
+      return true;
+    }
+  } catch (err) {
+    console.warn("[iCarry] Admin check exception:", err);
+  }
+  return false;
 }
 
 /**
@@ -30,12 +54,27 @@ async function checkIsAdmin(userId: string): Promise<boolean> {
  */
 async function getAuthenticatedUser(req: Request) {
   const authHeader = req.headers.get("Authorization");
-  if (!authHeader) return null;
+  if (!authHeader) {
+    console.warn("[iCarry Auth] Missing Authorization header");
+    return null;
+  }
   const token = authHeader.replace(/^Bearer\s+/i, "");
-  if (!token) return null;
+  if (!token) {
+    console.warn("[iCarry Auth] Empty Bearer token");
+    return null;
+  }
+
+  // If token is service role key, accept immediately
+  const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
+  if (serviceKey && token === serviceKey) {
+    return { id: "service_role", email: "system@supabase.internal", is_service_role: true };
+  }
 
   const { data: { user }, error } = await supabaseAdmin.auth.getUser(token);
-  if (error || !user) return null;
+  if (error || !user) {
+    console.warn("[iCarry Auth] getUser failed with token:", error?.message);
+    return null;
+  }
   return user;
 }
 
@@ -103,7 +142,7 @@ Deno.serve(async (req: Request) => {
       });
     }
 
-    const isAdmin = await checkIsAdmin(user.id);
+    const isAdmin = await checkIsAdmin(user);
 
     // ─────────────────────────────────────────────────────────────
     // 2. TRACK SHIPMENT (Logged-in user: own order only; Admin: any order)
@@ -129,6 +168,10 @@ Deno.serve(async (req: Request) => {
 
       const { data: order, error: orderErr } = await query.maybeSingle();
 
+      if (orderErr) {
+        console.warn(`[iCarry Track] Error querying order #${orderId}:`, orderErr.message);
+      }
+
       if (orderErr || !order) {
         return new Response(JSON.stringify({ error: "Order not found or access denied" }), {
           status: 404,
@@ -136,7 +179,10 @@ Deno.serve(async (req: Request) => {
         });
       }
 
-      if (!order.waybill && !order.shipment_id) {
+      const awb = order.waybill;
+      const shipmentId = order.shipment_id;
+
+      if (!awb && !shipmentId) {
         return new Response(JSON.stringify({
           error: "Shipment has not been booked or assigned a waybill yet",
           delivery_status: order.delivery_status,
@@ -147,8 +193,8 @@ Deno.serve(async (req: Request) => {
       }
 
       const trackPayload: Record<string, any> = {};
-      if (order.waybill) trackPayload.awb = order.waybill;
-      if (order.shipment_id) trackPayload.shipment_id = order.shipment_id;
+      if (awb) trackPayload.awb = awb;
+      if (shipmentId) trackPayload.shipment_id = shipmentId;
 
       const data = await icarryCall(ENDPOINTS.track, trackPayload);
       return new Response(JSON.stringify({
@@ -166,6 +212,7 @@ Deno.serve(async (req: Request) => {
     // ADMIN-ONLY ACTIONS: label, cancel, retryBooking
     // ─────────────────────────────────────────────────────────────
     if (!isAdmin) {
+      console.warn(`[iCarry] Admin access rejected for action '${action}' - userId=${user.id}, email=${user.email || 'N/A'}`);
       return new Response(JSON.stringify({ error: "Forbidden: Admin privileges required" }), {
         status: 403,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
@@ -200,36 +247,11 @@ Deno.serve(async (req: Request) => {
 
     // 4. CANCEL SHIPMENT (Admin only)
     if (action === "cancel") {
-      let shipmentId = payload.shipment_id;
-      let orderId = payload.orderId;
+      const orderId = payload.orderId;
+      const shipmentId = payload.shipment_id;
 
-      if (!shipmentId && orderId) {
-        const { data: order } = await supabaseAdmin
-          .from("orders")
-          .select("id, shipment_id")
-          .eq("id", orderId)
-          .maybeSingle();
-        shipmentId = order?.shipment_id;
-      }
-
-      if (!shipmentId) {
-        return new Response(JSON.stringify({ error: "Missing shipment_id for cancellation" }), {
-          status: 400,
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
-        });
-      }
-
-      const data = await icarryCall(ENDPOINTS.cancel, { shipment_id: shipmentId });
-
-      // On successful cancellation from iCarry, mark delivery_status = 'Cancelled' and status = 'Cancelled'
-      if (!data?.error) {
-        const updateQuery = orderId
-          ? supabaseAdmin.from("orders").update({ delivery_status: "Cancelled", status: "Cancelled" }).eq("id", orderId)
-          : supabaseAdmin.from("orders").update({ delivery_status: "Cancelled", status: "Cancelled" }).eq("shipment_id", shipmentId);
-        await updateQuery;
-      }
-
-      return new Response(JSON.stringify(data), {
+      const result = await cancelShipmentForOrder(supabaseAdmin, orderId, shipmentId);
+      return new Response(JSON.stringify(result), {
         status: 200,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
@@ -248,6 +270,159 @@ Deno.serve(async (req: Request) => {
       const result = await bookShipmentForOrder(supabaseAdmin, orderId);
       return new Response(JSON.stringify(result), {
         status: result.ok ? 200 : 400,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    // 6. PROCESS RAZORPAY REFUND (Admin only)
+    if (action === "refund") {
+      const orderId = String(payload.orderId ?? "").trim();
+      const reason = payload.reason || "Admin initiated cancellation & refund";
+      if (!orderId) {
+        return new Response(JSON.stringify({ error: "Missing orderId for refund" }), {
+          status: 400,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
+      const { data: order, error: orderErr } = await supabaseAdmin
+        .from("orders")
+        .select("*")
+        .eq("id", orderId)
+        .maybeSingle();
+
+      if (orderErr || !order) {
+        return new Response(JSON.stringify({ error: `Order #${orderId} not found` }), {
+          status: 400,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
+      const paymentId = order.razorpay_payment_id || order.payment_id;
+      if (!paymentId) {
+        return new Response(JSON.stringify({ error: `Order #${orderId} does not have a Razorpay payment ID` }), {
+          status: 400,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
+      const keyId = Deno.env.get("RAZORPAY_KEY_ID") || "";
+      const keySecret = Deno.env.get("RAZORPAY_KEY_SECRET") || "";
+      if (!keyId || !keySecret) {
+        return new Response(JSON.stringify({ error: "Razorpay credentials not configured" }), {
+          status: 500,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
+      // ── STEP 1: Cancel iCarry shipment BEFORE processing Razorpay refund ──
+      const cancelRes = await cancelShipmentForOrder(supabaseAdmin, orderId);
+      if (cancelRes?.error) {
+        console.warn(`[refund] iCarry cancel notice (continuing with refund): ${cancelRes.error}`);
+      } else if (cancelRes?.skipped) {
+        console.log(`[refund] No active iCarry shipment for order ${orderId} — courier cancel skipped.`);
+      } else {
+        console.log(`[refund] iCarry shipment cancelled successfully before refund.`);
+      }
+
+      const { data: items } = await supabaseAdmin
+        .from("order_items")
+        .select("*")
+        .eq("order_id", orderId);
+
+      // 2. Fetch customer address info if available
+      let customerName = "";
+      let customerPhone = "";
+      if (order.address_id) {
+        try {
+          const { data: addr } = await supabaseAdmin
+            .from("addresses")
+            .select("name, full_name, phone, phone_number")
+            .eq("address_id", Number(order.address_id))
+            .maybeSingle();
+          if (addr) {
+            customerName = addr.full_name || addr.name || "";
+            customerPhone = addr.phone_number || addr.phone || "";
+          }
+        } catch { }
+      }
+
+      // 3. Build comprehensive notes object for Razorpay refund
+      const refundNotes: Record<string, string> = {
+        order_id: String(orderId).slice(0, 40),
+        reason: String(reason || "Admin requested refund & cancellation").slice(0, 255),
+        order_amount: `₹${order.total_price || order.total_amount || 0}`,
+      };
+
+      if (customerName) refundNotes.customer_name = customerName.slice(0, 255);
+      if (customerPhone) refundNotes.customer_phone = customerPhone.slice(0, 40);
+
+      const orderItems = (items && items.length > 0) ? items : (Array.isArray(order.items) ? order.items : []);
+      if (orderItems.length > 0) {
+        refundNotes.total_items = String(orderItems.length);
+        const productSummary = orderItems
+          .map((it: any) => `${it.product_name || it.name || 'Item'}${it.size ? ` (${it.size})` : ''} x${it.quantity || 1}`)
+          .join(', ');
+        refundNotes.product_details = productSummary.slice(0, 255);
+
+        orderItems.slice(0, 4).forEach((it: any, idx: number) => {
+          const itemStr = [
+            it.product_name || it.name,
+            it.sku ? `SKU:${it.sku}` : '',
+            it.size ? `Size:${it.size}` : '',
+            it.color ? `Color:${it.color}` : '',
+            `Qty:${it.quantity || 1}`,
+            it.price ? `₹${it.price}` : '',
+          ].filter(Boolean).join(' | ');
+          refundNotes[`item_${idx + 1}`] = itemStr.slice(0, 255);
+        });
+      } else if (order.item_name) {
+        refundNotes.product_details = `${order.item_name} (Qty: ${order.quantity || 1})`.slice(0, 255);
+      }
+
+      const basicAuth = btoa(`${keyId}:${keySecret}`);
+      const rzpRes = await fetch(`https://api.razorpay.com/v1/payments/${paymentId}/refund`, {
+        method: "POST",
+        headers: {
+          Authorization: `Basic ${basicAuth}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          reverse_all: 1,
+          notes: refundNotes,
+        }),
+      });
+
+      if (!rzpRes.ok) {
+        const errText = await rzpRes.text();
+        let errMsg = errText;
+        try {
+          const j = JSON.parse(errText);
+          errMsg = j.error?.description || j.error?.message || errText;
+        } catch { }
+        return new Response(JSON.stringify({ error: `Razorpay refund failed: ${errMsg}` }), {
+          status: 400,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
+      const refundData = await rzpRes.json();
+
+      const updatePayload: Record<string, any> = {
+        status: "Refund Completed",
+        delivery_status: "Cancelled",
+      };
+      if (order.payment_status !== undefined) updatePayload.payment_status = "refunded";
+      if (order.notes !== undefined) updatePayload.notes = order.notes ? `${order.notes} | Refunded via Razorpay (${refundData?.id})` : `Refunded via Razorpay (${refundData?.id})`;
+
+      await supabaseAdmin.from("orders").update(updatePayload).eq("id", orderId);
+
+      return new Response(JSON.stringify({
+        success: true,
+        refundId: refundData?.id,
+        refund: refundData,
+      }), {
+        status: 200,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }

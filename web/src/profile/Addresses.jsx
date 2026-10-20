@@ -45,6 +45,7 @@ export default function Addresses() {
   });
 
   const [editingAddressId, setEditingAddressId] = useState(null);
+  const [showForm, setShowForm] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const formRef = useRef(null);
   const nameInputRef = useRef(null);
@@ -75,7 +76,7 @@ export default function Addresses() {
     }
   }, [user]);
 
-  const handleScrollToAdd = () => {
+  const handleOpenAddForm = () => {
     setEditingAddressId(null);
     setForm({
       name: user?.user_metadata?.name || "",
@@ -88,10 +89,11 @@ export default function Addresses() {
       state: "Gujarat",
       isDefault: addresses.length === 0,
     });
-    formRef.current?.scrollIntoView({ behavior: "smooth" });
+    setShowForm(true);
     setTimeout(() => {
+      formRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
       nameInputRef.current?.focus();
-    }, 250);
+    }, 100);
   };
 
   const handleEditClick = (addr) => {
@@ -107,13 +109,15 @@ export default function Addresses() {
       state: addr.state || "Gujarat",
       isDefault: Boolean(addr.is_default),
     });
-    formRef.current?.scrollIntoView({ behavior: "smooth" });
+    setShowForm(true);
     setTimeout(() => {
+      formRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
       nameInputRef.current?.focus();
-    }, 250);
+    }, 100);
   };
 
-  const handleCancelEdit = () => {
+  const handleCancelForm = () => {
+    setShowForm(false);
     setEditingAddressId(null);
     setForm({
       name: user?.user_metadata?.name || "",
@@ -171,6 +175,7 @@ export default function Addresses() {
       }
 
       await fetchAddresses(user.id, { force: true });
+      setShowForm(false);
       setEditingAddressId(null);
       setForm({
         name: "",
@@ -196,7 +201,7 @@ export default function Addresses() {
       await orderService.deleteAddress(id, user.id);
       await fetchAddresses(user.id, { force: true });
       if (editingAddressId === id) {
-        handleCancelEdit();
+        handleCancelForm();
       }
     } catch (err) {
       alert("Failed to delete address: " + err.message);
@@ -220,16 +225,33 @@ export default function Addresses() {
         <button
           type="button"
           className="addr-top-add-btn"
-          onClick={handleScrollToAdd}
+          onClick={() => {
+            if (showForm && !editingAddressId) {
+              handleCancelForm();
+            } else {
+              handleOpenAddForm();
+            }
+          }}
         >
-          Add
+          {showForm && !editingAddressId ? "Cancel" : "Add"}
         </button>
       </div>
 
       {/* ── SAVED ADDRESSES GRID ── */}
       {addresses.length === 0 ? (
         <div className="addr-empty-state">
-          No addresses saved yet. Click "Add" to save your delivery address.
+          <p className="addr-empty-text">
+            No addresses saved yet. Click "Add" to save your delivery address.
+          </p>
+          {!showForm && (
+            <button
+              type="button"
+              className="addr-empty-add-btn"
+              onClick={handleOpenAddForm}
+            >
+              + Add Address
+            </button>
+          )}
         </div>
       ) : (
         <div className="addr-saved-grid">
@@ -320,173 +342,183 @@ export default function Addresses() {
         </div>
       )}
 
-      {/* ── ADD A NEW ADDRESS FORM CARD ── */}
-      <div className="addr-form-card" ref={formRef}>
-        <h3 className="addr-form-title">
-          {editingAddressId ? "Edit address" : "Add a new address"}
-        </h3>
-
-        <form onSubmit={handleSubmit}>
-          <div className="addr-field">
-            <label className="addr-label">Name</label>
-            <input
-              ref={nameInputRef}
-              className="addr-input"
-              placeholder="Krishnil Bhojani"
-              value={form.name}
-              onChange={(e) => handleFormChange("name", e.target.value)}
-            />
-          </div>
-
-          <div className="addr-field">
-            <label className="addr-label">Email Address</label>
-            <input
-              className="addr-input"
-              type="email"
-              placeholder="krishnil@omegaorion.com"
-              value={form.email}
-              onChange={(e) => handleFormChange("email", e.target.value)}
-            />
-          </div>
-
-          <div className="addr-field">
-            <label className="addr-label">Mobile Number</label>
-            <input
-              className="addr-input"
-              type="tel"
-              placeholder="(+91) 8758211686"
-              value={form.mobile}
-              onChange={(e) => handleFormChange("mobile", e.target.value)}
-            />
-          </div>
-
-          <div className="addr-field">
-            <label className="addr-label">
-              Flat, House no., Building, Company, Apartment
-            </label>
-            <input
-              className="addr-input"
-              placeholder="A-01 Sun Pharma Road, Ahmedabad, Gujarat-390023"
-              value={form.flat}
-              onChange={(e) => handleFormChange("flat", e.target.value)}
-            />
-          </div>
-
-          <div className="addr-field">
-            <label className="addr-label">
-              Area, Colony, Street, Sector, Village
-            </label>
-            <input
-              className="addr-input"
-              placeholder="Sun Pharma Road"
-              value={form.area}
-              onChange={(e) => handleFormChange("area", e.target.value)}
-            />
-          </div>
-
-          <div className="addr-field">
-            <label className="addr-label">City</label>
-            <input
-              className="addr-input"
-              placeholder="Ahmedabad"
-              value={form.city}
-              onChange={(e) => handleFormChange("city", e.target.value)}
-            />
-          </div>
-
-          <div className="addr-field">
-            <label className="addr-label">Pin Code</label>
-            <input
-              className="addr-input"
-              placeholder="390021"
-              value={form.pinCode}
-              onChange={(e) => handleFormChange("pinCode", e.target.value)}
-            />
-          </div>
-
-          <div className="addr-field">
-            <label className="addr-label">State</label>
-            <div className="addr-select-wrap">
-              <select
-                className="addr-select"
-                value={form.state}
-                onChange={(e) => handleFormChange("state", e.target.value)}
-              >
-                {STATES.map((s) => (
-                  <option key={s} value={s}>
-                    {s}
-                  </option>
-                ))}
-              </select>
-              <svg
-                className="addr-select-chevron"
-                width="14"
-                height="14"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="2.5"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-              >
-                <polyline points="6 9 12 15 18 9" />
-              </svg>
-            </div>
-          </div>
-
-          <div
-            className="addr-checkbox-row"
-            onClick={() => handleFormChange("isDefault", !form.isDefault)}
-          >
+      {/* ── ADD / EDIT ADDRESS FORM CARD ── */}
+      {showForm && (
+        <div className="addr-form-card" ref={formRef}>
+          <div className="addr-form-header">
+            <h3 className="addr-form-title">
+              {editingAddressId ? "Edit address" : "Add a new address"}
+            </h3>
             <button
               type="button"
-              className={`addr-custom-checkbox${form.isDefault ? " addr-custom-checkbox--checked" : ""}`}
-              aria-label="Use as my default address"
+              className="addr-form-close-btn"
+              onClick={handleCancelForm}
+              aria-label="Close form"
             >
-              {form.isDefault && (
+              ✕
+            </button>
+          </div>
+
+          <form onSubmit={handleSubmit}>
+            <div className="addr-field">
+              <label className="addr-label">Name</label>
+              <input
+                ref={nameInputRef}
+                className="addr-input"
+                placeholder="Krishnil Bhojani"
+                value={form.name}
+                onChange={(e) => handleFormChange("name", e.target.value)}
+              />
+            </div>
+
+            <div className="addr-field">
+              <label className="addr-label">Email Address</label>
+              <input
+                className="addr-input"
+                type="email"
+                placeholder="krishnil@omegaorion.com"
+                value={form.email}
+                onChange={(e) => handleFormChange("email", e.target.value)}
+              />
+            </div>
+
+            <div className="addr-field">
+              <label className="addr-label">Mobile Number</label>
+              <input
+                className="addr-input"
+                type="tel"
+                placeholder="(+91) 8758211686"
+                value={form.mobile}
+                onChange={(e) => handleFormChange("mobile", e.target.value)}
+              />
+            </div>
+
+            <div className="addr-field">
+              <label className="addr-label">
+                Flat, House no., Building, Company, Apartment
+              </label>
+              <input
+                className="addr-input"
+                placeholder="A-01 Sun Pharma Road, Ahmedabad, Gujarat-390023"
+                value={form.flat}
+                onChange={(e) => handleFormChange("flat", e.target.value)}
+              />
+            </div>
+
+            <div className="addr-field">
+              <label className="addr-label">
+                Area, Colony, Street, Sector, Village
+              </label>
+              <input
+                className="addr-input"
+                placeholder="Sun Pharma Road"
+                value={form.area}
+                onChange={(e) => handleFormChange("area", e.target.value)}
+              />
+            </div>
+
+            <div className="addr-field">
+              <label className="addr-label">City</label>
+              <input
+                className="addr-input"
+                placeholder="Ahmedabad"
+                value={form.city}
+                onChange={(e) => handleFormChange("city", e.target.value)}
+              />
+            </div>
+
+            <div className="addr-field">
+              <label className="addr-label">Pin Code</label>
+              <input
+                className="addr-input"
+                placeholder="390021"
+                value={form.pinCode}
+                onChange={(e) => handleFormChange("pinCode", e.target.value)}
+              />
+            </div>
+
+            <div className="addr-field">
+              <label className="addr-label">State</label>
+              <div className="addr-select-wrap">
+                <select
+                  className="addr-select"
+                  value={form.state}
+                  onChange={(e) => handleFormChange("state", e.target.value)}
+                >
+                  {STATES.map((s) => (
+                    <option key={s} value={s}>
+                      {s}
+                    </option>
+                  ))}
+                </select>
                 <svg
-                  width="11"
-                  height="11"
+                  className="addr-select-chevron"
+                  width="14"
+                  height="14"
                   viewBox="0 0 24 24"
                   fill="none"
-                  stroke="#ffffff"
-                  strokeWidth="3.5"
+                  stroke="currentColor"
+                  strokeWidth="2.5"
                   strokeLinecap="round"
                   strokeLinejoin="round"
                 >
-                  <polyline points="20 6 9 17 4 12" />
+                  <polyline points="6 9 12 15 18 9" />
                 </svg>
-              )}
-            </button>
-            <span className="addr-check-label">
-              Use as my default address
-            </span>
-          </div>
+              </div>
+            </div>
 
-          <div className="addr-form-actions">
-            <button
-              type="submit"
-              className="addr-add-btn"
-              disabled={isSubmitting}
+            <div
+              className="addr-checkbox-row"
+              onClick={() => handleFormChange("isDefault", !form.isDefault)}
             >
-              {isSubmitting
-                ? "Saving..."
-                : editingAddressId
-                ? "Update Address"
-                : "Add New Address"}
-            </button>
-            {editingAddressId && (
+              <button
+                type="button"
+                className={`addr-custom-checkbox${form.isDefault ? " addr-custom-checkbox--checked" : ""}`}
+                aria-label="Use as my default address"
+              >
+                {form.isDefault && (
+                  <svg
+                    width="11"
+                    height="11"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="#ffffff"
+                    strokeWidth="3.5"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  >
+                    <polyline points="20 6 9 17 4 12" />
+                  </svg>
+                )}
+              </button>
+              <span className="addr-check-label">
+                Use as my default address
+              </span>
+            </div>
+
+            <div className="addr-form-actions">
+              <button
+                type="submit"
+                className="addr-add-btn"
+                disabled={isSubmitting}
+              >
+                {isSubmitting
+                  ? "Saving..."
+                  : editingAddressId
+                  ? "Update Address"
+                  : "Add New Address"}
+              </button>
               <button
                 type="button"
                 className="addr-cancel-btn"
-                onClick={handleCancelEdit}
+                onClick={handleCancelForm}
               >
                 Cancel
               </button>
-            )}
-          </div>
-        </form>
-      </div>
+            </div>
+          </form>
+        </div>
+      )}
     </ProfileLayout>
   );
 }

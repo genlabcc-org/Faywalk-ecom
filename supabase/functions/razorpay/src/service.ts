@@ -1,6 +1,7 @@
 import { SupabaseClient } from "@supabase/supabase-js";
 import { RazorpayClient } from "./client.ts";
 import { Product, Order } from "../../_shared/types.ts";
+import { cancelShipmentForOrder } from "../../_shared/bookShipment.ts";
 
 /** Normalise a state name for comparison (same logic as the frontend). */
 function normState(s: string | null | undefined): string {
@@ -195,18 +196,7 @@ export class RazorpayService {
       ? `${mainItem?.name || 'Product'} + ${resolvedItemDetails.length - 1} other(s)`
       : mainItem?.name || "Faywalk Order";
 
-    // 3. Create order on Razorpay
-    const receiptId = `receipt_order_${Date.now()}`;
-    const notes: Record<string, string> = {
-      product_name: productName,
-      user_id: String(input.userId),
-    };
-    if (input.addressId) {
-      notes.address_id = String(input.addressId);
-    }
-    const rzOrder = await this.client.createOrder(amountInPaise, receiptId, notes);
-
-    // 4. Verify address ownership
+    // 3. Verify address ownership
     let safeAddressId: number | null = null;
     if (input.addressId) {
       try {
@@ -223,29 +213,61 @@ export class RazorpayService {
       }
     }
 
-    // 5. Store pending checkout session metadata in checkout_sessions table
-    // The orders table is kept completely clean of unpaid/abandoned checkouts.
-    // The order and order_items are created strictly upon verified payment via the Razorpay webhook.
-    try {
-      const { error: sessionError } = await this.supabaseAdmin
-        .from("checkout_sessions")
-        .upsert({
-          id: rzOrder.id,
-          user_id: input.userId,
-          address_id: safeAddressId,
-          product_name: productName,
-          quantity: resolvedItemDetails.reduce((sum, item) => sum + item.quantity, 0),
-          total_price: grandTotal,
-          shipping_fee: shipping,
-          items: resolvedItemDetails,
-        });
+    // 4. Create order on Razorpay with complete order & product metadata in notes
+    // No temporary database table (checkout_sessions) is needed; all order data is securely held
+    // in Razorpay's verified notes and retrieved upon payment verification by the webhook.
+    const receiptId = `receipt_order_${Date.now()}`;
+    const totalQty = resolvedItemDetails.reduce((sum, item) => sum + item.quantity, 0);
 
-      if (sessionError) {
-        console.warn("[Razorpay] Warning: Failed to save checkout session:", sessionError.message);
-      }
-    } catch (dbEx) {
-      console.warn("[Razorpay] Error saving checkout session:", dbEx);
+    const notes: Record<string, string> = {
+      product_name: productName.slice(0, 255),
+      user_id: String(input.userId).slice(0, 40),
+      total_items: String(resolvedItemDetails.length),
+      quantity: String(totalQty),
+      total_price: String(grandTotal),
+      shipping_fee: String(shipping),
+    };
+
+    if (safeAddressId) {
+      notes.address_id = String(safeAddressId).slice(0, 40);
     }
+    if (input.discountCode) {
+      notes.discount_code = String(input.discountCode).slice(0, 40);
+    }
+
+    // Summary of products
+    const productSummary = resolvedItemDetails
+      .map(item => `${item.name}${item.size ? ` (${item.size})` : ''} x${item.quantity}`)
+      .join(', ');
+    notes.product_details = productSummary.slice(0, 255);
+
+    // Compact item JSON for webhook order_items creation
+    const compactItems = resolvedItemDetails.map(it => ({
+      p: it.productId,
+      n: it.name,
+      q: it.quantity,
+      pr: it.price,
+      s: it.size || undefined,
+      c: it.color || undefined,
+      sku: it.sku || undefined,
+    }));
+    const compactJson = JSON.stringify(compactItems);
+    if (compactJson.length <= 250) {
+      notes.items_json = compactJson;
+    } else {
+      resolvedItemDetails.slice(0, 4).forEach((it, idx) => {
+        notes[`item_${idx + 1}`] = JSON.stringify({
+          p: it.productId,
+          n: it.name.slice(0, 50),
+          q: it.quantity,
+          pr: it.price,
+          s: it.size || undefined,
+          sku: it.sku || undefined,
+        }).slice(0, 255);
+      });
+    }
+
+    const rzOrder = await this.client.createOrder(amountInPaise, receiptId, notes);
 
     return {
       orderId: rzOrder.id,
@@ -450,5 +472,124 @@ export class RazorpayService {
     // Note: Shipment booking and confirmation emails are strictly managed by razorpay-webhook to prevent duplicate bookings.
 
     return order;
+  }
+
+  async refundOrder(orderId: string | number, reason?: string): Promise<{ success: boolean; refundId?: string; refund: any; order: any }> {
+    const { data: order, error: orderErr } = await this.supabaseAdmin
+      .from("orders")
+      .select("*")
+      .eq("id", orderId)
+      .maybeSingle();
+
+    if (orderErr || !order) {
+      throw new Error(`Order #${orderId} not found`);
+    }
+
+    const paymentId = order.razorpay_payment_id || order.payment_id;
+    if (!paymentId) {
+      throw new Error(`Order #${orderId} does not have a Razorpay payment ID`);
+    }
+
+    // 0. First cancel any active courier shipment with iCarry BEFORE refunding via Razorpay
+    try {
+      console.log(`[refundOrder] Cancelling iCarry shipment for order #${orderId} before Razorpay refund...`);
+      const cancelRes = await cancelShipmentForOrder(this.supabaseAdmin, String(orderId));
+      if (cancelRes?.error) {
+        console.warn(`[refundOrder] iCarry cancel warning: ${cancelRes.error}`);
+      } else if (cancelRes?.skipped) {
+        console.log(`[refundOrder] No active iCarry shipment for order #${orderId} — courier cancel skipped.`);
+      } else {
+        console.log(`[refundOrder] iCarry shipment cancelled successfully before refund.`);
+      }
+    } catch (cancelErr) {
+      console.warn(`[refundOrder] Non-fatal exception cancelling iCarry shipment:`, cancelErr);
+    }
+
+    // 1. Fetch order items for product details
+    const { data: items } = await this.supabaseAdmin
+      .from("order_items")
+      .select("*")
+      .eq("order_id", orderId);
+
+    // 2. Fetch customer address info if available
+    let customerName = "";
+    let customerPhone = "";
+    if (order.address_id) {
+      try {
+        const { data: addr } = await this.supabaseAdmin
+          .from("addresses")
+          .select("name, full_name, phone, phone_number")
+          .eq("address_id", Number(order.address_id))
+          .maybeSingle();
+        if (addr) {
+          customerName = addr.full_name || addr.name || "";
+          customerPhone = addr.phone_number || addr.phone || "";
+        }
+      } catch { }
+    }
+
+    // 3. Build comprehensive notes object for Razorpay refund
+    const refundNotes: Record<string, string> = {
+      order_id: String(orderId).slice(0, 40),
+      reason: String(reason || "Admin requested refund & cancellation").slice(0, 255),
+      order_amount: `₹${order.total_price || order.total_amount || 0}`,
+    };
+
+    if (customerName) refundNotes.customer_name = customerName.slice(0, 255);
+    if (customerPhone) refundNotes.customer_phone = customerPhone.slice(0, 40);
+
+    const orderItems = (items && items.length > 0) ? items : (Array.isArray(order.items) ? order.items : []);
+    if (orderItems.length > 0) {
+      refundNotes.total_items = String(orderItems.length);
+      const productSummary = orderItems
+        .map((it: any) => `${it.product_name || it.name || 'Item'}${it.size ? ` (${it.size})` : ''} x${it.quantity || 1}`)
+        .join(', ');
+      refundNotes.product_details = productSummary.slice(0, 255);
+
+      orderItems.slice(0, 4).forEach((it: any, idx: number) => {
+        const itemStr = [
+          it.product_name || it.name,
+          it.sku ? `SKU:${it.sku}` : '',
+          it.size ? `Size:${it.size}` : '',
+          it.color ? `Color:${it.color}` : '',
+          `Qty:${it.quantity || 1}`,
+          it.price ? `₹${it.price}` : '',
+        ].filter(Boolean).join(' | ');
+        refundNotes[`item_${idx + 1}`] = itemStr.slice(0, 255);
+      });
+    } else if (order.item_name) {
+      refundNotes.product_details = `${order.item_name} (Qty: ${order.quantity || 1})`.slice(0, 255);
+    }
+
+    const refund = await this.client.createRefund(paymentId, undefined, refundNotes);
+
+    const updatePayload: Record<string, any> = {
+      status: "Refund Completed",
+      delivery_status: "Cancelled",
+    };
+    if (order.payment_status !== undefined) {
+      updatePayload.payment_status = "refunded";
+    }
+    if (order.notes !== undefined) {
+      updatePayload.notes = order.notes ? `${order.notes} | Refunded via Razorpay (${refund?.id || ''})` : `Refunded via Razorpay (${refund?.id || ''})`;
+    }
+
+    const { data: updatedOrder, error: updateErr } = await this.supabaseAdmin
+      .from("orders")
+      .update(updatePayload as unknown as never)
+      .eq("id", orderId)
+      .select()
+      .maybeSingle();
+
+    if (updateErr) {
+      console.warn("Refund succeeded on Razorpay but failed to update order record:", updateErr.message);
+    }
+
+    return {
+      success: true,
+      refundId: refund?.id,
+      refund,
+      order: updatedOrder || order,
+    };
   }
 }

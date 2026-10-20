@@ -63,6 +63,80 @@
 .ap-header-variant-btn {
   margin-left: auto;
   white-space: nowrap;
+  background: var(--admin-primary, #0A2582);
+  color: #ffffff;
+  border: none;
+  height: 38px;
+  padding: 0 16px;
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  transition: background 0.15s ease, transform 0.15s ease;
+  outline: none;
+}
+
+.ap-header-variant-btn:hover {
+  background: var(--admin-primary-hover, #071c68);
+  color: #ffffff;
+}
+
+.ap-header-variant-btn:active {
+  transform: translateY(1px);
+}
+
+.ap-color-selected-list {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  margin-top: 10px;
+}
+
+.ap-color-selected-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 3px 8px;
+  background: #f3f4f6;
+  border: none;
+  border-radius: 6px;
+  font-size: 11px;
+  color: #374151;
+  font-weight: 500;
+}
+
+.ap-color-selected-dot {
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  display: inline-block;
+  flex-shrink: 0;
+  border: none;
+}
+
+.ap-color-selected-name {
+  line-height: 1;
+}
+
+.ap-color-selected-del {
+  border: none;
+  background: transparent;
+  color: #9ca3af;
+  cursor: pointer;
+  font-size: 13px;
+  line-height: 1;
+  padding: 0;
+  display: inline-flex;
+  align-items: center;
+}
+
+.ap-color-selected-del:hover {
+  color: #ef4444;
 }
 
 .ap-color-grid {

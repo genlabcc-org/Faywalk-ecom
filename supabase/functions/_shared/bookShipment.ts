@@ -300,3 +300,73 @@ export async function bookShipmentForOrder(
     return { ok: false, error: errMsg };
   }
 }
+
+/**
+ * Cancels an iCarry shipment for an order.
+ * - Idempotent and safe: extracts shipment_id from orders table if not provided.
+ * - Non-throwing: returns { ok, error } so callers can handle gracefully.
+ * - IMPORTANT: Always cancel iCarry BEFORE processing Razorpay refund.
+ */
+export async function cancelShipmentForOrder(
+  supabaseAdmin: SupabaseClient | any,
+  orderId: string,
+  explicitShipmentId?: string | number
+): Promise<{ ok: boolean; data?: any; error?: string; skipped?: boolean }> {
+  try {
+    let shipmentId = explicitShipmentId;
+    let order: any = null;
+
+    if (orderId) {
+      const { data, error } = await supabaseAdmin
+        .from("orders")
+        .select("id, shipment_id, waybill, delivery_provider, delivery_status, status")
+        .eq("id", orderId)
+        .maybeSingle();
+      if (error) {
+        console.warn(`[iCarry Cancel] Error querying order #${orderId}:`, error.message);
+      }
+      order = data;
+    }
+
+    if (!shipmentId && order) {
+      shipmentId = order.shipment_id;
+    }
+
+    if (!shipmentId) {
+      console.log(`[iCarry Cancel] No active shipment ID found for order ${orderId}. Skipping courier cancel.`);
+      return { ok: true, skipped: true };
+    }
+
+    const cleanShipmentId = String(shipmentId).trim();
+    console.log(`[iCarry Cancel] Cancelling shipment ${cleanShipmentId} for order ${orderId || 'explicit'} with iCarry...`);
+
+    const fields: Record<string, any> = { shipment_id: cleanShipmentId };
+    const data = await icarryCall(ENDPOINTS.cancel, fields);
+    console.log(`[iCarry Cancel] Response from iCarry:`, data);
+
+    if (data?.error) {
+      const errStr = typeof data.error === 'string' ? data.error : JSON.stringify(data.error);
+      console.warn(`[iCarry Cancel] Notice from iCarry:`, errStr);
+      return { ok: false, error: errStr, data };
+    }
+
+    // Mark delivery_status = 'Cancelled' in DB
+    if (orderId) {
+      await supabaseAdmin
+        .from("orders")
+        .update({ delivery_status: "Cancelled" })
+        .eq("id", orderId);
+    } else {
+      await supabaseAdmin
+        .from("orders")
+        .update({ delivery_status: "Cancelled" })
+        .eq("shipment_id", cleanShipmentId);
+    }
+
+    return { ok: true, data };
+  } catch (err: any) {
+    const msg = err?.message || String(err);
+    console.error(`[iCarry Cancel] Exception cancelling order ${orderId}:`, msg);
+    return { ok: false, error: msg };
+  }
+}

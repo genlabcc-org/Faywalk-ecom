@@ -5,7 +5,6 @@ import { productService } from "../services/productService";
 import { useStore } from "../hooks/useStore";
 import ProfileLayout from "./ProfileLayout";
 import "./Orders.css";
-import ThermalInvoice from "../admin/components/ThermalInvoice";
 
 const PAGE_SIZE = 5;
 
@@ -14,9 +13,6 @@ export default function Orders() {
   const [visibleCount, setVisibleCount] = useState(PAGE_SIZE);
   const [productsMap, setProductsMap] = useState({});
   const [cancellingOrderId, setCancellingOrderId] = useState(null);
-  const [selectedInvoiceOrder, setSelectedInvoiceOrder] = useState(null);
-  const [invoiceAddress, setInvoiceAddress] = useState(null);
-  const [printingInvoice, setPrintingInvoice] = useState(false);
   const navigate = useNavigate();
   const location = useLocation();
 
@@ -68,29 +64,6 @@ export default function Orders() {
     navigate(`/profile/orders/track/${order.id}`, {
       state: { order: fullOrder, item }
     });
-  };
-
-  const handleViewInvoice = async (orderSummary) => {
-    const fullOrder = rawOrders.find((o) => o.id === orderSummary.id) || orderSummary;
-    setSelectedInvoiceOrder(fullOrder);
-    setInvoiceAddress(null);
-    if (user?.id) {
-      try {
-        const addresses = await orderService.getAddresses(user.id);
-        const defaultAddr = addresses.find((a) => a.is_default) || addresses[0];
-        setInvoiceAddress(defaultAddr || null);
-      } catch (err) {
-        console.debug("Could not fetch address for invoice:", err);
-      }
-    }
-  };
-
-  const handlePrintUserInvoice = () => {
-    setPrintingInvoice(true);
-    setTimeout(() => {
-      window.print();
-      setTimeout(() => setPrintingInvoice(false), 1000);
-    }, 250);
   };
 
   useEffect(() => {
@@ -300,57 +273,30 @@ export default function Orders() {
                   })()}
 
                   {/* Bottom Line: Status Badge & Actions */}
-                  <div className="ao-order-bottom">
-                    <span className={`ao-status-badge ao-status-badge--${statusClass}`}>
-                      {displayStatus}
-                    </span>
-
-                    <div className="ao-order-actions" onClick={(e) => e.stopPropagation()}>
-                      <button
-                        className="ao-invoice-btn"
-                        onClick={() => handleViewInvoice(order)}
-                        title="View and print invoice"
-                      >
-                        <svg
-                          width="14"
-                          height="14"
-                          viewBox="0 0 24 24"
-                          fill="none"
-                          stroke="currentColor"
-                          strokeWidth="2"
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                          className="ao-btn-icon"
-                        >
-                          <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
-                          <polyline points="14 2 14 8 20 8" />
-                          <line x1="16" y1="13" x2="8" y2="13" />
-                          <line x1="16" y1="17" x2="8" y2="17" />
-                          <line x1="10" y1="9" x2="8" y2="9" />
-                        </svg>
-                        Invoice
-                      </button>
+                  {(!(isCancelled && order.waybill) ||
+                    ((order.status === "Pending" || order.status === "Confirmed") && !isDelivered && !isCancelled)) && (
+                    <div className="ao-order-bottom">
+                      {!(isCancelled && order.waybill) && (
+                        <span className={`ao-status-badge ao-status-badge--${statusClass}`}>
+                          {displayStatus}
+                        </span>
+                      )}
 
                       {(order.status === "Pending" || order.status === "Confirmed") &&
                         !isDelivered &&
                         !isCancelled && (
-                        <button
-                          className="ao-cancel-btn"
-                          onClick={() => handleCancelOrder(order.id)}
-                          disabled={cancellingOrderId === order.id}
-                        >
-                          {cancellingOrderId === order.id ? 'Cancelling...' : 'Cancel'}
-                        </button>
+                        <div className="ao-order-actions" onClick={(e) => e.stopPropagation()}>
+                          <button
+                            className="ao-cancel-btn"
+                            onClick={() => handleCancelOrder(order.id)}
+                            disabled={cancellingOrderId === order.id}
+                          >
+                            {cancellingOrderId === order.id ? 'Cancelling...' : 'Cancel'}
+                          </button>
+                        </div>
                       )}
-
-                      <button
-                        className="ao-track-btn"
-                        onClick={() => handleTrackOrder(order, orderItems[0])}
-                      >
-                        Track →
-                      </button>
                     </div>
-                  </div>
+                  )}
                 </div>
               );
             })}
@@ -368,68 +314,6 @@ export default function Orders() {
           </div>
         )}
       </div>
-
-        {/* Invoice Modal for Customer */}
-      {selectedInvoiceOrder && (
-        <div className="inv__modal-overlay" onClick={() => setSelectedInvoiceOrder(null)}>
-          <div className="inv__modal-content" onClick={(e) => e.stopPropagation()}>
-            <div className="inv__modal-header">
-              <div>
-                <h3 className="inv__modal-title">Order Receipt (4" × 6")</h3>
-                <p className="inv__modal-subtitle">
-                  Order #{String(selectedInvoiceOrder.id).slice(-8).toUpperCase()} · 100 × 150 mm
-                </p>
-              </div>
-              <button
-                className="inv__modal-close"
-                onClick={() => setSelectedInvoiceOrder(null)}
-                aria-label="Close invoice"
-              >
-                ✕
-              </button>
-            </div>
-
-            <div className="inv__modal-body">
-              <ThermalInvoice
-                order={selectedInvoiceOrder}
-                address={invoiceAddress}
-                isPreview={true}
-              />
-            </div>
-
-            <div className="inv__modal-footer">
-              <button
-                className="inv__modal-close-btn"
-                onClick={() => setSelectedInvoiceOrder(null)}
-              >
-                Close
-              </button>
-              <button
-                className="inv__modal-print-btn"
-                onClick={handlePrintUserInvoice}
-                disabled={printingInvoice}
-              >
-                {printingInvoice ? (
-                  <>
-                    <span className="inv__spin">⏳</span> Printing...
-                  </>
-                ) : (
-                  <>
-                    <span>🖨️</span> Print / Save Receipt
-                  </>
-                )}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Hidden print container for customer */}
-      {selectedInvoiceOrder && (
-        <div className="thermal-print-area">
-          <ThermalInvoice order={selectedInvoiceOrder} address={invoiceAddress} />
-        </div>
-      )}
     </ProfileLayout>
   );
 }

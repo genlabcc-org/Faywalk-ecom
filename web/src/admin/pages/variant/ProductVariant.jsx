@@ -1,30 +1,36 @@
 import React, { useState, useRef, useEffect } from "react";
 import { variantService } from "../../../services/variantService";
 import { useStore } from "../../../hooks/useStore";
+import { getColorName } from "../../../utils/colorUtils";
 import ConfirmDialog from "../dialogs/confirmdialogs";
 import "./ProductVariant.css";
 
 const COLOR_SWATCHES = [
-  "#EF4444", // red
-  "#9B111E", // ruby red
-  "#E75480", //Pink
-  "#FFC0CB", //bady pink
-  "#734F96", //lavender
-  "#8B2FC9", // purple
-  "#87CEEB", // sky blue
-  "#4169E1", // royal blue
-  "#040273", // deep blue
-  "#429E9D", // mint blue
-  "#05C3DD", // aqua blue
-  "#008000", // green
-  "#50C878", //emerald green
-  "#98FF98", // mint green
-  "#FFFF00", // yellow
-  "#FFA500", // orange
-  "#111827", // black
-  "#FFFFFF", // white
-  "#9CA3AF", // gray
-  "#2DD4BF", // teal
+  "#000000", // Black
+  "#FFFFFF", // White
+  "#000080", // Navy Blue
+  "#0000FF", // Blue
+  "#800000", // Maroon (merrun)
+  "#EF4444", // Red
+  "#9B111E", // Ruby Red
+  "#E75480", // Pink
+  "#FFC0CB", // Baby Pink
+  "#734F96", // Lavender
+  "#8B2FC9", // Purple
+  "#4169E1", // Royal Blue
+  "#87CEEB", // Sky Blue
+  "#040273", // Deep Blue
+  "#05C3DD", // Aqua Blue
+  "#2DD4BF", // Teal
+  "#008000", // Green
+  "#50C878", // Emerald Green
+  "#98FF98", // Mint Green
+  "#FFFF00", // Yellow
+  "#FFA500", // Orange
+  "#78350F", // Brown
+  "#9CA3AF", // Gray
+  "#FFD700", // Gold
+  "#C0C0C0", // Silver
 ];
 
 const FieldError = ({ children }) => (
@@ -98,6 +104,7 @@ const CreateMultipleProduct = ({
   const subcategories = subcategoriesCache[category] || [];
 
   const [variants, setVariants] = useState([makeVariant()]);
+  const [hoveredVariantColor, setHoveredVariantColor] = useState({});
   const [showOnStore, setShowOnStore] = useState(false);
   const [featuredProduct, setFeaturedProduct] = useState(true);
 
@@ -351,7 +358,7 @@ const CreateMultipleProduct = ({
   }
 
   return (
-    <main className="dashboard-content cmp-page">
+    <main className="ap-page cmp-page">
       {variantToDelete && (
         <ConfirmDialog
           title="Delete Variant?"
@@ -364,57 +371,29 @@ const CreateMultipleProduct = ({
         />
       )}
 
-      <div className="cmp-header">
-        <div>
-          <h1 className="cmp-title">{isEditing ? "Edit Multiple Product" : "Create Multiple Product"}</h1>
-          <div className="cmp-breadcrumb">
-            <a
-              href="#"
-              onClick={(e) => {
-                e.preventDefault();
-                onGoToRoot ? onGoToRoot() : onBack?.();
-              }}
-            >
-              All Categories
-            </a>
-            {categoryPath.map((c, idx) => (
-              <React.Fragment key={`${c.id ?? "crumb"}-${idx}`}>
-                <span className="cmp-breadcrumb-sep">›</span>
-                <a
-                  href="#"
-                  onClick={(e) => {
-                    e.preventDefault();
-                    onBreadcrumbClick?.(idx);
-                  }}
-                >
-                  {c.name}
-                </a>
-              </React.Fragment>
-            ))}
-            <span className="cmp-breadcrumb-sep">›</span>
-            <span className="cmp-breadcrumb-current">Create Multiple Product</span>
-          </div>
-        </div>
-
-        <button type="button" className="cmp-save-btn admin-btn-with-spinner" onClick={handleSave} disabled={saving}>
-          {saving ? (
-            <>
-              <span className="admin-btn-spinner" /> Saving...
-            </>
-          ) : (
-            "Save"
-          )}
-        </button>
+      {/* ── Header ── */}
+      <div className="ap-header">
+        <h1>{isEditing ? "Edit Multiple Product" : "Add Multiple Product"}</h1>
+        {!isEditing && (
+          <button
+            type="button"
+            className="ap-header-variant-btn"
+            onClick={onBack}
+          >
+            + Add Single Product
+          </button>
+        )}
       </div>
 
-      {/* Title / Description / Category / Sub Category */}
-      <div className="cmp-card">
+      {/* Name & description / Category / Sub Category */}
+      <div className="card cmp-card">
+        <div className="card-title">Name &amp; description</div>
         <label className="cmp-field">
-          <span className="cmp-label">Title</span>
+          <span className="cmp-label">Product Name</span>
           <input
             type="text"
             className={`cmp-input${errors.title ? " cmp-input--error" : ""}`}
-            placeholder="Necklace"
+            placeholder="Input your text"
             value={title}
             onChange={(e) => {
               setTitle(e.target.value);
@@ -453,7 +432,7 @@ const CreateMultipleProduct = ({
                 setSubCategory("");
               }}
             >
-              <option value="">Select Your Category</option>
+              <option value="">Select Category</option>
               {categories.map((c) => (
                 <option key={c.category_id ?? c.name} value={c.category_id ?? c.id}>
                   {c.name}
@@ -463,7 +442,9 @@ const CreateMultipleProduct = ({
           </label>
 
           <label className="cmp-field">
-            <span className="cmp-label">Sub Category</span>
+            <span className="cmp-label">
+              Subcategory <span className="scc-optional-tag">optional</span>
+            </span>
             <select
               className="cmp-select"
               value={subCategory}
@@ -471,7 +452,7 @@ const CreateMultipleProduct = ({
               disabled={!category || loadingSubcategories || subcategories.length === 0}
             >
               <option value="">
-                {loadingSubcategories ? "Loading…" : "Select Your Sub Category"}
+                {loadingSubcategories ? "Loading…" : "Select Subcategory"}
               </option>
               {subcategories.map((sc) => (
                 <option key={sc.subcategory_id} value={sc.subcategory_id}>
@@ -480,15 +461,15 @@ const CreateMultipleProduct = ({
               ))}
             </select>
             {category && !loadingSubcategories && subcategories.length === 0 && (
-              <InfoHint>Sub Category Not Found</InfoHint>
+              <InfoHint>No subcategories under this category</InfoHint>
             )}
           </label>
         </div>
       </div>
 
       {/* Variants */}
-      <div className="cmp-card">
-        <span className="cmp-section-title">Variants</span>
+      <div className="card cmp-card">
+        <div className="card-title">Variants</div>
 
         {variants.map((v, idx) => {
           const vErrors = errors[v.id] || {};
@@ -552,7 +533,7 @@ const CreateMultipleProduct = ({
                 </label>
 
                 <label className="cmp-field">
-                  <span className="cmp-label">Price</span>
+                  <span className="cmp-label">Selling Price</span>
                   <input
                     type="text"
                     className={`cmp-input${vErrors.sellingPrice ? " cmp-input--error" : ""}`}
@@ -568,7 +549,7 @@ const CreateMultipleProduct = ({
 
               <div className="cmp-variant-row cmp-variant-row--color-sku">
                 <div className="cmp-field">
-                  <span className="cmp-label">Color</span>
+                  <span className="cmp-label">Colors</span>
                   <div className="cmp-color-grid">
                     <button
                       type="button"
@@ -578,7 +559,7 @@ const CreateMultipleProduct = ({
                       aria-label="No color (None)"
                       title="No color (None)"
                     >
-                      <svg width="18" height="18" viewBox="0 0 20 20" fill="none">
+                      <svg width="14" height="14" viewBox="0 0 20 20" fill="none">
                         <circle cx="10" cy="10" r="8" stroke="#9CA3AF" strokeWidth="1.5" strokeDasharray="2 2" />
                         <line x1="4.5" y1="15.5" x2="15.5" y2="4.5" stroke="#EF4444" strokeWidth="1.5" strokeLinecap="round" />
                       </svg>
@@ -586,6 +567,7 @@ const CreateMultipleProduct = ({
                     {COLOR_SWATCHES.map((c) => {
                       const isSelected = (v.color || "").toLowerCase().trim() === c.toLowerCase().trim();
                       const isWhite = c.toUpperCase() === "#FFFFFF";
+                      const cName = getColorName(c) || c;
                       return (
                         <button
                           key={c}
@@ -593,7 +575,8 @@ const CreateMultipleProduct = ({
                           className={`cmp-color-swatch${isSelected ? " cmp-color-swatch--selected" : ""}${isWhite ? " cmp-color-swatch--white" : ""}`}
                           style={{ backgroundColor: c }}
                           onClick={() => updateVariant(v.id, "color", isSelected ? null : c)}
-                          aria-label={`Select color ${c}`}
+                          aria-label={`Toggle color ${cName}`}
+                          title={cName}
                         >
                           {isSelected && (
                             <svg width="12" height="10" viewBox="0 0 12 10" fill="none">
@@ -610,6 +593,22 @@ const CreateMultipleProduct = ({
                       );
                     })}
                   </div>
+                  {v.color && (
+                    <div className="cmp-color-selected-list">
+                      <span className="cmp-color-selected-chip">
+                        <span className="cmp-color-selected-dot" style={{ backgroundColor: v.color }} />
+                        <span className="cmp-color-selected-name">{getColorName(v.color) || v.color}</span>
+                        <button
+                          type="button"
+                          className="cmp-color-selected-del"
+                          onClick={() => updateVariant(v.id, "color", null)}
+                          title="Remove color"
+                        >
+                          ×
+                        </button>
+                      </span>
+                    </div>
+                  )}
                 </div>
 
                 <label className="cmp-field">
@@ -751,8 +750,8 @@ const CreateMultipleProduct = ({
       </div>
 
       {/* Visibility Options */}
-      <div className="cmp-card">
-        <span className="cmp-section-title">Visibility Options</span>
+      <div className="card cmp-card">
+        <div className="card-title">Visibility Options</div>
 
         <div className="cmp-visibility-row">
           <div>
@@ -766,10 +765,10 @@ const CreateMultipleProduct = ({
       </div>
 
       {/* Bottom Footer Actions */}
-      <div className="cmp-footer">
+      <div className="ap-footer">
         <button
           type="button"
-          className="cmp-cancel-btn"
+          className="btn-draft"
           onClick={onBack}
           disabled={saving}
         >
@@ -777,7 +776,7 @@ const CreateMultipleProduct = ({
         </button>
         <button
           type="button"
-          className="cmp-save-btn cmp-save-btn--bottom admin-btn-with-spinner"
+          className="btn-publish admin-btn-with-spinner"
           onClick={handleSave}
           disabled={saving}
         >

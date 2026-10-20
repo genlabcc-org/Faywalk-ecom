@@ -63,4 +63,38 @@ export class RazorpayClient {
 
     return generatedSignature === signature;
   }
+
+  async createRefund(paymentId: string, amountInPaise?: number, notes?: Record<string, string>): Promise<any> {
+    if (!this.hasKeysConfigured()) {
+      throw new Error("Razorpay credentials are not configured in system environment variables");
+    }
+
+    const basicAuth = btoa(`${this.keyId}:${this.keySecret}`);
+    const payload: Record<string, any> = {
+      reverse_all: 1,
+      ...(amountInPaise ? { amount: amountInPaise } : {}),
+      ...(notes ? { notes } : {}),
+    };
+
+    const response = await fetch(`https://api.razorpay.com/v1/payments/${paymentId}/refund`, {
+      method: "POST",
+      headers: {
+        "Authorization": `Basic ${basicAuth}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(payload),
+    });
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      let parsedMsg = errorText;
+      try {
+        const errJson = JSON.parse(errorText);
+        parsedMsg = errJson.error?.description || errJson.error?.message || errorText;
+      } catch {}
+      throw new Error(`Razorpay refund failure: ${parsedMsg}`);
+    }
+
+    return await response.json();
+  }
 }

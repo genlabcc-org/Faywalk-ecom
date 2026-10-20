@@ -615,7 +615,7 @@
   font-size: 12px;
   font-weight: 600;
   cursor: pointer;
-  border: 1px solid transparent;
+  border: none !important;
   transition: all 0.15s ease;
   white-space: nowrap;
   font-family: inherit;
@@ -624,7 +624,7 @@
 .inv__print-status-btn--printed {
   background-color: #dcfce7;
   color: #15803d;
-  border-color: #bbf7d0;
+  border: none !important;
 }
 
 .inv__print-status-btn--printed:hover {
@@ -634,7 +634,7 @@
 .inv__print-status-btn--unprinted {
   background-color: #fef3c7;
   color: #b45309;
-  border-color: #fde68a;
+  border: none !important;
 }
 
 .inv__print-status-btn--unprinted:hover {

@@ -1007,7 +1007,7 @@
   font-size: 12px;
   font-weight: 600;
   cursor: pointer;
-  border: 1px solid transparent;
+  border: none !important;
   transition: all 0.15s ease;
   white-space: nowrap;
   font-family: inherit;
@@ -1016,7 +1016,7 @@
 .ao__print-status-btn--printed {
   background-color: #dcfce7;
   color: #15803d;
-  border-color: #bbf7d0;
+  border: none !important;
 }
 
 .ao__print-status-btn--printed:hover {
@@ -1026,7 +1026,7 @@
 .ao__print-status-btn--unprinted {
   background-color: #fef3c7;
   color: #b45309;
-  border-color: #fde68a;
+  border: none !important;
 }
 
 .ao__print-status-btn--unprinted:hover {
@@ -1204,20 +1204,20 @@
   font-size: 13px;
   font-weight: 600;
   cursor: pointer;
-  border: 1px solid transparent;
+  border: none !important;
   font-family: inherit;
 }
 
 .ao__modal-status-btn--mark {
   background: #dcfce7;
   color: #15803d;
-  border-color: #bbf7d0;
+  border: none !important;
 }
 
 .ao__modal-status-btn--unmark {
   background: #fee2e2;
   color: #dc2626;
-  border-color: #fecaca;
+  border: none !important;
 }
 
 .ao__modal-print-btn {

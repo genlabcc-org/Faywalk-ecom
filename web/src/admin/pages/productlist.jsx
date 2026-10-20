@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from "react";
+import React, { useMemo, useState, useEffect, useRef, useCallback } from "react";
 import "./productlist.css";
 import searchEmpty from "../../assets/admin/search.png";
 import editIcon from "../../assets/admin/Edit.png";
@@ -142,10 +142,10 @@ const MobileProductCard = ({ product, onEdit, onDelete, selectedRows, toggleSele
 
 const ProductList = ({ onAddProduct, onEditProduct, onDeleteProduct, products = [], categories = [], loading = false, onBack }) => {
   const [selectedRows, setSelectedRows] = useState([]);
-  const [currentPage, setCurrentPage] = useState(1);
+  const [visibleCount, setVisibleCount] = useState(10);
   const [searchInput, setSearchInput] = useState("");
   const [searchQuery, setSearchQuery] = useState("");
-  const itemsPerPage = 8;
+  const observerTarget = useRef(null);
 
   const [selectedCategory, setSelectedCategory] = useState("All");
   const [selectedStatus, setSelectedStatus] = useState("All");
@@ -236,20 +236,74 @@ const ProductList = ({ onAddProduct, onEditProduct, onDeleteProduct, products = 
     return result;
   }, [products, searchQuery, selectedCategory, selectedSubcategory, selectedStatus, selectedStock, priceFrom, priceTo, selectedSort]);
 
+  // Reset visibleCount to 10 whenever filters or search criteria change
+  useEffect(() => {
+    setVisibleCount(10);
+  }, [searchQuery, selectedCategory, selectedSubcategory, selectedStatus, selectedStock, priceFrom, priceTo, selectedSort]);
+
   const totalItems = filteredProducts.length;
-  const totalPages = Math.max(1, Math.ceil(totalItems / itemsPerPage));
-  const startIndex = (currentPage - 1) * itemsPerPage;
-  const endIndex = startIndex + itemsPerPage;
-  const currentProducts = filteredProducts.slice(startIndex, endIndex);
+  const currentProducts = useMemo(() => {
+    return filteredProducts.slice(0, visibleCount);
+  }, [filteredProducts, visibleCount]);
+
+  const loadMore = useCallback(() => {
+    setVisibleCount((prev) => {
+      if (prev < filteredProducts.length) {
+        return Math.min(prev + 10, filteredProducts.length);
+      }
+      return prev;
+    });
+  }, [filteredProducts.length]);
+
+  useEffect(() => {
+    const target = observerTarget.current;
+    if (!target) return;
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries[0].isIntersecting) {
+          loadMore();
+        }
+      },
+      {
+        root: null,
+        rootMargin: "300px",
+        threshold: 0,
+      }
+    );
+
+    observer.observe(target);
+
+    // Also listen to scroll on container (.db__main) or window for responsive loading
+    const scrollParent = target.closest(".db__main") || window;
+    const handleScroll = () => {
+      if (scrollParent === window) {
+        if (window.innerHeight + window.scrollY >= document.documentElement.scrollHeight - 400) {
+          loadMore();
+        }
+      } else {
+        if (scrollParent.scrollTop + scrollParent.clientHeight >= scrollParent.scrollHeight - 400) {
+          loadMore();
+        }
+      }
+    };
+
+    scrollParent.addEventListener("scroll", handleScroll, { passive: true });
+
+    return () => {
+      observer.disconnect();
+      scrollParent.removeEventListener("scroll", handleScroll);
+    };
+  }, [loadMore]);
 
   const handleSearchKeyDown = (e) => {
-    if (e.key === "Enter") { setSearchQuery(searchInput); setCurrentPage(1); setSelectedRows([]); }
-    if (e.key === "Escape") { setSearchInput(""); setSearchQuery(""); setCurrentPage(1); }
+    if (e.key === "Enter") { setSearchQuery(searchInput); setVisibleCount(10); setSelectedRows([]); }
+    if (e.key === "Escape") { setSearchInput(""); setSearchQuery(""); setVisibleCount(10); }
   };
 
   const handleSearchChange = (e) => {
     setSearchInput(e.target.value);
-    if (e.target.value === "") { setSearchQuery(""); setCurrentPage(1); }
+    if (e.target.value === "") { setSearchQuery(""); setVisibleCount(10); }
   };
 
   const handleEdit = (product) => { if (onEditProduct) onEditProduct(product); };
@@ -268,9 +322,6 @@ const ProductList = ({ onAddProduct, onEditProduct, onDeleteProduct, products = 
         console.error("Error deleting product:", err);
       } finally {
         setIsDeleting(false);
-        const newTotal = filteredProducts.length - 1;
-        const newTotalPages = Math.max(1, Math.ceil(newTotal / itemsPerPage));
-        if (currentPage > newTotalPages) setCurrentPage(newTotalPages);
         setSelectedRows((prev) => prev.filter((rowId) => rowId !== id));
         setPendingDeleteId(null);
       }
@@ -292,26 +343,6 @@ const ProductList = ({ onAddProduct, onEditProduct, onDeleteProduct, products = 
   const isAllSelected =
     currentProducts.length > 0 &&
     currentProducts.every((p) => selectedRows.includes(p.id));
-
-  const goToPage = (page) => {
-    if (page < 1 || page > totalPages) return;
-    setCurrentPage(page);
-    setSelectedRows([]);
-  };
-
-  const getPageNumbers = () => {
-    if (totalItems === 0) return [1, 2, 3];
-    const pages = new Set([1, totalPages, currentPage]);
-    if (currentPage - 1 >= 1) pages.add(currentPage - 1);
-    if (currentPage + 1 <= totalPages) pages.add(currentPage + 1);
-    return Array.from(pages).sort((a, b) => a - b);
-  };
-
-  const pageNumbers = getPageNumbers();
-
-  const showingText = totalItems === 0
-    ? "Showing 0 products"
-    : "Showing " + (startIndex + 1) + "-" + Math.min(endIndex, totalItems) + " of " + totalItems + " products";
 
   return (
     <div className="product-list">
@@ -543,7 +574,7 @@ const ProductList = ({ onAddProduct, onEditProduct, onDeleteProduct, products = 
                 </th>
                 <th className="pl-product-col">Product</th>
                 <th className="pl-category-col">Category</th>
-                <th className="pl-subcategory-col">Type</th>
+                <th className="pl-subcategory-col">Subcategory</th>
                 <th className="pl-price-col">Price</th>
                 <th className="pl-stock-col">Stock</th>
                 <th className="pl-status-col">Status</th>
@@ -618,7 +649,7 @@ const ProductList = ({ onAddProduct, onEditProduct, onDeleteProduct, products = 
                           {product.category}
                         </span>
                       </td>
-                      <td className="pl-category-col">
+                      <td className="pl-subcategory-col">
                         {product.subcategory ? (
                           <span className="pl-subcategory-badge">{product.subcategory}</span>
                         ) : (
@@ -715,42 +746,21 @@ const ProductList = ({ onAddProduct, onEditProduct, onDeleteProduct, products = 
         </div>
       )}
 
-      {/* Pagination */}
-      <div className="pl-pagination">
-        <span className="pl-showing">{showingText}</span>
-        <div className="pl-page-controls">
-          <button
-            className="pl-page-btn"
-            onClick={() => goToPage(currentPage - 1)}
-            disabled={currentPage === 1}
-          >
-            Previous
-          </button>
-          {pageNumbers.map((page, idx) => {
-            const prev = pageNumbers[idx - 1];
-            return (
-              <React.Fragment key={page}>
-                {prev && page - prev > 1 && (
-                  <span className="pl-page-ellipsis">...</span>
-                )}
-                <button
-                  className={"pl-page-btn" + (currentPage === page ? " pl-page-btn--active" : "")}
-                  onClick={() => goToPage(page)}
-                  disabled={totalItems === 0}
-                >
-                  {page}
-                </button>
-              </React.Fragment>
-            );
-          })}
-          <button
-            className="pl-page-btn"
-            onClick={() => goToPage(currentPage + 1)}
-            disabled={currentPage === totalPages}
-          >
-            Next
-          </button>
-        </div>
+      {/* Infinite Scroll Footer / Sentinel */}
+      <div className="pl-scroll-footer" ref={observerTarget}>
+        <span className="pl-showing">
+          {totalItems === 0
+            ? "Showing 0 products"
+            : visibleCount >= totalItems
+            ? `Showing all ${totalItems} products`
+            : `Showing ${Math.min(visibleCount, totalItems)} of ${totalItems} products`}
+        </span>
+        {visibleCount < totalItems && (
+          <div className="pl-loading-more">
+            <span className="admin-btn-spinner admin-btn-spinner--dark" />
+            <span>Loading more products...</span>
+          </div>
+        )}
       </div>
       {pendingDeleteId !== null && (
         <div className="pl-confirm-overlay" onClick={() => setPendingDeleteId(null)}>

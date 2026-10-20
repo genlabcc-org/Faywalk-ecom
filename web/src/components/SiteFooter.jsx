@@ -29,7 +29,7 @@ const SiteFooter = () => {
 
             <div className="fw-brand-bottom fw-desktop-only">
               <p className="fw-copy">&copy; {new Date().getFullYear()} FAYWALK</p>
-              <Link to="/Privacy" className="fw-privacy-link">
+              <Link to="/privacy" className="fw-privacy-link">
                 Privacy Policy
               </Link>
             </div>
@@ -39,10 +39,9 @@ const SiteFooter = () => {
           <div className="fw-col fw-nav-col">
             <h4 className="fw-col-title">Shop</h4>
             <ul className="fw-link-list">
-              <li><Link to="/category/new-arrivals">New Arrivals</Link></li>
-              <li><Link to="/category/male">Men</Link></li>
-              <li><Link to="/category/female">Women</Link></li>
-              <li><Link to="/category/best-sellers">Best Sellers</Link></li>
+              <li><Link to="/all-products">All Products</Link></li>
+              <li><Link to="/#new-arrivals">New Arrivals</Link></li>
+              <li><Link to="/#best-sellers">Best Sellers</Link></li>
             </ul>
           </div>
 
@@ -50,10 +49,9 @@ const SiteFooter = () => {
           <div className="fw-col fw-nav-col">
             <h4 className="fw-col-title">About</h4>
             <ul className="fw-link-list">
-              <li><a href="/#about">ABOUT</a></li>
-              <li><Link to="/contact">CONTACT</Link></li>
-              <li><Link to="/category/best-sellers">BLOG</Link></li>
-              <li><Link to="/Privacy">404</Link></li>
+              <li><a href="/#about">About Us</a></li>
+              <li><Link to="/contact">Contact Us</Link></li>
+              <li><Link to="/terms">Terms of Service</Link></li>
             </ul>
           </div>
 
@@ -95,7 +93,7 @@ const SiteFooter = () => {
         {/* Mobile / Tablet Bottom Bar */}
         <div className="fw-mobile-bottom-bar">
           <p className="fw-copy">&copy; {new Date().getFullYear()} FAYWALK</p>
-          <Link to="/Privacy" className="fw-privacy-link">
+          <Link to="/privacy" className="fw-privacy-link">
             Privacy Policy
           </Link>
         </div>

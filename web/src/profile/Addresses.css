@@ -43,8 +43,34 @@
   margin-bottom: 24px;
   background-color: #f8f9fa;
   border-radius: 12px;
-  padding: 24px;
+  padding: 32px 24px;
   text-align: center;
+}
+
+.addr-empty-text {
+  margin: 0 0 16px 0;
+  font-size: 14.5px;
+  color: #6b7280;
+}
+
+.addr-empty-add-btn {
+  background-color: var(--blue-primary);
+  color: #ffffff;
+  border: none;
+  border-radius: 8px;
+  padding: 10px 22px;
+  font-size: 13.5px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background-color 0.15s ease, transform 0.1s ease;
+}
+
+.addr-empty-add-btn:hover {
+  background-color: #001a5e;
+}
+
+.addr-empty-add-btn:active {
+  transform: scale(0.98);
 }
 
 /* ── SAVED ADDRESSES GRID ─────────────────────────────────── */
@@ -177,6 +203,48 @@
   padding: 32px 36px;
   margin-top: 24px;
   box-sizing: border-box;
+  animation: addrFormFadeIn 0.25s ease-out;
+}
+
+@keyframes addrFormFadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.addr-form-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 24px;
+}
+
+.addr-form-header .addr-form-title {
+  margin: 0;
+}
+
+.addr-form-close-btn {
+  background: transparent;
+  border: none;
+  font-size: 16px;
+  color: #6b7280;
+  cursor: pointer;
+  padding: 6px 10px;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.15s ease;
+}
+
+.addr-form-close-btn:hover {
+  background-color: #e5e7eb;
+  color: #111827;
 }
 
 .addr-form-title {
@@ -184,7 +252,7 @@
   font-size: 19px;
   font-weight: 700;
   color: #111827;
-  margin: 0 0 24px 0;
+  margin: 0;
 }
 
 /* ── FORM FIELDS ──────────────────────────────────────────── */
