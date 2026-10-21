@@ -8,6 +8,15 @@ import { useStore } from "../hooks/useStore";
 import { getOriginalImageUrl } from '../utils/imageUtils';
 import { getNavPath } from "../services/categoryRoute";
 import { getColorName } from '../utils/colorUtils';
+import { shippingService } from "../services/shippingService";
+
+/** Strip currency symbols & commas so "₹1,299" → 1299 */
+const parsePrice = (v) => {
+  if (v == null) return 0;
+  if (typeof v === 'number') return v;
+  const n = Number(String(v).replace(/[₹,\s]/g, ''));
+  return isNaN(n) ? 0 : n;
+};
 
 export default function CartPage() {
   const categories = useStore((state) => state.categories);
@@ -18,9 +27,17 @@ export default function CartPage() {
 
   const [selectedIds, setSelectedIds] = useState([]);
   const selectedItems = cartItems.filter((i) => selectedIds.includes(i.id));
+  const [shippingRates, setShippingRates] = useState([]);
   const [toast, setToast] = useState("");
 
   const navigate = useNavigate();
+
+  // Load active shipping rates for accurate delivery fee calculation
+  useEffect(() => {
+    shippingService.getRates()
+      .then((r) => setShippingRates(r || []))
+      .catch((err) => console.warn("Failed to load shipping rates in cart:", err));
+  }, []);
 
   // Initialize and sync selected items when cartItems load or change
   useEffect(() => {
@@ -67,12 +84,25 @@ export default function CartPage() {
     showToast("Items removed from cart");
   };
 
-  // Only calculate totals for currently SELECTED items
-  const subtotal = selectedItems.reduce((sum, i) => sum + (Number(i.price) || 0) * (Number(i.qty) || 1), 0);
+  // Calculate totals strictly for currently SELECTED items
+  const subtotal = selectedItems.reduce(
+    (sum, i) => sum + parsePrice(i.price) * (Number(i.qty) || 1),
+    0
+  );
+
+  // Delivery Fee calculation based on active shipping rates in DB
+  const deliveryFee = selectedItems.length > 0
+    ? shippingService.calcFee(shippingRates, null, subtotal)
+    : 0;
+
+  // Check if free delivery threshold is configured (e.g. Free above ₹500)
+  const defaultRate = shippingRates.find((r) => r.state === '__default__');
+  const freeAbove = defaultRate?.free_above != null ? Number(defaultRate.free_above) : null;
+  const neededForFree = freeAbove && subtotal > 0 && subtotal < freeAbove ? (freeAbove - subtotal) : 0;
+
   // GST is already included in product price — extract for display only, not added to total
   const gstIncluded = subtotal > 0 ? Math.round(subtotal - (subtotal / 1.03)) : 0;
-  const platformFee = 0;
-  const grandTotal = subtotal + platformFee;
+  const grandTotal = subtotal + deliveryFee;
 
   return (
     <>
@@ -140,69 +170,74 @@ export default function CartPage() {
 
                 {/* CART ITEMS LIST */}
                 <div className="cart-items-list">
-                  {cartItems.map((item) => (
-                    <div key={item.id} className="cart-item">
-                      <div className="cart-item-media">
-                        <input
-                          type="checkbox"
-                          className="cart-checkbox item-checkbox"
-                          checked={selectedIds.includes(item.id)}
-                          onChange={() => toggleSelect(item.id)}
-                        />
-                        <div className="cart-item-img-box">
-                          <img src={getOriginalImageUrl(item.image)} alt={item.name} className="cart-item-img" />
+                  {cartItems.map((item) => {
+                    const priceNum = parsePrice(item.price);
+                    const origNum = parsePrice(item.originalPrice);
+
+                    return (
+                      <div key={item.id} className="cart-item">
+                        <div className="cart-item-media">
+                          <input
+                            type="checkbox"
+                            className="cart-checkbox item-checkbox"
+                            checked={selectedIds.includes(item.id)}
+                            onChange={() => toggleSelect(item.id)}
+                          />
+                          <div className="cart-item-img-box">
+                            <img src={getOriginalImageUrl(item.image)} alt={item.name} className="cart-item-img" />
+                          </div>
+                        </div>
+                        <div className="cart-item-info">
+                          <h3 className="cart-item-name">{item.name}</h3>
+                          <div className="cart-item-pricing">
+                            <span className="cart-item-price">₹{priceNum.toLocaleString("en-IN")}</span>
+                            {origNum > priceNum && (
+                              <span className="cart-item-original">₹{origNum.toLocaleString("en-IN")}</span>
+                            )}
+                          </div>
+                          <div className="cart-qty-stepper-wrap">
+                            <button
+                              type="button"
+                              className="cart-qty-btn-circle"
+                              onClick={() => updateQty(item.id, Math.max(1, (item.qty || 1) - 1))}
+                              disabled={(item.qty || 1) <= 1}
+                              aria-label="Decrease quantity"
+                            >
+                              −
+                            </button>
+                            <div className="cart-qty-box-value">{item.qty || 1}</div>
+                            <button
+                              type="button"
+                              className="cart-qty-btn-circle"
+                              onClick={() => updateQty(item.id, (item.qty || 1) + 1)}
+                              aria-label="Increase quantity"
+                            >
+                              +
+                            </button>
+                          </div>
+                          <div className="cart-item-meta">
+                            <span className="cart-item-category">{item.category || "Item"}</span>
+                            {item.size && <span className="cart-item-meta-dot">•</span>}
+                            {item.size && <span className="cart-item-size">Size: <strong>{item.size}</strong></span>}
+                            {item.color && <span className="cart-item-meta-dot">•</span>}
+                            {item.color && (
+                              <span className="cart-item-color">
+                                Color: <span className="cart-color-dot" style={{ backgroundColor: item.color }} /> <strong>{getColorName(item.color)}</strong>
+                              </span>
+                            )}
+                          </div>
+                          <div className="cart-item-delivery">
+                            <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#111827" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+                              <path d="M21 8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16Z" />
+                              <path d="m3.3 7 8.7 5 8.7-5" />
+                              <path d="M12 22V12" />
+                            </svg>
+                            <span>Delivered by {item.deliveryDate || "2 - 3 business days"}</span>
+                          </div>
                         </div>
                       </div>
-                      <div className="cart-item-info">
-                        <h3 className="cart-item-name">{item.name}</h3>
-                        <div className="cart-item-pricing">
-                          <span className="cart-item-price">₹{Number(item.price || 0).toLocaleString("en-IN")}</span>
-                          {item.originalPrice && Number(item.originalPrice) > Number(item.price) && (
-                            <span className="cart-item-original">₹{Number(item.originalPrice).toLocaleString("en-IN")}</span>
-                          )}
-                        </div>
-                        <div className="cart-qty-stepper-wrap">
-                          <button
-                            type="button"
-                            className="cart-qty-btn-circle"
-                            onClick={() => updateQty(item.id, Math.max(1, (item.qty || 1) - 1))}
-                            disabled={(item.qty || 1) <= 1}
-                            aria-label="Decrease quantity"
-                          >
-                            −
-                          </button>
-                          <div className="cart-qty-box-value">{item.qty || 1}</div>
-                          <button
-                            type="button"
-                            className="cart-qty-btn-circle"
-                            onClick={() => updateQty(item.id, (item.qty || 1) + 1)}
-                            aria-label="Increase quantity"
-                          >
-                            +
-                          </button>
-                        </div>
-                        <div className="cart-item-meta">
-                          <span className="cart-item-category">{item.category || "Item"}</span>
-                          {item.size && <span className="cart-item-meta-dot">•</span>}
-                          {item.size && <span className="cart-item-size">Size: <strong>{item.size}</strong></span>}
-                          {item.color && <span className="cart-item-meta-dot">•</span>}
-                          {item.color && (
-                            <span className="cart-item-color">
-                              Color: <span className="cart-color-dot" style={{ backgroundColor: item.color }} /> <strong>{getColorName(item.color)}</strong>
-                            </span>
-                          )}
-                        </div>
-                        <div className="cart-item-delivery">
-                          <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#111827" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-                            <path d="M21 8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16Z" />
-                            <path d="m3.3 7 8.7 5 8.7-5" />
-                            <path d="M12 22V12" />
-                          </svg>
-                          <span>Delivered by {item.deliveryDate || "Sep 12, 2025"}</span>
-                        </div>
-                      </div>
-                    </div>
-                  ))}
+                    );
+                  })}
                 </div>
               </>
             )}
@@ -216,27 +251,29 @@ export default function CartPage() {
                   <span>Subtotal</span>
                   <span>₹{subtotal.toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
                 </div>
-                <div className="summary-divider"></div>
                 <div className="summary-row">
-                  <span className="summary-label">Taxes</span>
-                  <span className="summary-val">{selectedItems.length > 0 ? "₹350" : "₹0"}</span>
-                </div>
-                <div className="summary-row">
-                  <span className="summary-label">GST</span>
-                  <span className="summary-val">{selectedItems.length > 0 ? "₹300" : "₹0"}</span>
-                </div>
-                <div className="summary-row">
-                  <span className="summary-label">Flatform Fee</span>
-                  <span className="summary-val">{selectedItems.length > 0 ? "₹150" : "₹0"}</span>
+                  <span className="summary-label">GST (3% Included)</span>
+                  <span className="summary-val">₹{gstIncluded.toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
                 </div>
                 <div className="summary-row">
                   <span className="summary-label">Delivery Fee</span>
-                  <span className="summary-val summary-free-val">FREE</span>
+                  <span className="summary-val">
+                    {deliveryFee === 0 ? (
+                      <span className="summary-free-val">FREE</span>
+                    ) : (
+                      `₹${deliveryFee.toFixed(2)}`
+                    )}
+                  </span>
                 </div>
+                {neededForFree > 0 && (
+                  <div className="cart-free-shipping-hint">
+                    Add ₹{neededForFree} more for <strong>FREE Delivery</strong>
+                  </div>
+                )}
                 <div className="summary-divider"></div>
                 <div className="summary-row summary-grand">
                   <span>Grand Total</span>
-                  <span>₹{(selectedItems.length > 0 ? (subtotal === 900 ? 945 : subtotal) : 0).toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+                  <span>₹{grandTotal.toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
                 </div>
                 <button
                   className="checkout-btn"

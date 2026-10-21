@@ -329,6 +329,12 @@ const CreateMultipleProduct = ({
   const handleSave = async () => {
     if (!validate()) return;
 
+    const validPrices = variants.map(v => parseFloat(v.sellingPrice)).filter(n => !isNaN(n) && n >= 0);
+    const validComparePrices = variants.map(v => parseFloat(v.price)).filter(n => !isNaN(n) && n >= 0);
+    const basePrice = validPrices.length > 0 ? Math.min(...validPrices) : 0;
+    const baseComparePrice = validComparePrices.length > 0 ? Math.max(...validComparePrices) : null;
+    const totalStock = variants.reduce((sum, v) => sum + (parseInt(v.stockQuantity) || 0), 0);
+
     const productData = {
       name: title,
       description,
@@ -336,6 +342,9 @@ const CreateMultipleProduct = ({
       subcategory_id: subCategory || null,
       is_active: showOnStore,
       is_featured: featuredProduct,
+      price: basePrice,
+      compare_price: baseComparePrice,
+      stock: totalStock,
     };
 
     setSaving(true);

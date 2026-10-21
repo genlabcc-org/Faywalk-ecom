@@ -441,7 +441,7 @@ export default function CheckoutPage() {
       try {
         sessionStorage.setItem("faywalk_checkout_product", JSON.stringify(location.state.product));
         localStorage.setItem("faywalk_checkout_product", JSON.stringify(location.state.product));
-      } catch {}
+      } catch { }
       return location.state.product;
     }
     try {
@@ -457,7 +457,7 @@ export default function CheckoutPage() {
       try {
         sessionStorage.setItem("faywalk_checkout_selected_items", JSON.stringify(location.state.selectedItems));
         localStorage.setItem("faywalk_checkout_selected_items", JSON.stringify(location.state.selectedItems));
-      } catch {}
+      } catch { }
       return location.state.selectedItems;
     }
     try {
@@ -474,14 +474,14 @@ export default function CheckoutPage() {
       try {
         sessionStorage.setItem("faywalk_checkout_product", JSON.stringify(location.state.product));
         localStorage.setItem("faywalk_checkout_product", JSON.stringify(location.state.product));
-      } catch {}
+      } catch { }
     }
     if (location.state?.selectedItems && location.state.selectedItems.length > 0) {
       setPersistedSelectedItems(location.state.selectedItems);
       try {
         sessionStorage.setItem("faywalk_checkout_selected_items", JSON.stringify(location.state.selectedItems));
         localStorage.setItem("faywalk_checkout_selected_items", JSON.stringify(location.state.selectedItems));
-      } catch {}
+      } catch { }
     }
   }, [location.state]);
 
@@ -491,7 +491,7 @@ export default function CheckoutPage() {
       sessionStorage.removeItem("faywalk_checkout_selected_items");
       localStorage.removeItem("faywalk_checkout_product");
       localStorage.removeItem("faywalk_checkout_selected_items");
-    } catch {}
+    } catch { }
   };
 
   // Compute checkout items and totals
@@ -558,7 +558,7 @@ export default function CheckoutPage() {
             showToast("Delivery is not available for this pincode.", "error");
             return;
           }
-        } catch (_) {}
+        } catch (_) { }
       } else if (pincodeServiceable === false) {
         setIsProcessingPayment(false);
         showToast("Delivery is not available for this pincode.", "error");

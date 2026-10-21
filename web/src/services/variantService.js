@@ -26,9 +26,23 @@ export const variantService = {
    * Creates a base product plus all its variants in one flow.
    */
   async createProductWithVariants(productData, variants) {
+    const validPrices = (variants || []).map(v => parseFloat(v.sellingPrice ?? v.price)).filter(n => !isNaN(n) && n >= 0);
+    const validComparePrices = (variants || []).map(v => parseFloat(v.price ?? v.compare_price)).filter(n => !isNaN(n) && n >= 0);
+    const fallbackPrice = validPrices.length > 0 ? Math.min(...validPrices) : 0;
+    const fallbackComparePrice = validComparePrices.length > 0 ? Math.max(...validComparePrices) : null;
+    const totalStock = (variants || []).reduce((sum, v) => sum + (parseInt(v.stockQuantity ?? v.stock) || 0), 0);
+
+    const payload = {
+      ...productData,
+      price: productData.price != null && !isNaN(parseFloat(productData.price)) ? parseFloat(productData.price) : fallbackPrice,
+      compare_price: productData.compare_price != null && !isNaN(parseFloat(productData.compare_price)) ? parseFloat(productData.compare_price) : fallbackComparePrice,
+      stock: productData.stock != null && !isNaN(parseInt(productData.stock)) ? parseInt(productData.stock) : totalStock,
+      has_variants: true,
+    };
+
     const { data: product, error: productError } = await supabase
       .from('products')
-      .insert([{ ...productData, has_variants: true }])
+      .insert([payload])
       .select()
       .single();
     if (productError) throw productError;
@@ -102,10 +116,24 @@ export const variantService = {
   async updateProductWithVariants(productId, productData, variants, deletedVariantIds = []) {
     const oldImageUrls = await productService.getProductImageUrls(productId).catch(() => []);
 
+    const validPrices = (variants || []).map(v => parseFloat(v.sellingPrice ?? v.price)).filter(n => !isNaN(n) && n >= 0);
+    const validComparePrices = (variants || []).map(v => parseFloat(v.price ?? v.compare_price)).filter(n => !isNaN(n) && n >= 0);
+    const fallbackPrice = validPrices.length > 0 ? Math.min(...validPrices) : 0;
+    const fallbackComparePrice = validComparePrices.length > 0 ? Math.max(...validComparePrices) : null;
+    const totalStock = (variants || []).reduce((sum, v) => sum + (parseInt(v.stockQuantity ?? v.stock) || 0), 0);
+
+    const updatePayload = {
+      ...productData,
+      price: productData.price != null && !isNaN(parseFloat(productData.price)) ? parseFloat(productData.price) : fallbackPrice,
+      compare_price: productData.compare_price != null && !isNaN(parseFloat(productData.compare_price)) ? parseFloat(productData.compare_price) : fallbackComparePrice,
+      stock: productData.stock != null && !isNaN(parseInt(productData.stock)) ? parseInt(productData.stock) : totalStock,
+      updated_at: new Date().toISOString(),
+    };
+
     const { data: product, error: productError } = await supabase
       .from('products')
       // Bump updated_at so storefront image caches know to refresh
-      .update({ ...productData, updated_at: new Date().toISOString() })
+      .update(updatePayload)
       .eq('product_id', productId)
       .select()
       .single();
