@@ -1,18 +1,12 @@
 import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
-import { useStore } from '../hooks/useStore';
 import { productService } from '../services/productService';
 import { SkeletonProductCard } from './ui/Skeleton';
 import './BestSellers.css';
 
 export default function BestSellers({ onProductClick }) {
-  const navigate = useNavigate();
   const [products, setProducts] = useState([]);
   const [loading, setLoading] = useState(true);
-
-  const cartItems = useStore((state) => state.cartItems);
-  const addToCart = useStore((state) => state.addToCart);
 
   useEffect(() => {
     let isMounted = true;
@@ -154,19 +148,6 @@ export default function BestSellers({ onProductClick }) {
     };
   }, []);
 
-  const isProductInCart = (product) => {
-    const pid = String(product.productId || product.id || product.product_id || '');
-    return cartItems?.some(
-      (item) => String(item.productId || item.product_id || item.id || '') === pid
-    );
-  };
-
-  const handleAddToCart = (e, product) => {
-    e.stopPropagation();
-    if (isProductInCart(product)) return;
-    addToCart(product, 1);
-  };
-
   return (
     <section className="best-sellers-section">
       <div className="best-sellers-header-row">
@@ -188,75 +169,30 @@ export default function BestSellers({ onProductClick }) {
         </div>
       ) : (
         <div className="best-sellers-grid">
-          {products.map((product) => {
-            const inCart = isProductInCart(product);
-            return (
-              <article
-                key={product.id}
-                className="best-seller-card"
-                onClick={() => onProductClick && onProductClick(product)}
-              >
-                <div className="best-seller-img-box">
-                  {product.discountPercent > 0 && (
-                    <span className="best-seller-discount-badge">
-                      {product.discountPercent}% OFF
-                    </span>
-                  )}
-                  <img
-                    src={productService.getResizedImageUrl(product.img, 'card')}
-                    alt={product.name}
-                    className="best-seller-img"
-                    loading="lazy"
-                    decoding="async"
-                    onError={(e) => {
-                      e.target.onerror = null;
-                      e.target.src = product.img || '/src/assets/cart/bangle1.webp';
-                    }}
-                  />
-                  <button
-                    type="button"
-                    className={`best-seller-add-cart-btn ${inCart ? 'in-cart' : ''}`}
-                    onClick={(e) => handleAddToCart(e, product)}
-                    disabled={inCart}
-                    title={inCart ? "Already in cart" : "Add to cart"}
-                  >
-                    {inCart ? (
-                      <>
-                        <svg
-                          width="14"
-                          height="14"
-                          viewBox="0 0 24 24"
-                          fill="none"
-                          stroke="currentColor"
-                          strokeWidth="2.5"
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                        >
-                          <polyline points="20 6 9 17 4 12"></polyline>
-                        </svg>
-                        <span>Already in Cart</span>
-                      </>
-                    ) : (
-                      <>
-                        <svg
-                          width="14"
-                          height="14"
-                          viewBox="0 0 24 24"
-                          fill="none"
-                          stroke="currentColor"
-                          strokeWidth="2.5"
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                        >
-                          <circle cx="9" cy="21" r="1"></circle>
-                          <circle cx="20" cy="21" r="1"></circle>
-                          <path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"></path>
-                        </svg>
-                        <span>Add To Cart</span>
-                      </>
-                    )}
-                  </button>
-                </div>
+          {products.map((product) => (
+            <article
+              key={product.id}
+              className="best-seller-card"
+              onClick={() => onProductClick && onProductClick(product)}
+            >
+              <div className="best-seller-img-box">
+                {product.discountPercent > 0 && (
+                  <span className="best-seller-discount-badge">
+                    {product.discountPercent}% OFF
+                  </span>
+                )}
+                <img
+                  src={productService.getResizedImageUrl(product.img, 'card')}
+                  alt={product.name}
+                  className="best-seller-img"
+                  loading="lazy"
+                  decoding="async"
+                  onError={(e) => {
+                    e.target.onerror = null;
+                    e.target.src = product.img || '/src/assets/cart/bangle1.webp';
+                  }}
+                />
+              </div>
 
               <div className="best-seller-info">
                 <h3 className="best-seller-name">{product.name}</h3>
@@ -270,8 +206,7 @@ export default function BestSellers({ onProductClick }) {
                 </div>
               </div>
             </article>
-          );
-        })}
+          ))}
         </div>
       )}
     </section>

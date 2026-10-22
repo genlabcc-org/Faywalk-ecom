@@ -103,6 +103,19 @@ textarea {
   font-family: var(--font-body);
 }
 
+/* ── Prevent Mobile Browser Auto-Zoom on Form Field Focus ── */
+@media screen and (max-width: 768px) {
+  input:not([type="checkbox"]):not([type="radio"]),
+  select,
+  textarea {
+    font-size: 16px !important;
+  }
+}
+
+html {
+  touch-action: manipulation;
+}
+
 /* ── Global Title Styling (Entire Site) ── */
 .title-font,
 .global-title,
