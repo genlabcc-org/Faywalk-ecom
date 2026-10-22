@@ -508,6 +508,12 @@ export const useStore = create((set, get) => ({
     // Normalize size/color: DB stores '' for null, so normalize here for consistent comparison
     const normSize = size || '';
     const normColor = color || '';
+    const itemStock = product.stock != null && !isNaN(parseInt(product.stock, 10))
+      ? Math.max(0, parseInt(product.stock, 10))
+      : (product.stockCount != null && !isNaN(parseInt(product.stockCount, 10))
+          ? Math.max(0, parseInt(product.stockCount, 10))
+          : null);
+
     if (user) {
       set({ loadingCart: true });
       try {
@@ -518,10 +524,13 @@ export const useStore = create((set, get) => ({
         );
 
         if (existingItem) {
-          const newQty = existingItem.qty + qty;
+          const maxStock = existingItem.stock != null ? existingItem.stock : itemStock;
+          const desiredQty = existingItem.qty + qty;
+          const newQty = maxStock != null && maxStock > 0 ? Math.min(desiredQty, maxStock) : desiredQty;
           await cartService.updateCartItemQty(existingItem.id, newQty);
         } else {
-          await cartService.addCartItem(user.id, product.productId || product.id, qty, normSize, normColor);
+          const initialQty = itemStock != null && itemStock > 0 ? Math.min(qty, itemStock) : qty;
+          await cartService.addCartItem(user.id, product.productId || product.id, initialQty, normSize, normColor);
         }
 
         const updatedItems = await cartService.getCartItems(user.id);
@@ -541,8 +550,11 @@ export const useStore = create((set, get) => ({
       );
 
       if (existingIdx > -1) {
-        localCart[existingIdx].qty += qty;
+        const maxStock = localCart[existingIdx].stock != null ? localCart[existingIdx].stock : itemStock;
+        const desiredQty = localCart[existingIdx].qty + qty;
+        localCart[existingIdx].qty = maxStock != null && maxStock > 0 ? Math.min(desiredQty, maxStock) : desiredQty;
       } else {
+        const initialQty = itemStock != null && itemStock > 0 ? Math.min(qty, itemStock) : qty;
         localCart.push({
           id: `guest_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
           productId: product.productId || product.id,
@@ -550,7 +562,8 @@ export const useStore = create((set, get) => ({
           price: parsePrice(product.price),
           originalPrice: parsePrice(product.originalPrice || product.original || product.compare_price || Math.round(parsePrice(product.price) * 1.3)),
           category: product.category,
-          qty,
+          qty: initialQty,
+          stock: itemStock,
           size: normSize,
           color: normColor,
           image: product.img || product.image || (product.images && product.images[0]) || '/src/assets/cart/bangle1.webp',
@@ -562,62 +575,118 @@ export const useStore = create((set, get) => ({
     }
   },
   updateCartQty: async (itemId, qty) => {
+    const prevCart = get().cartItems;
+    const targetItem = prevCart.find(i => i.id === itemId);
+    if (!targetItem) return;
+
+    const maxStock = targetItem.stock != null && targetItem.stock > 0 ? targetItem.stock : null;
+    const validQty = maxStock ? Math.min(Math.max(1, qty), maxStock) : Math.max(1, qty);
+
+    // 1. INSTANT OPTIMISTIC UPDATE: Updates UI immediately in 0ms
+    const optimisticCart = prevCart.map(item =>
+      item.id === itemId ? { ...item, qty: validQty } : item
+    );
+    set({ cartItems: optimisticCart });
+
     const user = get().user;
     if (user) {
-      set({ loadingCart: true });
+      // 2. Persist to DB in background without blocking UI or re-fetching all items
       try {
-        await cartService.updateCartItemQty(itemId, qty);
-        const updatedItems = await cartService.getCartItems(user.id);
-        set({ cartItems: updatedItems, loadingCart: false });
+        await cartService.updateCartItemQty(itemId, validQty);
       } catch (err) {
         console.error('Error updating cart item quantity:', err);
-        set({ loadingCart: false });
+        // Rollback state if network failed
+        set({ cartItems: prevCart });
       }
     } else {
-      const localCart = get().cartItems.map(item =>
-        item.id === itemId ? { ...item, qty: Math.max(1, qty) } : item
-      );
-      set({ cartItems: localCart });
-      localStorage.setItem('anika_guest_cart', JSON.stringify(localCart));
+      localStorage.setItem('anika_guest_cart', JSON.stringify(optimisticCart));
     }
   },
 
   removeFromCart: async (itemId) => {
+    const prevCart = get().cartItems;
+    const optimisticCart = prevCart.filter(item => item.id !== itemId);
+    set({ cartItems: optimisticCart });
+
     const user = get().user;
     if (user) {
-      set({ loadingCart: true });
       try {
         await cartService.deleteCartItems([itemId]);
-        const updatedItems = await cartService.getCartItems(user.id);
-        set({ cartItems: updatedItems, loadingCart: false });
       } catch (err) {
         console.error('Error removing from cart:', err);
-        set({ loadingCart: false });
+        set({ cartItems: prevCart });
       }
     } else {
-      const localCart = get().cartItems.filter(item => item.id !== itemId);
-      set({ cartItems: localCart });
-      localStorage.setItem('anika_guest_cart', JSON.stringify(localCart));
+      localStorage.setItem('anika_guest_cart', JSON.stringify(optimisticCart));
     }
   },
 
   removeSelectedFromCart: async (selectedIds) => {
     if (!selectedIds || selectedIds.length === 0) return;
+    const prevCart = get().cartItems;
+    const optimisticCart = prevCart.filter(item => !selectedIds.includes(item.id));
+    set({ cartItems: optimisticCart });
+
     const user = get().user;
     if (user) {
-      set({ loadingCart: true });
       try {
         await cartService.deleteCartItems(selectedIds);
-        const updatedItems = await cartService.getCartItems(user.id);
-        set({ cartItems: updatedItems, loadingCart: false });
       } catch (err) {
         console.error('Error removing selected from cart:', err);
-        set({ loadingCart: false });
+        set({ cartItems: prevCart });
       }
     } else {
-      const localCart = get().cartItems.filter(item => !selectedIds.includes(item.id));
-      set({ cartItems: localCart });
-      localStorage.setItem('anika_guest_cart', JSON.stringify(localCart));
+      localStorage.setItem('anika_guest_cart', JSON.stringify(optimisticCart));
+    }
+  },
+
+  refreshCart: async () => {
+    const user = get().user;
+    if (user) {
+      try {
+        const updated = await cartService.getCartItems(user.id);
+        set({ cartItems: updated });
+      } catch (err) {
+        console.warn('Failed to refresh user cart:', err);
+      }
+    } else {
+      const currentItems = get().cartItems;
+      const pIds = currentItems.map(it => it.productId || it.id).filter(Boolean);
+      if (pIds.length > 0) {
+        try {
+          const { data: prods } = await supabase
+            .from('products')
+            .select('id, stock, product_variants(id, color, size, stock)')
+            .in('id', pIds);
+          if (prods && prods.length > 0) {
+            const updated = currentItems.map(it => {
+              const p = prods.find(prod => String(prod.id) === String(it.productId || it.id));
+              if (!p) return it;
+              const vars = p.product_variants || [];
+              const s = String(it.size || '').trim().toLowerCase();
+              const c = String(it.color || '').trim().toLowerCase();
+              let matched = null;
+              if (vars.length > 0) {
+                matched = vars.find(v => {
+                  const vs = String(v.size || '').trim().toLowerCase();
+                  const vc = String(v.color || '').trim().toLowerCase();
+                  return (s ? vs === s : true) && (c ? vc === c : true);
+                }) || vars.find(v => s ? String(v.size || '').trim().toLowerCase() === s : true)
+                   || vars.find(v => c ? String(v.color || '').trim().toLowerCase() === c : true)
+                   || vars[0];
+              }
+              const realStock = matched
+                ? Math.max(0, parseInt(matched.stock, 10) || 0)
+                : Math.max(0, parseInt(p.stock, 10) || 0);
+              return { ...it, stock: realStock };
+            });
+            set({ cartItems: updated });
+            localStorage.setItem('anika_guest_cart', JSON.stringify(updated));
+          }
+        } catch (e) {
+          console.warn('Failed to refresh guest cart stock:', e);
+        }
+      }
     }
   },
 

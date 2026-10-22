@@ -143,6 +143,24 @@
   gap: 10px;
 }
 
+.db__header-inline-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.db__header-inline-actions .ap-header-clear-btn {
+  height: 34px;
+  padding: 0 12px;
+  font-size: 12px;
+}
+
+.db__header-inline-actions .ap-header-variant-btn {
+  height: 34px;
+  padding: 0 14px;
+  font-size: 12px;
+}
+
 .db__action-icon-btn {
   width: 36px;
   height: 36px;

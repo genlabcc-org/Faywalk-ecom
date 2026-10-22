@@ -193,15 +193,50 @@
 
 /* Price */
 .dp-price-row {
-  margin-bottom: 24px;
+  display: flex;
+  align-items: baseline;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-bottom: 22px;
 }
 
 .dp-price-text {
   font-family: var(--font-body);
   font-size: 26px;
   font-weight: 700;
-  color: #000000;
+  color: #111827;
   letter-spacing: -0.3px;
+  line-height: 1;
+}
+
+.dp-price-mrp-cut {
+  font-size: 16px;
+  color: #9ca3af;
+  text-decoration: line-through;
+  font-weight: 400;
+  line-height: 1;
+  display: inline-flex;
+  align-items: baseline;
+  gap: 4px;
+}
+
+.dp-price-mrp-label {
+  font-size: 12px;
+  text-decoration: none;
+  font-weight: 500;
+  color: #9ca3af;
+  letter-spacing: 0.3px;
+}
+
+.dp-price-discount-badge {
+  font-size: 12.5px;
+  font-weight: 700;
+  color: #15803d;
+  background: #dcfce7;
+  padding: 3px 8px;
+  border-radius: 4px;
+  letter-spacing: 0.2px;
+  line-height: 1.2;
 }
 
 /* Option Sections */
@@ -261,6 +296,13 @@
 
 .dp-swatch-circle--white {
   border: 1.5px solid #d1d5db !important;
+}
+
+.dp-stock-low-tag {
+  color: #dc2626;
+  font-weight: 600;
+  font-size: 13px;
+  margin-left: 6px;
 }
 
 /* Quantity Stepper */
@@ -346,6 +388,15 @@
   color: var(--blue-primary, #002277);
   border-color: var(--blue-primary, #002277);
   font-weight: 600;
+}
+
+.dp-size-pill-btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+  background: #f9fafb;
+  color: #9ca3af;
+  text-decoration: line-through;
+  border-color: transparent;
 }
 
 /* ── Action Buttons ── */

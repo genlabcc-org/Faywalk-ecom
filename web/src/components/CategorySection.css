@@ -17,16 +17,17 @@
 }
 
 .category-title {
-  font-family: 'Bebas Neue', 'Outfit', -apple-system, BlinkMacSystemFont, sans-serif !important;
-  font-size: clamp(30px, 3.6vw, 40px) !important;
-  font-weight: 800 !important;
-  color: #000000 !important;
-  margin: 0 !important;
-  padding: 0 !important;
-  line-height: 1 !important;
-  letter-spacing: 0.5px !important;
+  font-family: 'Niquitta Mirzani Sans', var(--title-font-family), sans-serif !important;
+  font-weight: 400 !important;
+  font-style: normal !important;
+  font-size: 48px !important;
+  line-height: 60px !important;
+  letter-spacing: 0% !important;
   text-transform: uppercase !important;
   text-align: center !important;
+  color: #111827 !important;
+  margin: 0 !important;
+  padding: 0 !important;
 }
 
 .category-subtitle {
@@ -38,6 +39,98 @@
   line-height: 1.4 !important;
   text-align: center !important;
   letter-spacing: normal !important;
+}
+
+/* ── Category Tabs (Men / Women) ── */
+.category-tabs {
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  gap: 12px !important;
+  margin-top: 18px !important;
+  margin-bottom: 6px !important;
+}
+
+.category-tab-btn {
+  font-family: 'Outfit', 'Inter', -apple-system, BlinkMacSystemFont, sans-serif !important;
+  font-size: 14px !important;
+  font-weight: 600 !important;
+  letter-spacing: 0.5px !important;
+  text-transform: uppercase !important;
+  padding: 8px 24px !important;
+  border-radius: 4px !important;
+  border: none !important;
+  background: #f0f4fa !important;
+  color: #002277 !important;
+  cursor: pointer !important;
+  transition: all 0.2s ease !important;
+  outline: none !important;
+  user-select: none !important;
+  box-sizing: border-box !important;
+  box-shadow: none !important;
+}
+
+.category-tab-btn:hover {
+  background: #e2ecf9 !important;
+  border: none !important;
+  color: #002277 !important;
+  box-shadow: none !important;
+}
+
+.category-tab-btn.active {
+  background: #002277 !important;
+  color: #ffffff !important;
+  border: none !important;
+  box-shadow: none !important;
+}
+
+
+
+/* ── View All Category Products Link ── */
+.category-view-all-wrap {
+  display: flex !important;
+  justify-content: center !important;
+  margin-top: 28px !important;
+}
+
+.category-view-all-link {
+  font-family: 'Outfit', 'Inter', -apple-system, BlinkMacSystemFont, sans-serif !important;
+  font-size: 14px !important;
+  font-weight: 600 !important;
+  color: #002277 !important;
+  background: transparent !important;
+  border: none !important;
+  cursor: pointer !important;
+  padding: 6px 14px !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  gap: 6px !important;
+  text-decoration: underline !important;
+  text-decoration-color: #002277 !important;
+  text-underline-offset: 4px !important;
+  text-decoration-thickness: 1.5px !important;
+  transition: all 0.2s ease !important;
+}
+
+.category-view-all-link:hover {
+  color: #00185e !important;
+  text-decoration-color: #00185e !important;
+  opacity: 0.85 !important;
+}
+
+
+
+/* ── Empty Subcategories State ── */
+.category-empty-wrap {
+  text-align: center !important;
+  padding: 40px 20px !important;
+}
+
+.category-empty-text {
+  font-family: 'Outfit', 'Inter', -apple-system, BlinkMacSystemFont, sans-serif !important;
+  font-size: 15px !important;
+  color: #666666 !important;
+  margin: 0 0 16px 0 !important;
 }
 
 /* ── Grid Layout for Category Cards ── */
@@ -149,6 +242,11 @@
 
   }
 
+  .category-title {
+    font-size: 38px !important;
+    line-height: 48px !important;
+  }
+
   .category-name,
   .category-card h3,
   .category-item p {
@@ -172,6 +270,7 @@
 
   .category-title {
     font-size: 28px !important;
+    line-height: 36px !important;
   }
 
   .category-subtitle {
@@ -219,5 +318,40 @@
     font-size: 14px !important;
     font-weight: 700 !important;
     margin-top: 8px !important;
+  }
+
+  .category-tabs {
+    gap: 8px !important;
+    margin-top: 12px !important;
+    margin-bottom: 4px !important;
+  }
+
+  .category-tab-btn {
+    font-size: 12px !important;
+    padding: 6px 18px !important;
+  }
+
+  .category-view-all-wrap {
+    margin-top: 20px !important;
+  }
+
+  .category-view-all-link {
+    font-size: 13px !important;
+  }
+}
+
+/* ── Small Mobile Responsiveness (<= 480px) ── */
+@media (max-width: 480px) {
+  .category-title {
+    font-size: 24px !important;
+    line-height: 30px !important;
+  }
+}
+
+/* ── Extra Small Mobile (<= 360px) ── */
+@media (max-width: 360px) {
+  .category-title {
+    font-size: 21px !important;
+    line-height: 26px !important;
   }
 }

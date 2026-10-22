@@ -298,8 +298,12 @@ export default function ProductPage({ category = "Trending" }) {
       // Search query filter
       if (searchQueryParam.trim()) {
         const q = searchQueryParam.trim().toLowerCase();
-        const text = `${product.name || ""} ${product.desc || ""} ${product.subcategory || ""} ${product.category || ""}`.toLowerCase();
-        if (!text.includes(q)) return false;
+        const text = `${product.name || ""} ${product.desc || ""} ${product.subcategory || ""} ${product.category || ""} ${product.sku || ""}`.toLowerCase();
+        const variantMatch = Array.isArray(product.product_variants) && product.product_variants.some(v => 
+          (v.sku && String(v.sku).toLowerCase().includes(q)) ||
+          (v.variant_id && String(v.variant_id).toLowerCase().includes(q))
+        );
+        if (!text.includes(q) && !variantMatch) return false;
       }
 
       // Real category filter

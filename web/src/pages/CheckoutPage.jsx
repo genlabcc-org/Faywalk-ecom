@@ -495,18 +495,92 @@ export default function CheckoutPage() {
   };
 
   // Compute checkout items and totals
-  const checkoutProduct = location.state?.product || persistedProduct;
+  const hasCartSelection = (location.state?.selectedItems && location.state.selectedItems.length > 0) ||
+    (!location.state?.product && persistedSelectedItems && persistedSelectedItems.length > 0);
+
+  const checkoutProduct = hasCartSelection ? null : (location.state?.product || persistedProduct);
   const selectedCartItems = (location.state?.selectedItems && location.state.selectedItems.length > 0)
     ? location.state.selectedItems
     : persistedSelectedItems;
   const cartItems = useStore((state) => state.cartItems);
-  const checkoutItems = checkoutProduct
+  const rawCheckoutItems = checkoutProduct
     ? [checkoutProduct]
     : (selectedCartItems && selectedCartItems.length > 0 ? selectedCartItems : cartItems);
 
-  const subtotal = checkoutProduct
-    ? (parsePrice(checkoutProduct.price) * (checkoutProduct.qty || 1))
-    : checkoutItems.reduce((sum, item) => sum + (Number(item.price) || 0) * (Number(item.qty) || 1), 0);
+  // Live stock overrides fetched directly from database
+  const [stockOverrides, setStockOverrides] = useState({});
+
+  useEffect(() => {
+    const fetchLiveStock = async () => {
+      const pIds = rawCheckoutItems.map(it => it.productId || it.product_id || it.id).filter(Boolean);
+      if (pIds.length === 0) return;
+      try {
+        const { data: prods } = await supabase
+          .from('products')
+          .select('id, stock, product_variants(id, color, size, stock)')
+          .in('id', pIds);
+
+        if (prods && prods.length > 0) {
+          const map = {};
+          rawCheckoutItems.forEach(item => {
+            const pId = item.productId || item.product_id || item.id;
+            const p = prods.find(prod => String(prod.id) === String(pId));
+            if (p) {
+              const vars = p.product_variants || [];
+              const itemSize = String(item.size || item.selectedSize || '').trim().toLowerCase();
+              const itemColor = String(item.color || item.selectedColor || '').trim().toLowerCase();
+              let matched = null;
+              if (vars.length > 0) {
+                matched = vars.find(v => {
+                  const s = String(v.size || '').trim().toLowerCase();
+                  const c = String(v.color || '').trim().toLowerCase();
+                  return (itemSize ? s === itemSize : true) && (itemColor ? c === itemColor : true);
+                }) || vars.find(v => itemSize ? String(v.size || '').trim().toLowerCase() === itemSize : true)
+                   || vars.find(v => itemColor ? String(v.color || '').trim().toLowerCase() === itemColor : true)
+                   || vars[0];
+              }
+              const stockVal = matched
+                ? Math.max(0, parseInt(matched.stock, 10) || 0)
+                : Math.max(0, parseInt(p.stock, 10) || 0);
+              map[item.id || pId] = stockVal;
+            }
+          });
+          setStockOverrides(map);
+        }
+      } catch (err) {
+        console.warn('Failed to verify live stock in checkout:', err);
+      }
+    };
+    fetchLiveStock();
+  }, [rawCheckoutItems.length]);
+
+  const checkoutItems = rawCheckoutItems.map(item => {
+    const key = item.id || item.productId || item.product_id;
+    const rawStock = stockOverrides[key] !== undefined
+      ? stockOverrides[key]
+      : (item.stock !== undefined && item.stock !== null
+          ? item.stock
+          : (item.stockCount !== undefined && item.stockCount !== null ? item.stockCount : null));
+    const stockLimit = rawStock != null && !isNaN(parseInt(rawStock, 10)) ? parseInt(rawStock, 10) : null;
+    const rawQty = Math.max(1, parseInt(item.qty, 10) || 1);
+    const realQty = stockLimit != null && stockLimit > 0 ? Math.min(rawQty, stockLimit) : rawQty;
+    const isOutOfStock = stockLimit !== null && stockLimit <= 0;
+    const isClamped = stockLimit != null && stockLimit > 0 && rawQty > stockLimit;
+
+    return {
+      ...item,
+      stock: stockLimit,
+      qty: isOutOfStock ? 0 : realQty,
+      requestedQty: rawQty,
+      isOutOfStock,
+      isClamped,
+    };
+  });
+
+  const subtotal = checkoutItems.reduce(
+    (sum, item) => sum + (parsePrice(item.price) || 0) * (Number(item.qty) || 0),
+    0
+  );
 
   const discountAmount = appliedDiscount
     ? (typeof appliedDiscount.discountAmount === "number"
@@ -524,12 +598,26 @@ export default function CheckoutPage() {
   const platformFee = 0;
   const grandTotal = subtotal - discountAmount + shippingFee + platformFee;
 
-  const totalQuantity = checkoutItems.reduce((sum, item) => sum + (Number(item.qty) || 1), 0);
+  const totalQuantity = checkoutItems.reduce((sum, item) => sum + (Number(item.qty) || 0), 0);
   const primaryItem = checkoutItems[0] || null;
   const primaryItemPrice = primaryItem ? parsePrice(primaryItem.price) : 0;
 
   const handleCheckoutSubmit = async (e) => {
     if (e) e.preventDefault();
+
+    // Stock validation
+    const outOfStockItem = checkoutItems.find(item => item.isOutOfStock);
+    if (outOfStockItem) {
+      setIsProcessingPayment(false);
+      showToast(`Cannot proceed: "${outOfStockItem.name}" is out of stock.`, "error");
+      return;
+    }
+
+    if (checkoutItems.length === 0 || totalQuantity === 0) {
+      setIsProcessingPayment(false);
+      showToast("Your checkout has no valid items.", "error");
+      return;
+    }
 
     // 1. Immediate synchronous form validation (< 1ms)
     const eErrors = validate();
@@ -937,8 +1025,23 @@ export default function CheckoutPage() {
                             )}
                             <span className="checkout-product-badge checkout-badge-qty">
                               <span className="checkout-badge-label">Qty:</span>
-                              <strong className="checkout-badge-val">{itemQty}</strong>
+                              <strong className="checkout-badge-val">{item.isOutOfStock ? 0 : itemQty}</strong>
                             </span>
+                            {item.isOutOfStock && (
+                              <span className="checkout-product-badge checkout-badge-stock-out">
+                                <strong className="checkout-badge-val">Out of Stock</strong>
+                              </span>
+                            )}
+                            {item.isClamped && !item.isOutOfStock && (
+                              <span className="checkout-product-badge checkout-badge-stock-warning">
+                                <strong className="checkout-badge-val">Stock Limit: {item.stock} max</strong>
+                              </span>
+                            )}
+                            {!item.isClamped && !item.isOutOfStock && item.stock != null && item.stock <= 5 && (
+                              <span className="checkout-product-badge checkout-badge-stock-warning">
+                                <strong className="checkout-badge-val">Only {item.stock} left</strong>
+                              </span>
+                            )}
                           </div>
                         </div>
                       </div>
@@ -1233,11 +1336,16 @@ export default function CheckoutPage() {
 
                 {/* Pay Now Button */}
                 <div className="checkout-action-wrap">
+                  {checkoutItems.some(item => item.isOutOfStock) && (
+                    <div className="checkout-stock-error-banner">
+                      One or more items in your order are out of stock. Please remove them to proceed.
+                    </div>
+                  )}
                   <button
                     type="submit"
                     form="checkout-order-form"
                     className="checkout-primary-pay-btn"
-                    disabled={isProcessingPayment || !ratesLoaded}
+                    disabled={isProcessingPayment || !ratesLoaded || checkoutItems.some(item => item.isOutOfStock) || totalQuantity === 0}
                   >
                     {isProcessingPayment ? (
                       <>

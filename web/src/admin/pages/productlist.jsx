@@ -1,4 +1,5 @@
 import React, { useMemo, useState, useEffect, useRef, useCallback } from "react";
+import { createPortal } from "react-dom";
 import "./productlist.css";
 import searchEmpty from "../../assets/admin/search.png";
 import editIcon from "../../assets/admin/Edit.png";
@@ -46,22 +47,14 @@ const getProductColors = (product) => {
 };
 
 /* ── Mobile card view for very small screens ── */
-const MobileProductCard = ({ product, onEdit, onDelete, selectedRows, toggleSelectRow, expandedRows, toggleExpand }) => {
-  const isChecked = selectedRows.includes(product.id);
+const MobileProductCard = ({ product, onEdit, onDelete, expandedRows, toggleExpand, searchQuery = "" }) => {
   const isExpanded = expandedRows.includes(product.id);
   const hasVariants = product.has_variants && product.variants?.length > 0;
   const colors = getProductColors(product);
 
   return (
-    <div className={`pl-mobile-card${isChecked ? " pl-mobile-card--selected" : ""}`}>
+    <div className="pl-mobile-card">
       <div className="pl-mobile-card__top">
-        <label className="pl-mobile-card__check">
-          <input
-            type="checkbox"
-            checked={isChecked}
-            onChange={() => toggleSelectRow(product.id)}
-          />
-        </label>
         <img
           src={product.images?.[0] || product.image || product.variants?.[0]?.images?.[0] || searchEmpty}
           alt={product.name}
@@ -106,32 +99,49 @@ const MobileProductCard = ({ product, onEdit, onDelete, selectedRows, toggleSele
 
           {isExpanded && (
             <div className="pl-mobile-variant-list">
-              {product.variants.map(v => (
-                <div key={v.variant_id} className="pl-mobile-variant-row">
-                  <img
-                    src={v.images?.[0] || searchEmpty}
-                    alt={`${product.name} ${v.color || ''} ${v.size || ''}`}
-                    className="pl-variant-img"
-                    onError={(e) => { e.target.src = searchEmpty; }}
-                  />
-                  <div className="pl-mobile-variant-details">
-                    <span>
-                      {v.color ? (
-                        <>
-                          <span className="pl-color-dot" style={{ backgroundColor: v.color }} /> {v.color} {v.size ? `• ${v.size}` : ''}
-                        </>
-                      ) : (
-                        v.size ? <span>{v.size}</span> : <span>—</span>
-                      )}
-                    </span>
-                    <span className="pl-mobile-variant-sku">SKU: {v.sku}</span>
+              {product.variants.map(v => {
+                const q = (searchQuery || "").toLowerCase().trim();
+                const isVariantMatch = Boolean(
+                  q && (
+                    (v.sku && String(v.sku).toLowerCase().includes(q)) ||
+                    (v.variant_id != null && String(v.variant_id).toLowerCase().includes(q)) ||
+                    (v.id != null && String(v.id).toLowerCase().includes(q)) ||
+                    (v.sku_id && String(v.sku_id).toLowerCase().includes(q))
+                  )
+                );
+                return (
+                  <div
+                    key={v.variant_id || `${v.color}-${v.size}-${v.sku}`}
+                    className="pl-mobile-variant-row"
+                    style={isVariantMatch ? { background: "#fef9c3", borderRadius: "6px", padding: "6px" } : undefined}
+                  >
+                    <img
+                      src={v.images?.[0] || searchEmpty}
+                      alt={`${product.name} ${v.color || ''} ${v.size || ''}`}
+                      className="pl-variant-img"
+                      onError={(e) => { e.target.src = searchEmpty; }}
+                    />
+                    <div className="pl-mobile-variant-details">
+                      <span>
+                        {v.color ? (
+                          <>
+                            <span className="pl-color-dot" style={{ backgroundColor: v.color }} /> {v.color} {v.size ? `• ${v.size}` : ''}
+                          </>
+                        ) : (
+                          v.size ? <span>{v.size}</span> : <span>—</span>
+                        )}
+                      </span>
+                      <span className="pl-mobile-variant-sku" style={isVariantMatch ? { color: "#b45309", fontWeight: "700" } : undefined}>
+                        SKU: {v.sku || "—"}
+                      </span>
+                    </div>
+                    <div className="pl-mobile-variant-price">
+                      <span>₹{Number(v.price).toLocaleString()}</span>
+                      <span className="pl-mobile-variant-stock">{v.stock} left</span>
+                    </div>
                   </div>
-                  <div className="pl-mobile-variant-price">
-                    <span>₹{Number(v.price).toLocaleString()}</span>
-                    <span className="pl-mobile-variant-stock">{v.stock} left</span>
-                  </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
           )}
         </>
@@ -141,7 +151,6 @@ const MobileProductCard = ({ product, onEdit, onDelete, selectedRows, toggleSele
 };
 
 const ProductList = ({ onAddProduct, onEditProduct, onDeleteProduct, products = [], categories = [], loading = false, onBack }) => {
-  const [selectedRows, setSelectedRows] = useState([]);
   const [visibleCount, setVisibleCount] = useState(10);
   const [searchInput, setSearchInput] = useState("");
   const [searchQuery, setSearchQuery] = useState("");
@@ -206,10 +215,39 @@ const ProductList = ({ onAddProduct, onEditProduct, onDeleteProduct, products = 
 
   const filteredProducts = useMemo(() => {
     let result = products.filter((p) => {
-      const q = searchQuery.toLowerCase();
-      const matchSearch = !searchQuery.trim() ||
-        p.name?.toLowerCase().includes(q) ||
-        p.sku?.toLowerCase().includes(q);
+      const q = searchQuery.toLowerCase().trim();
+
+      const pName = p.name ? String(p.name).toLowerCase() : "";
+      const pSku = p.sku ? String(p.sku).toLowerCase() : "";
+      const pId = p.id != null ? String(p.id).toLowerCase() : "";
+      const pProductId = p.product_id != null ? String(p.product_id).toLowerCase() : "";
+
+      const matchVariant = Array.isArray(p.variants) && p.variants.some((v) => {
+        if (!v) return false;
+        const vSku = v.sku != null ? String(v.sku).toLowerCase() : "";
+        const vVariantId = v.variant_id != null ? String(v.variant_id).toLowerCase() : "";
+        const vId = v.id != null ? String(v.id).toLowerCase() : "";
+        const vSkuId = v.sku_id != null ? String(v.sku_id).toLowerCase() : "";
+        const vBarcode = v.barcode != null ? String(v.barcode).toLowerCase() : "";
+        const vColor = v.color != null ? String(v.color).toLowerCase() : "";
+        const vSize = v.size != null ? String(v.size).toLowerCase() : "";
+        return (
+          vSku.includes(q) ||
+          vVariantId.includes(q) ||
+          vId.includes(q) ||
+          vSkuId.includes(q) ||
+          vBarcode.includes(q) ||
+          vColor.includes(q) ||
+          vSize.includes(q)
+        );
+      });
+
+      const matchSearch = !q ||
+        pName.includes(q) ||
+        pSku.includes(q) ||
+        pId.includes(q) ||
+        pProductId.includes(q) ||
+        matchVariant;
 
       const matchCategory = selectedCategory === "All" || p.category === selectedCategory;
       const matchSubcategory = selectedSubcategory === "All" || p.subcategory === selectedSubcategory;
@@ -235,6 +273,30 @@ const ProductList = ({ onAddProduct, onEditProduct, onDeleteProduct, products = 
 
     return result;
   }, [products, searchQuery, selectedCategory, selectedSubcategory, selectedStatus, selectedStock, priceFrom, priceTo, selectedSort]);
+
+  // Auto-expand variant rows when search matches a variant SKU / ID
+  useEffect(() => {
+    const q = searchQuery.toLowerCase().trim();
+    if (!q) return;
+
+    const matchingIds = products
+      .filter((p) => {
+        if (!p.has_variants || !Array.isArray(p.variants)) return false;
+        return p.variants.some((v) => {
+          if (!v) return false;
+          const vSku = v.sku != null ? String(v.sku).toLowerCase() : "";
+          const vVariantId = v.variant_id != null ? String(v.variant_id).toLowerCase() : "";
+          const vId = v.id != null ? String(v.id).toLowerCase() : "";
+          const vSkuId = v.sku_id != null ? String(v.sku_id).toLowerCase() : "";
+          return vSku.includes(q) || vVariantId.includes(q) || vId.includes(q) || vSkuId.includes(q);
+        });
+      })
+      .map((p) => p.id);
+
+    if (matchingIds.length > 0) {
+      setExpandedRows((prev) => Array.from(new Set([...prev, ...matchingIds])));
+    }
+  }, [searchQuery, products]);
 
   // Reset visibleCount to 10 whenever filters or search criteria change
   useEffect(() => {
@@ -297,13 +359,15 @@ const ProductList = ({ onAddProduct, onEditProduct, onDeleteProduct, products = 
   }, [loadMore]);
 
   const handleSearchKeyDown = (e) => {
-    if (e.key === "Enter") { setSearchQuery(searchInput); setVisibleCount(10); setSelectedRows([]); }
+    if (e.key === "Enter") { setSearchQuery(searchInput); setVisibleCount(10); }
     if (e.key === "Escape") { setSearchInput(""); setSearchQuery(""); setVisibleCount(10); }
   };
 
   const handleSearchChange = (e) => {
-    setSearchInput(e.target.value);
-    if (e.target.value === "") { setSearchQuery(""); setVisibleCount(10); }
+    const val = e.target.value;
+    setSearchInput(val);
+    setSearchQuery(val);
+    setVisibleCount(10);
   };
 
   const handleEdit = (product) => { if (onEditProduct) onEditProduct(product); };
@@ -311,6 +375,22 @@ const ProductList = ({ onAddProduct, onEditProduct, onDeleteProduct, products = 
   const requestDelete = (id) => {
     setPendingDeleteId(id);
   };
+
+  const pendingProduct = useMemo(() => {
+    if (pendingDeleteId === null) return null;
+    return products.find((p) => (p.id ?? p.product_id) === pendingDeleteId) || null;
+  }, [pendingDeleteId, products]);
+
+  useEffect(() => {
+    if (pendingDeleteId === null) return;
+    const handleKeyDown = (e) => {
+      if (e.key === "Escape" && !isDeleting) {
+        setPendingDeleteId(null);
+      }
+    };
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [pendingDeleteId, isDeleting]);
 
   const confirmDelete = async () => {
     const id = pendingDeleteId;
@@ -330,19 +410,7 @@ const ProductList = ({ onAddProduct, onEditProduct, onDeleteProduct, products = 
     }
   };
 
-  const toggleSelectAll = (e) => {
-    setSelectedRows(e.target.checked ? currentProducts.map((p) => p.id) : []);
-  };
 
-  const toggleSelectRow = (id) => {
-    setSelectedRows((prev) =>
-      prev.includes(id) ? prev.filter((rowId) => rowId !== id) : [...prev, id]
-    );
-  };
-
-  const isAllSelected =
-    currentProducts.length > 0 &&
-    currentProducts.every((p) => selectedRows.includes(p.id));
 
   return (
     <div className="product-list">
@@ -353,13 +421,7 @@ const ProductList = ({ onAddProduct, onEditProduct, onDeleteProduct, products = 
           <h1>All products</h1>
           <span className="pl-count">{products.length} Items</span>
         </div>
-        <button className="pl-add-btn" onClick={onAddProduct}>
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-            <line x1="12" y1="5" x2="12" y2="19" />
-            <line x1="5" y1="12" x2="19" y2="12" />
-          </svg>
-          Add product
-        </button>
+
       </div>
 
       {/* Filters + Search */}
@@ -555,10 +617,9 @@ const ProductList = ({ onAddProduct, onEditProduct, onDeleteProduct, products = 
                 product={product}
                 onEdit={handleEdit}
                 onDelete={requestDelete}
-                selectedRows={selectedRows}
-                toggleSelectRow={toggleSelectRow}
                 expandedRows={expandedRows}
                 toggleExpand={toggleExpand}
+                searchQuery={searchQuery}
               />
             ))
           )}
@@ -569,9 +630,6 @@ const ProductList = ({ onAddProduct, onEditProduct, onDeleteProduct, products = 
           <table className="ao__table pl-table">
             <thead>
               <tr>
-                <th className="ao__th-check pl-checkbox-col">
-                  <input type="checkbox" className="ao__checkbox" checked={isAllSelected} onChange={toggleSelectAll} />
-                </th>
                 <th className="pl-product-col">Product</th>
                 <th className="pl-category-col">Category</th>
                 <th className="pl-subcategory-col">Subcategory</th>
@@ -584,13 +642,13 @@ const ProductList = ({ onAddProduct, onEditProduct, onDeleteProduct, products = 
             <tbody>
               {loading ? (
                 <tr>
-                  <td colSpan="8" style={{ padding: "20px" }}>
-                    <SkeletonTable rows={5} cols={8} />
+                  <td colSpan="7" style={{ padding: "20px" }}>
+                    <SkeletonTable rows={5} cols={7} />
                   </td>
                 </tr>
               ) : filteredProducts.length === 0 ? (
                 <tr>
-                  <td colSpan="8" className="pl-empty-state">
+                  <td colSpan="7" className="pl-empty-state">
                     <div className="pl-empty-content">
                       <img src={searchEmpty} alt="No results" className="pl-empty-img" />
                       <p className="pl-empty-title">No results found</p>
@@ -606,14 +664,6 @@ const ProductList = ({ onAddProduct, onEditProduct, onDeleteProduct, products = 
                 currentProducts.map((product) => (
                   <React.Fragment key={product.id}>
                     <tr key={product.id} className="ao__row">
-                      <td className="ao__td-check pl-checkbox-col">
-                        <input
-                          type="checkbox"
-                          className="ao__checkbox"
-                          checked={selectedRows.includes(product.id)}
-                          onChange={() => toggleSelectRow(product.id)}
-                        />
-                      </td>
                       <td className="pl-product-col">
                         <div className="pl-product-info">
                           <img
@@ -694,8 +744,7 @@ const ProductList = ({ onAddProduct, onEditProduct, onDeleteProduct, products = 
 
                     {product.has_variants && expandedRows.includes(product.id) && (
                       <tr className="pl-variant-subrow">
-                        <td></td>
-                        <td colSpan='6'>
+                        <td colSpan='7'>
                           <table className="pl-variant-table">
                             <thead>
                               <tr>
@@ -708,31 +757,49 @@ const ProductList = ({ onAddProduct, onEditProduct, onDeleteProduct, products = 
                               </tr>
                             </thead>
                             <tbody>
-                              {product.variants.map(v => (
-                                <tr key={v.variant_id}>
-                                  <td>
-                                    <img
-                                      src={v.images?.[0] || searchEmpty}
-                                      alt={`${product.name} ${v.color || ''} ${v.size || ''}`}
-                                      className="pl-variant-img"
-                                      onError={(e) => { e.target.src = searchEmpty; }}
-                                    />
-                                  </td>
-                                  <td>
-                                    {v.color ? (
-                                      <>
-                                        <span className="pl-color-dot" style={{ backgroundColor: v.color }} /> {v.color}
-                                      </>
-                                    ) : (
-                                      '—'
-                                    )}
-                                  </td>
-                                  <td>{v.size || '—'}</td>
-                                  <td>{v.sku}</td>
-                                  <td>₹{Number(v.price).toLocaleString()}</td>
-                                  <td>{v.stock}</td>
-                                </tr>
-                              ))}
+                              {product.variants.map(v => {
+                                const q = searchQuery.toLowerCase().trim();
+                                const isVariantMatch = Boolean(
+                                  q && (
+                                    (v.sku && String(v.sku).toLowerCase().includes(q)) ||
+                                    (v.variant_id != null && String(v.variant_id).toLowerCase().includes(q)) ||
+                                    (v.id != null && String(v.id).toLowerCase().includes(q)) ||
+                                    (v.sku_id && String(v.sku_id).toLowerCase().includes(q))
+                                  )
+                                );
+                                return (
+                                  <tr
+                                    key={v.variant_id || `${v.color}-${v.size}-${v.sku}`}
+                                    style={isVariantMatch ? { background: "#fef9c3" } : undefined}
+                                  >
+                                    <td>
+                                      <img
+                                        src={v.images?.[0] || searchEmpty}
+                                        alt={`${product.name} ${v.color || ''} ${v.size || ''}`}
+                                        className="pl-variant-img"
+                                        onError={(e) => { e.target.src = searchEmpty; }}
+                                      />
+                                    </td>
+                                    <td>
+                                      {v.color ? (
+                                        <>
+                                          <span className="pl-color-dot" style={{ backgroundColor: v.color }} /> {v.color}
+                                        </>
+                                      ) : (
+                                        '—'
+                                      )}
+                                    </td>
+                                    <td>{v.size || '—'}</td>
+                                    <td>
+                                      <span style={isVariantMatch ? { color: "#b45309", fontWeight: "700" } : undefined}>
+                                        {v.sku || "—"}
+                                      </span>
+                                    </td>
+                                    <td>₹{Number(v.price).toLocaleString()}</td>
+                                    <td>{v.stock}</td>
+                                  </tr>
+                                );
+                              })}
                             </tbody>
                           </table>
                         </td>
@@ -762,33 +829,54 @@ const ProductList = ({ onAddProduct, onEditProduct, onDeleteProduct, products = 
           </div>
         )}
       </div>
-      {pendingDeleteId !== null && (
-        <div className="pl-confirm-overlay" onClick={() => setPendingDeleteId(null)}>
+      {pendingDeleteId !== null && typeof document !== "undefined" && createPortal(
+        <div
+          className="pl-confirm-overlay"
+          onClick={() => !isDeleting && setPendingDeleteId(null)}
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="pl-confirm-dialog-title"
+        >
           <div className="pl-confirm-modal" onClick={(e) => e.stopPropagation()}>
             <div className="pl-confirm-icon">
-              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#ef4444" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z" />
-                <line x1="12" y1="9" x2="12" y2="13" />
-                <line x1="12" y1="17" x2="12.01" y2="17" />
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                <polyline points="3 6 5 6 21 6" />
+                <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
+                <line x1="10" y1="11" x2="10" y2="17" />
+                <line x1="14" y1="11" x2="14" y2="17" />
               </svg>
             </div>
-            <p className="pl-confirm-text">Are you sure you want to delete this product?</p>
+            <h3 id="pl-confirm-dialog-title" className="pl-confirm-title">Delete Product</h3>
+            <p className="pl-confirm-text">
+              Are you sure you want to delete {pendingProduct?.name ? <strong>"{pendingProduct.name}"</strong> : "this product"}? This action cannot be undone.
+            </p>
             <div className="pl-confirm-actions">
-              <button className="pl-confirm-cancel" onClick={() => setPendingDeleteId(null)} disabled={isDeleting}>
+              <button
+                type="button"
+                className="pl-confirm-cancel"
+                onClick={() => setPendingDeleteId(null)}
+                disabled={isDeleting}
+              >
                 Cancel
               </button>
-              <button className="pl-confirm-ok admin-btn-with-spinner" onClick={confirmDelete} disabled={isDeleting}>
+              <button
+                type="button"
+                className="pl-confirm-ok admin-btn-with-spinner"
+                onClick={confirmDelete}
+                disabled={isDeleting}
+              >
                 {isDeleting ? (
                   <>
                     <span className="admin-btn-spinner" /> Deleting...
                   </>
                 ) : (
-                  "Okay"
+                  "Delete"
                 )}
               </button>
             </div>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
     </div>
   );

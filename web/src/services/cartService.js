@@ -83,6 +83,7 @@ export const cartService = {
       let price = 0;
       let originalPrice = 0;
       let image = product.image_url || (product.images && product.images[0]) || '/src/assets/cart/bangle1.webp';
+      let stock = 0;
 
       if (matchedVariant) {
         price = parsePrice(matchedVariant.price);
@@ -90,11 +91,13 @@ export const cartService = {
         if (matchedVariant.images && matchedVariant.images.length > 0) {
           image = matchedVariant.images[0];
         }
+        stock = matchedVariant.stock != null ? Math.max(0, parseInt(matchedVariant.stock, 10) || 0) : 0;
       } else {
         const rawPrice = parsePrice(product.price);
         const rawDiscount = parsePrice(product.discount_price);
         price = rawDiscount > 0 ? rawPrice - rawDiscount : rawPrice;
         originalPrice = parsePrice(product.compare_price || Math.round(rawPrice * 1.3));
+        stock = product.stock != null ? Math.max(0, parseInt(product.stock, 10) || 0) : 0;
       }
 
       const sku = matchedVariant?.sku || product.sku || '';
@@ -112,6 +115,7 @@ export const cartService = {
         category: product.categories?.name || '',
         sku: sku,
         qty: item.qty || 1,
+        stock: stock,
         size: item.size || '',
         color: realColor,
         // Exact value in the DB row; part of the cart's unique key, so sync must use it

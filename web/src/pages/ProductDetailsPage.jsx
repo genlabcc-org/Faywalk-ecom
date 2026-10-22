@@ -199,6 +199,65 @@ export const parseColors = (rawColors) => {
     .filter(Boolean);
 };
 
+export const sortSizesAscending = (sizes) => {
+  if (!Array.isArray(sizes)) return [];
+
+  const letterRank = {
+    'XXXS': 1, '3XS': 1,
+    'XXS': 2, '2XS': 2,
+    'XS': 3,
+    'S': 4,
+    'M': 5,
+    'L': 6,
+    'XL': 7,
+    'XXL': 8, '2XL': 8,
+    'XXXL': 9, '3XL': 9,
+    '4XL': 10, 'XXXXL': 10,
+    '5XL': 11, 'XXXXXL': 11,
+    '6XL': 12,
+    'FREE': 99, 'FS': 99, 'ONESIZE': 99, 'ONE SIZE': 99, 'FREE SIZE': 99, 'STANDARD': 99
+  };
+
+  return [...sizes].sort((a, b) => {
+    const strA = String(a).trim();
+    const strB = String(b).trim();
+    const upperA = strA.toUpperCase();
+    const upperB = strB.toUpperCase();
+
+    // 1. Both recognized letter sizes (e.g. S, M, L)
+    const rankA = letterRank[upperA];
+    const rankB = letterRank[upperB];
+    if (rankA !== undefined && rankB !== undefined) {
+      return rankA - rankB;
+    }
+
+    // 2. Both purely numeric (e.g. "6", "7", "10", "11")
+    const numA = Number(strA);
+    const numB = Number(strB);
+    if (!isNaN(numA) && !isNaN(numB) && strA !== '' && strB !== '') {
+      return numA - numB;
+    }
+
+    // 3. Strings containing numbers (e.g. "UK 6", "UK 10", "US 9.5")
+    const matchA = strA.match(/\d+(\.\d+)?/);
+    const matchB = strB.match(/\d+(\.\d+)?/);
+    if (matchA && matchB) {
+      const valA = parseFloat(matchA[0]);
+      const valB = parseFloat(matchB[0]);
+      if (valA !== valB) {
+        return valA - valB;
+      }
+    }
+
+    // 4. One has number and one doesn't
+    if (matchA && !matchB) return -1;
+    if (!matchA && matchB) return 1;
+
+    // 5. Natural alphanumeric comparison
+    return strA.localeCompare(strB, undefined, { numeric: true, sensitivity: 'base' });
+  });
+};
+
 // ═════════════════════════════════════════════════════════════════════════════
 export default function ProductDetailsPage({ onBack = () => window.history.back() }) {
   const navigate = useNavigate();
@@ -244,23 +303,41 @@ export default function ProductDetailsPage({ onBack = () => window.history.back(
   const [size, setSize] = useState(() => {
     const rawSizes = selectedProduct?.sizes;
     if (rawSizes) {
+      let list = [];
       if (Array.isArray(rawSizes)) {
-        return rawSizes.map(s => String(s).trim()).filter(Boolean);
-      }
-      if (typeof rawSizes === "string" && rawSizes.trim()) {
+        list = rawSizes.map(s => String(s).trim()).filter(Boolean);
+      } else if (typeof rawSizes === "string" && rawSizes.trim()) {
         try {
           const parsed = JSON.parse(rawSizes);
-          if (Array.isArray(parsed)) return parsed.map(s => String(s).trim()).filter(Boolean);
+          if (Array.isArray(parsed)) list = parsed.map(s => String(s).trim()).filter(Boolean);
         } catch {
-          return rawSizes.split(",").map(s => s.trim()).filter(Boolean);
+          list = rawSizes.split(",").map(s => s.trim()).filter(Boolean);
         }
       }
+      return sortSizesAscending(list);
     }
     return [];
   });
-  const [hasVariants, setHasVariants] = useState(false);
-  const [variants, setVariants] = useState([]);
-  const [selectedColor, setSelectedColor] = useState("");
+  const [hasVariants, setHasVariants] = useState(() => {
+    return Boolean(selectedProduct?.has_variants || selectedProduct?.product_variants?.length > 0);
+  });
+  const [variants, setVariants] = useState(() => {
+    return selectedProduct?.product_variants || selectedProduct?.variants || [];
+  });
+  const [selectedColor, setSelectedColor] = useState(() => {
+    const rawColors = selectedProduct?.colors;
+    const parsed = parseColors(rawColors);
+    if (parsed.length > 0) {
+      if (!selectedProduct?.has_variants || parsed.length === 1) {
+        return parsed[0];
+      }
+    }
+    const varColors = (selectedProduct?.product_variants || selectedProduct?.variants || []).map((v) => v.color).filter(Boolean);
+    if (varColors.length > 0 && (!selectedProduct?.has_variants || varColors.length === 1)) {
+      return varColors[0];
+    }
+    return "";
+  });
 
   // Sync / fetch product if accessed directly via URL or shared link
   useEffect(() => {
@@ -345,7 +422,7 @@ export default function ProductDetailsPage({ onBack = () => window.history.back(
             }
           }
         }
-        const realSizes = Array.from(new Set([...baseSizes, ...varSizes].map(s => String(s).trim()).filter(Boolean)));
+        const realSizes = sortSizesAscending(Array.from(new Set([...baseSizes, ...varSizes].map(s => String(s).trim()).filter(Boolean))));
         formatted.sizes = realSizes;
 
         setProductImages(baseImages);
@@ -354,12 +431,18 @@ export default function ProductDetailsPage({ onBack = () => window.history.back(
           colors: parsedColorsList,
         });
 
-        if (data.has_variants && data.product_variants?.length > 0) {
-          setHasVariants(true);
-          setVariants(data.product_variants);
-        } else {
-          setHasVariants(false);
-          setVariants([]);
+        const rawVariants = data.product_variants || [];
+        setVariants(rawVariants);
+        setHasVariants(Boolean(data.has_variants || rawVariants.length > 0));
+
+        const allColors = parsedColorsList.length > 0
+          ? parsedColorsList
+          : [...new Set(rawVariants.map((v) => v.color).filter(Boolean))];
+
+        if (!data.has_variants || allColors.length === 1) {
+          if (allColors[0]) {
+            setSelectedColor(allColors[0]);
+          }
         }
 
         setSize(realSizes);
@@ -393,43 +476,91 @@ export default function ProductDetailsPage({ onBack = () => window.history.back(
 
   const activeSizeValue = selectedSize;
 
-  const selectedVariant = useMemo(() => {
-    if (!hasVariants || variants.length === 0) return null;
-    return variants.find(
-      v => (v.size || "") === (activeSizeValue || "") && (v.color || "") === (selectedColor || "")
-    ) || null;
-  }, [hasVariants, variants, activeSizeValue, selectedColor]);
+  // Strict match for variant based on selected size and selected color
+  const matchedSizeVariant = useMemo(() => {
+    if (!variants || variants.length === 0) return null;
 
-  useEffect(() => {
-    if (!hasVariants || variants.length === 0) return;
-    if (!selectedColor) return;
+    const normSize = String(activeSizeValue || "").trim().toLowerCase();
+    const normColor = String(selectedColor || "").trim().toLowerCase();
 
-    const colorsForCurrentSize = [...new Set(
-      variants.filter(v => !activeSizeValue || v.size === activeSizeValue).map(v => v.color).filter(Boolean)
-    )];
-    if (colorsForCurrentSize.length > 0 && !colorsForCurrentSize.includes(selectedColor)) {
-      setSelectedColor('');
+    // 1. Both size and color match
+    if (normSize && normColor) {
+      const match = variants.find(
+        (v) =>
+          String(v.size || "").trim().toLowerCase() === normSize &&
+          String(v.color || "").trim().toLowerCase() === normColor
+      );
+      if (match) return match;
     }
-  }, [activeSizeValue, hasVariants, variants, selectedColor]);
+
+    // 2. Size match
+    if (normSize) {
+      const match = variants.find(
+        (v) => String(v.size || "").trim().toLowerCase() === normSize
+      );
+      if (match) return match;
+    }
+
+    // 3. Color match
+    if (normColor) {
+      const match = variants.find(
+        (v) => String(v.color || "").trim().toLowerCase() === normColor
+      );
+      if (match) return match;
+    }
+
+    return null;
+  }, [variants, activeSizeValue, selectedColor]);
+
+  const selectedVariant = useMemo(() => {
+    if (matchedSizeVariant) return matchedSizeVariant;
+    if (!variants || variants.length === 0) return null;
+    return (
+      variants.find(
+        (v) => (v.color || "") === (selectedColor || "") && v.images?.length > 0
+      ) ||
+      variants[0] ||
+      null
+    );
+  }, [matchedSizeVariant, variants, selectedColor]);
+
 
   const rawPrice = hasVariants
-    ? (selectedVariant?.price ?? productPrices?.price ?? selectedProduct?.price ?? variants[0]?.price ?? null)
-    : (productPrices?.price ?? selectedProduct?.price ?? null);
+    ? (matchedSizeVariant?.price ?? selectedVariant?.price ?? productPrices?.price ?? selectedProduct?.price ?? variants[0]?.price ?? null)
+    : (matchedSizeVariant?.price ?? productPrices?.price ?? selectedProduct?.price ?? null);
 
   const rawCompare = hasVariants
-    ? (selectedVariant?.compare_price ?? productPrices?.compare_price ?? selectedProduct?.compare_price ?? variants[0]?.compare_price ?? null)
-    : (productPrices?.compare_price ?? selectedProduct?.compare_price ?? null);
+    ? (matchedSizeVariant?.compare_price ?? selectedVariant?.compare_price ?? productPrices?.compare_price ?? selectedProduct?.compare_price ?? variants[0]?.compare_price ?? null)
+    : (matchedSizeVariant?.compare_price ?? productPrices?.compare_price ?? selectedProduct?.compare_price ?? null);
 
   const displayImage = selectedProduct?.img || selectedProduct?.image || selectedProduct?.image_url || '';
   const displayName = selectedProduct?.name || '';
 
-  const displaySku = hasVariants
-    ? (selectedVariant?.sku || variants[0]?.sku || '')
-    : (productPrices?.sku || selectedProduct?.sku || '');
+  const displaySku = matchedSizeVariant?.sku || selectedVariant?.sku || productPrices?.sku || selectedProduct?.sku || '';
 
-  const stockCount = hasVariants
-    ? (selectedVariant ? selectedVariant.stock : (productPrices?.stock ?? selectedProduct?.stock ?? 10))
-    : (productPrices?.stock ?? selectedProduct?.stock ?? 10);
+  const stockCount = useMemo(() => {
+    // If product has size variants and a size is selected, strictly return that size's stock
+    if (variants && variants.length > 0 && selectedSize) {
+      if (matchedSizeVariant) {
+        return Math.max(0, parseInt(matchedSizeVariant.stock, 10) || 0);
+      }
+      return 0;
+    }
+
+    // If product has size variants but no size has been selected yet
+    if (variants && variants.length > 0 && size.length > 0 && !selectedSize) {
+      const totalVarStock = variants.reduce((sum, v) => sum + (parseInt(v.stock, 10) || 0), 0);
+      return totalVarStock;
+    }
+
+    // Simple product without variants table
+    const baseStock = productPrices?.stock ?? selectedProduct?.stock;
+    if (baseStock != null && !isNaN(parseInt(baseStock, 10))) {
+      return Math.max(0, parseInt(baseStock, 10));
+    }
+
+    return 0;
+  }, [variants, selectedSize, matchedSizeVariant, size, productPrices, selectedProduct]);
 
   const cleanNum = (val) => {
     if (val == null) return null;
@@ -439,21 +570,30 @@ export default function ProductDetailsPage({ onBack = () => window.history.back(
   };
 
   const payPrice = cleanNum(rawPrice) ?? 150;
-  const strikePrice = cleanNum(rawCompare) ?? Math.round(payPrice * 1.3);
+  const strikePrice = cleanNum(rawCompare);
+  const discountPercent =
+    strikePrice != null && strikePrice > payPrice
+      ? Math.round(((strikePrice - payPrice) / strikePrice) * 100)
+      : 0;
 
-  const canAddToCart = stockCount == null || stockCount > 0;
+  const canAddToCart = stockCount > 0;
 
+  // Available colors: when a size is selected, ONLY show colors available for that size!
   const availableColors = useMemo(() => {
-    const variantColors = (variants || []).map(v => v.color).filter(Boolean);
-    if (hasVariants && variantColors.length > 0) {
-      const relevantVariants = activeSizeValue
-        ? variants.filter(v => v.size === activeSizeValue)
-        : variants;
-      const filtered = [...new Set(relevantVariants.map(v => v.color).filter(Boolean))];
-      if (filtered.length > 0) return filtered;
-      const allVariant = [...new Set(variantColors)];
-      if (allVariant.length > 0) return allVariant;
+    if (hasVariants && selectedSize && variants?.length > 0) {
+      const normSize = String(selectedSize).trim().toLowerCase();
+      const colorsForSize = variants
+        .filter((v) => String(v.size || "").trim().toLowerCase() === normSize && v.color)
+        .map((v) => v.color)
+        .filter(Boolean);
+      return [...new Set(colorsForSize)];
     }
+
+    const variantColors = (variants || []).map((v) => v.color).filter(Boolean);
+    if (hasVariants && variantColors.length > 0) {
+      return [...new Set(variantColors)];
+    }
+
     const rawColors = productPrices?.colors || selectedProduct?.colors;
     const parsed = parseColors(rawColors);
     if (parsed.length > 0) return parsed;
@@ -462,7 +602,25 @@ export default function ProductDetailsPage({ onBack = () => window.history.back(
       return [...new Set(variantColors)];
     }
     return [];
-  }, [hasVariants, variants, activeSizeValue, productPrices, selectedProduct]);
+  }, [hasVariants, variants, selectedSize, productPrices, selectedProduct]);
+
+  // Auto-sync selectedColor when selectedSize changes or availableColors updates
+  useEffect(() => {
+    if (!hasVariants || !variants || variants.length === 0) return;
+
+    if (availableColors.length > 0) {
+      setSelectedColor((prev) => {
+        if (prev && availableColors.includes(prev)) return prev;
+        return availableColors[0];
+      });
+    } else {
+      setSelectedColor("");
+    }
+  }, [selectedSize, availableColors, hasVariants, variants]);
+
+  useEffect(() => {
+    setActiveThumb(0);
+  }, [selectedSize, selectedColor]);
 
   // Gallery Thumbnails
   const dynamicThumbs = useMemo(() => {
@@ -529,12 +687,23 @@ export default function ProductDetailsPage({ onBack = () => window.history.back(
     setQty(prev => {
       const next = prev + delta;
       if (next < 1) return 1;
-      if (stockCount != null && stockCount > 0 && next > stockCount) {
-        return stockCount;
+      if (stockCount != null && next > stockCount) {
+        return Math.max(1, stockCount);
       }
       return next;
     });
   }, [stockCount]);
+
+  // Clamp quantity to selected size stock whenever size or stockCount updates
+  useEffect(() => {
+    if (selectedSize && stockCount != null && stockCount > 0) {
+      if (qty > stockCount) {
+        setQty(stockCount);
+      } else if (qty < 1) {
+        setQty(1);
+      }
+    }
+  }, [selectedSize, stockCount]);
 
   const handleHeaderLinkClick = (link) => {
     if (link === "Home") {
@@ -696,10 +865,11 @@ export default function ProductDetailsPage({ onBack = () => window.history.back(
 
   const validateOptionsSelection = useCallback(() => {
     const hasSizes = Array.isArray(size) && size.length > 0;
-    const hasColors = Array.isArray(availableColors) && availableColors.length > 0;
+    // Only multi-variant products with multiple colors require manual color selection
+    const requiresColorSelection = Boolean(selectedProduct?.has_variants && availableColors.length > 1);
 
     const missingSize = hasSizes && !selectedSize;
-    const missingColor = hasColors && !selectedColor;
+    const missingColor = requiresColorSelection && !selectedColor;
 
     if (missingSize && missingColor) {
       showToast("Please select size and color", "error");
@@ -714,7 +884,7 @@ export default function ProductDetailsPage({ onBack = () => window.history.back(
       return false;
     }
     return true;
-  }, [size, availableColors, selectedSize, selectedColor]);
+  }, [size, availableColors, selectedSize, selectedColor, selectedProduct]);
 
   const handleAddToCart = async () => {
     if (!validateOptionsSelection()) {
@@ -729,7 +899,7 @@ export default function ProductDetailsPage({ onBack = () => window.history.back(
 
     if (selectedProduct) {
       const sizeParam = selectedSize || null;
-      const colorParam = selectedColor || null;
+      const colorParam = selectedColor || availableColors[0] || null;
       const cartProductPayload = {
         ...selectedProduct,
         productId: selectedProduct?.productId || selectedProduct?.id || selectedProduct?.product_id,
@@ -741,6 +911,8 @@ export default function ProductDetailsPage({ onBack = () => window.history.back(
         image: dynamicThumbs[0]?.img || selectedVariant?.images?.[0] || displayImage,
         img: dynamicThumbs[0]?.img || selectedVariant?.images?.[0] || displayImage,
         category: cat,
+        stock: stockCount,
+        stockCount: stockCount,
       };
       await addToCart(cartProductPayload, qty, sizeParam, colorParam);
       showToast(`Added "${displayName}" to cart!`);
@@ -759,7 +931,7 @@ export default function ProductDetailsPage({ onBack = () => window.history.back(
     if (!canAddToCart) return;
 
     const sizeParam = selectedSize || null;
-    const colorParam = selectedColor || null;
+    const colorParam = selectedColor || availableColors[0] || null;
 
     const checkoutPayload = {
       productId: selectedProduct?.productId || selectedProduct?.id || selectedProduct?.product_id,
@@ -768,6 +940,8 @@ export default function ProductDetailsPage({ onBack = () => window.history.back(
       price: payPrice,
       originalPrice: strikePrice,
       qty: qty,
+      stock: stockCount,
+      stockCount: stockCount,
       img: dynamicThumbs[0]?.img || selectedVariant?.images?.[0] || displayImage,
       category: cat,
       sku: displaySku || selectedProduct?.sku || selectedVariant?.sku || '',
@@ -864,8 +1038,14 @@ export default function ProductDetailsPage({ onBack = () => window.history.back(
 
             {/* Stock Status Badge */}
             <div className="dp-stock-status">
-              {stockCount === 0 ? (
+              {stockCount === 0 && selectedSize ? (
+                <span className="dp-stock-out">Out of Stock ({selectedSize})</span>
+              ) : stockCount === 0 ? (
                 <span className="dp-stock-out">Out of Stock</span>
+              ) : selectedSize ? (
+                <span className="dp-stock-in">
+                  In Stock ({stockCount} available)
+                </span>
               ) : (
                 <span className="dp-stock-in">In Stock</span>
               )}
@@ -878,9 +1058,19 @@ export default function ProductDetailsPage({ onBack = () => window.history.back(
               </p>
             )}
 
-          {/* Price */}
+          {/* Price & MRP */}
           <div className="dp-price-row">
-            <span className="dp-price-text">Rs. {payPrice}</span>
+            <span className="dp-price-text">Rs. {payPrice.toLocaleString('en-IN')}</span>
+            {strikePrice != null && strikePrice > payPrice && (
+              <>
+                <span className="dp-price-mrp-cut">
+                  <span className="dp-price-mrp-label">MRP</span> Rs. {strikePrice.toLocaleString('en-IN')}
+                </span>
+                {discountPercent > 0 && (
+                  <span className="dp-price-discount-badge">{discountPercent}% OFF</span>
+                )}
+              </>
+            )}
           </div>
 
           {/* Select Color */}
@@ -914,31 +1104,6 @@ export default function ProductDetailsPage({ onBack = () => window.history.back(
             </div>
           )}
 
-          {/* Select Quantity */}
-          <div className="dp-option-section">
-            <h4 className="dp-option-title">Select Quantity</h4>
-            <div className="dp-qty-stepper-wrap">
-              <button
-                type="button"
-                className="dp-qty-btn-circle"
-                onClick={() => handleQtyChange(-1)}
-                disabled={qty <= 1}
-                aria-label="Decrease quantity"
-              >
-                −
-              </button>
-              <div className="dp-qty-box-value">{qty}</div>
-              <button
-                type="button"
-                className="dp-qty-btn-circle"
-                onClick={() => handleQtyChange(1)}
-                aria-label="Increase quantity"
-              >
-                +
-              </button>
-            </div>
-          </div>
-
           {/* Select Size */}
           {size.length > 0 && (
             <div className="dp-option-section">
@@ -946,19 +1111,54 @@ export default function ProductDetailsPage({ onBack = () => window.history.back(
                 Select Size {selectedSize ? <span className="dp-selected-choice-badge">: {selectedSize}</span> : null}
               </h4>
               <div className="dp-size-buttons-row">
-                {size.map((s) => (
-                  <button
-                    key={s}
-                    type="button"
-                    className={`dp-size-pill-btn ${selectedSize === s ? 'active' : ''}`}
-                    onClick={() => setSelectedSize(s)}
-                  >
-                    {s}
-                  </button>
-                ))}
+                {sortSizesAscending(size).map((s) => {
+                  return (
+                    <button
+                      key={s}
+                      type="button"
+                      className={`dp-size-pill-btn ${selectedSize === s ? 'active' : ''}`}
+                      onClick={() => setSelectedSize(s)}
+                    >
+                      {s}
+                    </button>
+                  );
+                })}
               </div>
             </div>
           )}
+
+          {/* Select Quantity */}
+          <div className="dp-option-section">
+            <h4 className="dp-option-title">
+              Select Quantity
+              {selectedSize && stockCount > 0 && stockCount <= 5 ? (
+                <span className="dp-stock-low-tag"> (Only {stockCount} left!)</span>
+              ) : null}
+            </h4>
+            <div className="dp-qty-stepper-wrap">
+              <button
+                type="button"
+                className="dp-qty-btn-circle"
+                onClick={() => handleQtyChange(-1)}
+                disabled={qty <= 1 || stockCount <= 0}
+                aria-label="Decrease quantity"
+              >
+                −
+              </button>
+              <div className="dp-qty-box-value">
+                {stockCount === 0 && selectedSize ? 0 : qty}
+              </div>
+              <button
+                type="button"
+                className="dp-qty-btn-circle"
+                onClick={() => handleQtyChange(1)}
+                disabled={stockCount <= 0 || qty >= stockCount}
+                aria-label="Increase quantity"
+              >
+                +
+              </button>
+            </div>
+          </div>
 
           {/* Action Buttons */}
           <div className="dp-action-buttons-group">
@@ -1007,10 +1207,6 @@ export default function ProductDetailsPage({ onBack = () => window.history.back(
               <div className="dp-specs-row">
                 <span className="dp-specs-label">Category :</span>
                 <span className="dp-specs-value">{selectedProduct?.gender || selectedProduct?.category || "Male"}</span>
-              </div>
-              <div className="dp-specs-row">
-                <span className="dp-specs-label">Pocket :</span>
-                <span className="dp-specs-value">{selectedProduct?.pocket || "Without Pocket"}</span>
               </div>
             </div>
           </div>

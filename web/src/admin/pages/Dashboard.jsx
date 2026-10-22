@@ -28,7 +28,7 @@ import AddCategory from "./addcategory";
 import SubCategoryForm from "./cat/FormCategory";
 import SubCategory from "./cat/SubCategory";
 
-import ProductVariant from "./variant/ProductVariant";
+
 
 import CategoryList from "./categorylist";
 import AllOrders from "./Allorders";
@@ -93,12 +93,7 @@ const HamburgerIcon = ({ open }) =>
 // ── Menu Config ─────────────────────────────────────────────────
 const menuItems = [
   { id: "dashboard", label: "Dashboard", path: "/admin" },
-  {
-    id: "product", label: "Product", path: "/admin/products", children: [
-      { label: "All Products", path: "/admin/products" },
-      { label: "Add Product", path: "/admin/products/add" },
-    ]
-  },
+  { id: "product", label: "Products", path: "/admin/products" },
   {
     id: "category", label: "Category", path: "/admin/categories", children: [
       { label: "All Categories", path: "/admin/categories" },
@@ -200,7 +195,7 @@ const sidebarIcons = {
 };
 
 const HIDE_ADD_PRODUCT_PATHS = [
-  "/admin/categories", "/admin/categories/add", "/admin/products/add",
+  "/admin/categories", "/admin/categories/add", "/admin/products/add", "/admin/products/add-multiple", "/admin/products/edit-multiple",
   "/admin/orders", "/admin/orders/detail", "/admin/invoices",
   "/admin/customers", "/admin/customers/detail",
   "/admin/banners", "/admin/banners/add", "/admin/topbar", "/admin/coupons", "/admin/analytics",
@@ -1044,6 +1039,43 @@ function SubcategoryByParent({ onSave, navigate, categories }) {
   );
 }
 
+function SubcategoryCard({ navigate, categories, products, subcategoriesCache, fetchSubcategoriesForParent }) {
+  const [searchParams] = useSearchParams();
+  const parentId = searchParams.get("parentId");
+  const parentCategory = categories.find(
+    (c) => String(c.category_id ?? c.id) === String(parentId)
+  );
+  return (
+    <SubCategory
+      parentCategory={parentCategory}
+      subcategories={subcategoriesCache?.[parentId]}
+      products={products}
+      onFetchSubcategories={fetchSubcategoriesForParent}
+      onBack={() => navigate("/admin/categories")}
+      onAddSubcategory={() => navigate(`/admin/subcategories/new?parentId=${parentId}`)}
+    />
+  );
+}
+
+function UnifiedProductFormWrapper({ categories, subcategoriesCache, fetchSubcategoriesForParent, onSave, navigate }) {
+  const location = useLocation();
+  const [searchParams] = useSearchParams();
+  const editingProductId = location.state?.editingProductId || searchParams.get("id");
+
+  return (
+    <AddProduct
+      key={editingProductId || "new"}
+      editingProductId={editingProductId || null}
+      categories={categories}
+      onGoToRoot={() => navigate("/admin/categories")}
+      onBack={() => navigate("/admin/products")}
+      onSave={onSave}
+      subcategoriesCache={subcategoriesCache}
+      onFetchSubcategories={fetchSubcategoriesForParent}
+    />
+  );
+}
+
 // ── Main Dashboard Layout ───────────────────────────────────────
 const Dashboard = () => {
   const navigate = useNavigate();
@@ -1261,6 +1293,13 @@ const Dashboard = () => {
     setOpenMenus(expanded);
   }, [currentPath]);
 
+  // Reset editingProduct and drafts when navigating away from product edit/add
+  useEffect(() => {
+    if (!currentPath.startsWith("/admin/products/add") && !currentPath.startsWith("/admin/products/edit-multiple")) {
+      setEditingProduct(null);
+    }
+  }, [currentPath]);
+
   // ── Fetch categories on mount ─────────────────────
   useEffect(() => {
     const fetchCategories = async () => {
@@ -1285,7 +1324,7 @@ const Dashboard = () => {
 
   // Normalize a raw Supabase product row into the shape productlist.jsx expects
   const normalizeProductRow = (row) => {
-    const variants = row.product_variants || [];
+    const variants = row.product_variants || row.variants || [];
     const prices = variants.map(v => Number(v.price)).filter(n => !isNaN(n));
     const totalStock = variants.reduce((sum, v) => sum + (Number(v.stock) || 0), 0);
 
@@ -1356,9 +1395,10 @@ const Dashboard = () => {
     if (currentPath === "/admin" || currentPath === "/admin/") return "Dashboard";
     if (currentPath === "/admin/analytics") return "Analytics";
 
-    if (currentPath === "/admin/products/add-multiple") return "Add Multiple Product";
-    if (currentPath === "/admin/products/edit-multiple") return "Edit Multiple Product";
-    if (currentPath === "/admin/products/add") return editingProduct ? "Edit Product" : "Add Product";
+    if (currentPath === "/admin/products/add" || currentPath === "/admin/products/add-multiple" || currentPath === "/admin/products/edit-multiple") {
+      const hasId = editingProduct || new URLSearchParams(location.search).get("id") || location.state?.editingProductId;
+      return hasId ? "Edit Product" : "Add Product";
+    }
     if (currentPath.startsWith("/admin/products")) return "All Products";
 
     if (currentPath === "/admin/categories/add") return editingCategory ? "Edit Category" : "Add Category";
@@ -1400,14 +1440,9 @@ const Dashboard = () => {
       return "Comprehensive reports, sales analytics, and customer insights";
     }
 
-    if (currentPath === "/admin/products/add-multiple") {
-      return "Add products with multiple variants, colors, and sizes";
-    }
-    if (currentPath === "/admin/products/edit-multiple") {
-      return "Edit product variants, inventory, and pricing";
-    }
-    if (currentPath === "/admin/products/add") {
-      return editingProduct ? "Update product details, pricing, and images" : "Add a new product to your store catalog";
+    if (currentPath === "/admin/products/add" || currentPath === "/admin/products/add-multiple" || currentPath === "/admin/products/edit-multiple") {
+      const hasId = editingProduct || new URLSearchParams(location.search).get("id") || location.state?.editingProductId;
+      return hasId ? "Update product details, variants, inventory, and pricing" : "Add a new product to your store catalog with variants, colors, and sizes";
     }
     if (currentPath.startsWith("/admin/products")) {
       return "Manage, search, and organize your store's product catalog";
@@ -1478,76 +1513,30 @@ const Dashboard = () => {
     return data;
   }, [subcategoriesCache]);
 
-  function SubcategoryCard({ navigate, categories, products }) {
-    const [searchParams] = useSearchParams();
-    const parentId = searchParams.get("parentId");
-    const parentCategory = categories.find(
-      (c) => String(c.category_id ?? c.id) === String(parentId)
-    );
-    return (
-      <SubCategory
-        parentCategory={parentCategory}
-        subcategories={subcategoriesCache[parentId]}
-        products={products}
-        onFetchSubcategories={fetchSubcategoriesForParent}
-        onBack={() => navigate("/admin/categories")}
-        onAddSubcategory={() => navigate(`/admin/subcategories/new?parentId=${parentId}`)}
-      />
-    );
-  }
-
-  function EditMultipleProductWrapper({ categories, subcategoriesCache, fetchSubcategoriesForParent, onSave, navigate }) {
-    const location = useLocation();
-    const [searchParams] = useSearchParams();
-    const editingProductId = location.state?.editingProductId || searchParams.get("id");
-
-    if (!editingProductId) {
-      return <Navigate to="/admin/products" replace />;
-    }
-    return (
-      <ProductVariant
-        editingProductId={editingProductId}
-        categories={categories}
-        onGoToRoot={() => navigate("/admin/categories")}
-        onBack={() => navigate("/admin/products")}
-        onSave={onSave}
-        subcategoriesCache={subcategoriesCache}
-        onFetchSubcategories={fetchSubcategoriesForParent}
-      />
-    );
-  }
 
   // ── Handlers ──────────────────────────────────────────────────
   const goToAddProduct = () => {
     setEditingProduct(null);
+    try {
+      sessionStorage.removeItem("faywalk_variant_draft_new");
+      sessionStorage.removeItem("faywalk_product_draft_new");
+    } catch {}
     navigate("/admin/products/add");
   };
 
   const goToAddMultipleProduct = () => {
-    navigate("/admin/products/add-multiple");
-  }
+    goToAddProduct();
+  };
 
   const goToOrder = () => {
     setSelectedOrder(null);
     navigate("/admin/orders");
   };
 
-  const handleEditProduct = async (product) => {
+  const handleEditProduct = (product) => {
     const prodId = product.id || product.product_id;
-    if (product.has_variants) {
-      navigate(`/admin/products/edit-multiple?id=${prodId}`, { state: { editingProductId: prodId } });
-    } else {
-      setEditingProduct(product);
-      navigate(`/admin/products/add?id=${prodId}`);
-      try {
-        const fullProduct = await productService.getProductById(prodId);
-        if (fullProduct) {
-          setEditingProduct(normalizeProductRow(fullProduct));
-        }
-      } catch (err) {
-        console.warn("Could not fetch full product details for edit:", err);
-      }
-    }
+    setEditingProduct(product);
+    navigate(`/admin/products/add?id=${prodId}`, { state: { editingProductId: prodId } });
   };
 
   const handleDeleteProduct = async (id) => {
@@ -1621,7 +1610,7 @@ const Dashboard = () => {
     navigate(`/admin/subcategories?parentId=${data.parent_id}`);
   };
 
-  const handleSaveMultipleProduct = ({ product, variants }) => {
+  const handleSaveProductUnified = ({ product, variants }) => {
     const matchedCategory = categories.find(c => String(c.id || c.category_id) === String(product.category_id));
     const firstWithImages = variants?.find(v => v.images?.length > 0);
     const normalized = normalizeProductRow({
@@ -1631,21 +1620,11 @@ const Dashboard = () => {
       image_url: product.image_url || firstWithImages?.images?.[0] || null,
       product_variants: variants || [],
     });
-    setProducts((p) => [normalized, ...p]);
-    navigate("/admin/products");
-  };
-
-  const handleUpdateMultipleProduct = ({ product, variants }) => {
-    const matchedCategory = categories.find(c => String(c.id || c.category_id) === String(product.category_id));
-    const firstWithImages = variants?.find(v => v.images?.length > 0);
-    const normalized = normalizeProductRow({
-      ...product,
-      category: matchedCategory?.name || product.category || "",
-      images: (product.images && product.images.length > 0) ? product.images : (firstWithImages?.images || []),
-      image_url: product.image_url || firstWithImages?.images?.[0] || null,
-      product_variants: variants || [],
+    setProducts((p) => {
+      const exists = p.some((x) => x.id === normalized.id);
+      return exists ? p.map((x) => (x.id === normalized.id ? normalized : x)) : [normalized, ...p];
     });
-    setProducts((p) => p.map((x) => (x.id === normalized.id ? normalized : x)));
+    setEditingProduct(null);
     navigate("/admin/products");
   };
 
@@ -1750,8 +1729,9 @@ const Dashboard = () => {
                     navigate("/admin/customers");
                   } else if (currentPath.startsWith("/admin/orders/detail")) {
                     navigate("/admin/orders");
-                  } else if (currentPath === "/admin/products/add-multiple") {
-                    navigate("/admin/products/add");
+                  } else if (currentPath === "/admin/products/add-multiple" || currentPath.startsWith("/admin/products/add") || currentPath.startsWith("/admin/products/edit-multiple")) {
+                    setEditingProduct(null);
+                    navigate("/admin/products");
                   } else if (currentPath.startsWith("/admin/categories/add")) {
                     setEditingCategory(null);
                     navigate("/admin/categories");
@@ -1786,6 +1766,39 @@ const Dashboard = () => {
         </div>
 
         <div className="db__navbar-actions">
+          {currentPath === "/admin/products" && (
+            <div className="db__header-inline-actions">
+              <button
+                type="button"
+                className="ap-header-variant-btn"
+                onClick={goToAddProduct}
+              >
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                  <line x1="12" y1="5" x2="12" y2="19" />
+                  <line x1="5" y1="12" x2="19" y2="12" />
+                </svg>
+                Add Product
+              </button>
+            </div>
+          )}
+          {(currentPath === "/admin/products/add" || currentPath === "/admin/products/add-multiple" || currentPath === "/admin/products/edit-multiple") && (
+            <div className="db__header-inline-actions">
+              <button
+                type="button"
+                className="ap-header-clear-btn"
+                onClick={() => {
+                  window.dispatchEvent(new CustomEvent("faywalk:clear-product-form"));
+                }}
+                title="Clear all entered fields"
+              >
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8" />
+                  <path d="M3 3v5h5" />
+                </svg>
+                Clear All
+              </button>
+            </div>
+          )}
 
 
 
@@ -2003,30 +2016,25 @@ const Dashboard = () => {
                 onDeleteProduct={handleDeleteProduct}
               />} />
             <Route path="/products/add" element={
-              <AddProduct
-                initialData={editingProduct}
-                onBack={() => { setEditingProduct(null); navigate("/admin/products"); }}
-                onPublish={handlePublish}
-                onSaveDraft={handleSaveDraft}
-                onAddVariant={goToAddMultipleProduct}
-              />} />
-
-            <Route path="/products/add-multiple" element={
-              <ProductVariant
-                categories={categories}
-                onGoToRoot={() => navigate("/admin/categories")}
-                onBack={() => navigate("/admin/products/add")}
-                onSave={handleSaveMultipleProduct}
-                subcategoriesCache={subcategoriesCache}
-                onFetchSubcategories={fetchSubcategoriesForParent}
-              />} />
-
-            <Route path="/products/edit-multiple" element={
-              <EditMultipleProductWrapper
+              <UnifiedProductFormWrapper
                 categories={categories}
                 subcategoriesCache={subcategoriesCache}
                 fetchSubcategoriesForParent={fetchSubcategoriesForParent}
-                onSave={handleUpdateMultipleProduct}
+                onSave={handleSaveProductUnified}
+                navigate={navigate}
+              />
+            } />
+
+            <Route path="/products/add-multiple" element={
+              <Navigate to="/admin/products/add" replace />
+            } />
+
+            <Route path="/products/edit-multiple" element={
+              <UnifiedProductFormWrapper
+                categories={categories}
+                subcategoriesCache={subcategoriesCache}
+                fetchSubcategoriesForParent={fetchSubcategoriesForParent}
+                onSave={handleSaveProductUnified}
                 navigate={navigate}
               />
             } />

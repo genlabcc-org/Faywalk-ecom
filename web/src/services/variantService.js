@@ -50,9 +50,18 @@ export const variantService = {
     const baseSku = product.sku?.trim() || generateBaseSku(product.name);
 
     const variantRows = [];
+    const colorUploadCache = new Map();
     for (let i = 0; i < variants.length; i++) {
       const v = variants[i];
-      const imageUrls = await this._uploadVariantImages(v.media, product.name);
+      let uploadedUrls = [];
+      const cacheKey = v.color ? v.color.toLowerCase() : null;
+      if (cacheKey && colorUploadCache.has(cacheKey)) {
+        uploadedUrls = colorUploadCache.get(cacheKey);
+      } else if (v.media?.length) {
+        uploadedUrls = await this._uploadVariantImages(v.media, product.name);
+        if (cacheKey) colorUploadCache.set(cacheKey, uploadedUrls);
+      }
+      const imageUrls = [...(v.images || []), ...uploadedUrls];
 
       variantRows.push({
         product_id: product.product_id,
@@ -150,12 +159,19 @@ export const variantService = {
     const baseSku = product.sku?.trim() || generateBaseSku(product.name);
     const existingVariantUpdates = [];
     const newVariantRows = [];
+    const colorUploadCache = new Map();
 
     for (let i = 0; i < variants.length; i++) {
       const v = variants[i];
-      const imageUrls = v.media?.length
-        ? await this._uploadVariantImages(v.media, product.name)
-        : (v.images || []);
+      let uploadedUrls = [];
+      const cacheKey = v.color ? v.color.toLowerCase() : null;
+      if (cacheKey && colorUploadCache.has(cacheKey)) {
+        uploadedUrls = colorUploadCache.get(cacheKey);
+      } else if (v.media?.length) {
+        uploadedUrls = await this._uploadVariantImages(v.media, product.name);
+        if (cacheKey) colorUploadCache.set(cacheKey, uploadedUrls);
+      }
+      const imageUrls = [...(v.images || []), ...uploadedUrls];
 
       const rowData = {
         sku: v.sku?.trim() || generateVariantSku(baseSku, i),
@@ -266,14 +282,15 @@ export const variantService = {
     if (!mediaItems || mediaItems.length === 0) return [];
     const urls = [];
     for (const item of mediaItems) {
-      const compressedFile = await compressImage(item.file, 'variant');
+      const rawFile = item.file || item;
+      const compressedFile = await compressImage(rawFile, 'variant');
 
       const fileExt = compressedFile.name?.split('.').pop() || 'webp';
-      const fileName = `${productName.replace(/\s+/g, '-').toLowerCase()}-variant-${Date.now()}.${fileExt}`;
+      const fileName = `${(productName || 'product').replace(/\s+/g, '-').toLowerCase()}-variant-${Date.now()}-${Math.random().toString(36).slice(2, 7)}.${fileExt}`;
       const filePath = `products/variants/${fileName}`;
 
       const formData = new FormData();
-      formData.append('file', item.file);
+      formData.append('file', compressedFile);
       formData.append('filePath', filePath);
       formData.append('cacheControl', '31536000');
 

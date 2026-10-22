@@ -57,44 +57,90 @@
 }
 
 
-/* Delete Confirmation Button */
+/* Delete Confirmation Modal (Minimal & Screen-Centered via Portal) */
 .pl-confirm-overlay {
   position: fixed;
   inset: 0;
-  background: rgba(0, 0, 0, 0.5);
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  width: 100vw;
+  height: 100vh;
+  background: rgba(15, 23, 42, 0.48);
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
   display: flex;
   align-items: center;
   justify-content: center;
-  z-index: 1000;
+  z-index: 999999;
   padding: 16px;
+  box-sizing: border-box;
+  animation: plFadeIn 0.15s ease-out;
+}
+
+@keyframes plFadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
 }
 
 .pl-confirm-modal {
-  background: #fff;
-  border-radius: 14px;
-  padding: 28px 26px;
+  background: #ffffff;
+  border-radius: 16px;
+  padding: 24px 22px 20px;
   max-width: 360px;
   width: 100%;
   text-align: center;
-  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.18);
+  box-shadow: 0 20px 45px -10px rgba(0, 0, 0, 0.22), 0 0 0 1px rgba(0, 0, 0, 0.06);
+  box-sizing: border-box;
+  margin: auto;
+  position: relative;
+  animation: plScaleIn 0.18s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@keyframes plScaleIn {
+  from {
+    opacity: 0;
+    transform: scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
 }
 
 .pl-confirm-icon {
   width: 44px;
   height: 44px;
   border-radius: 50%;
-  background: #fff0f0;
+  background: #fef2f2;
+  border: 1px solid #fee2e2;
   display: flex;
   align-items: center;
   justify-content: center;
-  margin: 0 auto 14px;
+  margin: 0 auto 12px;
+  color: #dc2626;
+}
+
+.pl-confirm-title {
+  font-size: 16px;
+  font-weight: 600;
+  color: #111827;
+  margin: 0 0 6px 0;
+  letter-spacing: -0.01em;
 }
 
 .pl-confirm-text {
-  font-size: 14px;
-  color: #333;
-  line-height: 1.6;
-  margin-bottom: 22px;
+  font-size: 13.5px;
+  color: #64748b;
+  line-height: 1.5;
+  margin: 0 0 20px 0;
+  word-break: break-word;
+}
+
+.pl-confirm-text strong {
+  color: #1e293b;
+  font-weight: 600;
 }
 
 .pl-confirm-actions {
@@ -106,31 +152,45 @@
 .pl-confirm-cancel,
 .pl-confirm-ok {
   flex: 1;
-  padding: 10px 0;
+  padding: 9px 14px;
   border-radius: 8px;
-  font-size: 14px;
-  font-weight: 600;
+  font-size: 13.5px;
+  font-weight: 500;
   cursor: pointer;
-  border: none;
   font-family: inherit;
+  transition: all 0.15s ease;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  line-height: 1.3;
 }
 
 .pl-confirm-cancel {
-  background: #f2f2f2;
-  color: #333;
+  background: #ffffff;
+  color: #334155;
+  border: 1px solid #e2e8f0;
 }
 
-.pl-confirm-cancel:hover {
-  background: #e8e8e8;
+.pl-confirm-cancel:hover:not(:disabled) {
+  background: #f8fafc;
+  border-color: #cbd5e1;
 }
 
 .pl-confirm-ok {
-  background: #ef4444;
-  color: #fff;
+  background: #dc2626;
+  color: #ffffff;
+  border: 1px solid transparent;
+  font-weight: 600;
 }
 
-.pl-confirm-ok:hover {
-  background: #dc2626;
+.pl-confirm-ok:hover:not(:disabled) {
+  background: #b91c1c;
+}
+
+.pl-confirm-cancel:disabled,
+.pl-confirm-ok:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
 }
 
 /* ── Filters ── */

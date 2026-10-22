@@ -8,7 +8,6 @@ import './NewArrivals.css';
 export default function NewArrivals({ onProductClick }) {
   const [products, setProducts] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [activeTab, setActiveTab] = useState('Men');
 
   const addToCart = useStore((state) => state.addToCart);
 
@@ -101,41 +100,12 @@ export default function NewArrivals({ onProductClick }) {
     addToCart(product, 1);
   };
 
-  const filteredProducts = products.filter((p) => {
-    if (!activeTab) return true;
-    const target = activeTab.toLowerCase();
-    const cat = (p.category || '').toLowerCase();
-    const name = (p.name || '').toLowerCase();
-    const hasGenderProducts = products.some((prod) =>
-      (prod.category || '').toLowerCase().includes(target) ||
-      (prod.name || '').toLowerCase().includes(target)
-    );
-    if (!hasGenderProducts) return true;
-    return cat.includes(target) || name.includes(target);
-  });
-
   return (
     <section className="new-arrivals-section">
       <div className="new-arrivals-header-row">
         <div className="new-arrivals-header-left">
           <h2 className="new-arrivals-title">NEW ARRIVALS</h2>
           <p className="new-arrivals-subtitle">Check what's new in our stock</p>
-        </div>
-        <div className="new-arrivals-tabs">
-          <button
-            type="button"
-            className={`new-arrivals-tab-btn ${activeTab === 'Men' ? 'active' : ''}`}
-            onClick={() => setActiveTab('Men')}
-          >
-            Men
-          </button>
-          <button
-            type="button"
-            className={`new-arrivals-tab-btn ${activeTab === 'Women' ? 'active' : ''}`}
-            onClick={() => setActiveTab('Women')}
-          >
-            Women
-          </button>
         </div>
       </div>
 
@@ -145,13 +115,13 @@ export default function NewArrivals({ onProductClick }) {
             <SkeletonProductCard key={i} />
           ))}
         </div>
-      ) : filteredProducts.length === 0 ? (
+      ) : products.length === 0 ? (
         <div className="new-arrivals-empty">
           <p>No new products found. Check back soon!</p>
         </div>
       ) : (
         <div className="new-arrivals-grid">
-          {filteredProducts.map((product) => (
+          {products.map((product) => (
             <article
               key={product.id}
               className="new-arrival-card"
