@@ -92,6 +92,19 @@ export const bannerService = {
    * @returns {Promise<any>}
    */
   async updateBanner(id, { imageUrl, mobileUrl }) {
+    // 1. Fetch current banner to find old image URLs
+    let existingBanner = null;
+    try {
+      const { data: bData } = await supabase
+        .from('banners')
+        .select('image_url, mobile_url')
+        .or(`banner_id.eq.${id},id.eq.${id}`)
+        .maybeSingle();
+      existingBanner = bData;
+    } catch (e) {
+      console.warn("Could not fetch existing banner:", e);
+    }
+
     const updates = {
       updated_at: new Date().toISOString(),
     };
@@ -131,6 +144,16 @@ export const bannerService = {
       throw error;
     }
 
+    // 2. Delete old desktop image from Cloudflare R2 if replaced or removed
+    if (existingBanner?.image_url && imageUrl !== undefined && existingBanner.image_url !== imageUrl) {
+      await this.deleteCloudflareImage(existingBanner.image_url);
+    }
+
+    // 3. Delete old mobile image from Cloudflare R2 if replaced or removed
+    if (existingBanner?.mobile_url && mobileUrl !== undefined && existingBanner.mobile_url !== mobileUrl) {
+      await this.deleteCloudflareImage(existingBanner.mobile_url);
+    }
+
     const updated = data?.[0] || { banner_id: id, id, ...updates };
     return { ...updated, id: updated.banner_id ?? updated.id ?? id };
   },
@@ -144,7 +167,7 @@ export const bannerService = {
     
     // Extract relative filePath (e.g. banners/1788932483503-HomeImage.webp)
     let filePath = null;
-    const match = url.match(/banners\/[^?#]+/);
+    const match = url.match(/(?:banners|categories|products|subcategories)\/[^?#]+/);
     if (match) {
       filePath = match[0];
     } else {
@@ -157,6 +180,7 @@ export const bannerService = {
     }
 
     if (!filePath) return;
+    filePath = filePath.split('?')[0].split('#')[0];
 
     try {
       await supabase.functions.invoke('upload-image', {

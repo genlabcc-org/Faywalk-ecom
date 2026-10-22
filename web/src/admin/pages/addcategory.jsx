@@ -32,8 +32,8 @@ const compressImage = async (file, maxWidth = 800, quality = 0.8) => {
     img.onload = () => {
       const canvas = document.createElement("canvas");
       const scale = Math.min(1, maxWidth / img.width);
-      canvas.width = maxWidth;
-      canvas.height = img.height * scale;
+      canvas.width = Math.round(img.width * scale);
+      canvas.height = Math.round(img.height * scale);
 
       const ctx = canvas.getContext("2d");
       ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
@@ -189,8 +189,8 @@ export default function AddCategory({ onBack, onPublish, onSaveDraft, initialDat
 
     const categoryData = {
       name: form.name,
-      slug: form.slug,
-      sort_order: parseInt(form.sort_order) || 0,
+      slug: form.slug || form.name.toLowerCase().trim().replace(/\s+/g, "-").replace(/[^a-z0-9-]/g, ""),
+      sort_order: parseInt(form.sort_order) || initialData?.sort_order || 0,
       description: form.description,
       image_url: uploadedUrl,
       is_active: isActive,
@@ -198,7 +198,8 @@ export default function AddCategory({ onBack, onPublish, onSaveDraft, initialDat
 
     try {
       if (isEditing) {
-        const data = await productService.updateCategory(initialData.category_id, categoryData);
+        const catId = initialData.category_id || initialData.id;
+        const data = await productService.updateCategory(catId, categoryData);
         setSaving(false);
         return { data: data[0], error: null };
       } else {
@@ -257,42 +258,15 @@ export default function AddCategory({ onBack, onPublish, onSaveDraft, initialDat
         <div className="ap-field">
           <label>Category Name</label>
           <input
-            placeholder="e.g Rings"
+            placeholder="e.g. Men, Women, Innerwear, Loungewear"
             value={form.name}
             onChange={set("name")}
           />
         </div>
 
-        <div className="ap-field">
-          <label>Description</label>
-          <input
-            placeholder="Short description for SEO"
-            value={form.description}
-            onChange={set("description")}
-          />
-        </div>
 
-        <div className="ap-row-2">
-          <div className="ap-field">
-            <label>Display Order</label>
-            <input
-              type="number"
-              placeholder="0"
-              value={form.sort_order}
-              onChange={set("sort_order")}
-            />
-            <div className="ap-auto-hint">Lower number appears first</div>
-          </div>
-          <div className="ap-field">
-            <label>Slug</label>
-            <input
-              placeholder="auto-generated"
-              value={form.slug}
-              readOnly
-            />
-            <div className="ap-auto-hint">URL-friendly name</div>
-          </div>
-        </div>
+
+
       </div>
 
       {/* ── Category Image ── */}

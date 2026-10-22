@@ -1,7 +1,6 @@
 import React, { useEffect, useState } from "react";
-import ConfirmDialog from "../dialogs/confirmdialogs";
 import "./FormCategory.css";
-import { useSearchParams } from "react-router-dom";
+import { useSearchParams, useNavigate } from "react-router-dom";
 import { productService } from "../../../services/productService";
 import { compressImage } from '../../../utils/imageCompression';
 import { useStore } from "../../../hooks/useStore";
@@ -51,7 +50,7 @@ const SuccessToast = ({ message, onClose }) => (
 );
 
 const CreateSubCategory = ({ parentCategory, categories = [], onBack, onDiscard, onSave }) => {
-
+  const navigate = useNavigate();
   const [name, setName] = useState("");
   const [showOnStore, setShowOnStore] = useState(true);
   const [searchParams] = useSearchParams();
@@ -60,15 +59,27 @@ const CreateSubCategory = ({ parentCategory, categories = [], onBack, onDiscard,
   const isEditMode = !!subcategoryId;
   const [currentParentId, setCurrentParentId] = useState(parentId || parentCategory?.id || null);
 
+  const handleBack = () => {
+    if (onBack) {
+      onBack();
+    } else {
+      const resolvedParentId = currentParentId || parentId;
+      if (resolvedParentId) {
+        navigate(`/admin/subcategories?parentId=${resolvedParentId}`);
+      } else {
+        navigate("/admin/categories");
+      }
+    }
+  };
+
   const [coverImage, setCoverImage] = useState(null); // { file, url, dims }
+  const [imageError, setImageError] = useState(false);
   const [loadingExisting, setLoadingExisting] = useState(isEditMode);
   //   const [previewImage, setPreviewImage] = useState(null);
 
   const [showToast, setShowToast] = useState(false);
   const toastTimerRef = React.useRef(null);
 
-  // Controls the "Are You Sure?" confirmation popup shown before saving
-  const [showConfirm, setShowConfirm] = useState(false);
 
   const coverInputRef = React.useRef(null);
   //   const previewInputRef = React.useRef(null);
@@ -132,6 +143,8 @@ const CreateSubCategory = ({ parentCategory, categories = [], onBack, onDiscard,
     const file = e.target.files?.[0];
     if (!file) return;
 
+    setImageError(false);
+
     // Use a base64 data URL (via FileReader), not URL.createObjectURL.
     // Blob URLs only live for the current tab session — they break the
     // instant the page refreshes, even if saved into localStorage. A data
@@ -165,18 +178,24 @@ const CreateSubCategory = ({ parentCategory, categories = [], onBack, onDiscard,
     }
   };
 
-  // "Save" button (both top bar and bottom) no longer saves directly —
-  // it just opens the confirm dialog.
-  const handleSaveClick = () => {
-    setShowConfirm(true);
-  };
-
-  // This is the actual save logic, now triggered from ConfirmDialog's
-  // onConfirm instead of directly from the Save button.
-
   const [isSaving, setIsSaving] = useState(false);
 
-  const performSave = async () => {
+  const handleSaveClick = async () => {
+    if (!name.trim()) {
+      alert("Please enter a subcategory name.");
+      return;
+    }
+
+    const hasImage = !!(coverImage && (coverImage.file || coverImage.url));
+    if (!hasImage) {
+      setImageError(true);
+      alert("Please upload a subcategory image. Subcategory cannot be saved without an image.");
+      return;
+    }
+    setImageError(false);
+
+    if (isSaving) return;
+
     setIsSaving(true);
     try {
       let imageUrl = coverImage?.url && !coverImage?.file ? coverImage.url : null;
@@ -192,7 +211,7 @@ const CreateSubCategory = ({ parentCategory, categories = [], onBack, onDiscard,
       const resolvedParentId = currentParentId || parentId || parentCategory?.id;
 
       const payload = {
-        name,
+        name: name.trim(),
         image_url: imageUrl,
         is_active: showOnStore,
       };
@@ -212,7 +231,6 @@ const CreateSubCategory = ({ parentCategory, categories = [], onBack, onDiscard,
       }
 
       setIsSaving(false);
-      setShowConfirm(false);
       setShowToast(true);
 
       if (toastTimerRef.current) clearTimeout(toastTimerRef.current);
@@ -220,54 +238,20 @@ const CreateSubCategory = ({ parentCategory, categories = [], onBack, onDiscard,
         setShowToast(false);
         toastTimerRef.current = null;
         onSave?.(saved);
-      }, 1200);
+      }, 1000);
     } catch (error) {
       console.error("Error saving subcategory:", error);
       setIsSaving(false);
       alert("Failed to save subcategory: " + error.message);
-      setShowConfirm(false);
     }
   };
-  //   const performSave = () => {
-  //     onSave?.({
-  //       id: parentCategory?.id ? `${parentCategory.id}-${Date.now()}` : Date.now(),
-  //       name,
-  //     //   parentId,
-  //       parentCategoryName,
-  //       description,
-  //       showOnStore,
-  //       // url is a base64 data string (not a blob URL), so this whole object
-  //       // is plain serializable data — safe to store in localStorage and it
-  //       // survives a page refresh. CategoryDetail reads item.image?.url.
-  //       image: coverImage
-  //         ? {
-  //             url: coverImage.url,
-  //             name: coverImage.name,
-  //             width: coverImage.width,
-  //             height: coverImage.height,
-  //             size: coverImage.size,
-  //           }
-  //         : null,
-  //       parentId: parentId || parentCategory?.id || null,
-  //     });
 
   return (
     <div className="dashboard-shell">
       {showToast && (
         <SuccessToast
-          message="Sub Category Created Successfully"
+          message={isEditMode ? "Sub Category Updated Successfully" : "Sub Category Created Successfully"}
           onClose={dismissToast}
-        />
-      )}
-
-      {showConfirm && (
-        <ConfirmDialog
-          title={isEditMode ? "Update Sub Category?" : "Create Sub Category?"}
-          message={`Are you sure you want to ${isEditMode ? "update" : "create"} "${name || "this sub category"}"?`}
-          confirmLabel={isSaving ? "Saving..." : "Save"}
-          isLoading={isSaving}
-          onConfirm={performSave}
-          onCancel={() => !isSaving && setShowConfirm(false)}
         />
       )}
 
@@ -275,18 +259,7 @@ const CreateSubCategory = ({ parentCategory, categories = [], onBack, onDiscard,
         <main className="scc-page">
           <div className="scc-topbar">
             <div className="scc-topbar-left">
-              <button className="scc-back-btn" onClick={onBack} aria-label="Go back">
-                ←
-              </button>
               <h1 className="scc-title">{isEditMode ? "Edit Sub Category" : "Create Sub Category"}</h1>
-            </div>
-            <div className="scc-topbar-actions">
-              <button className="scc-btn scc-btn-outline" onClick={onDiscard}>
-                Discard
-              </button>
-              <button className="scc-btn scc-btn-dark" onClick={handleSaveClick}>
-                Save
-              </button>
             </div>
           </div>
 
@@ -306,7 +279,7 @@ const CreateSubCategory = ({ parentCategory, categories = [], onBack, onDiscard,
                   className="scc-input"
                   value={name}
                   onChange={(e) => setName(e.target.value)}
-                  placeholder="Enter sub category name"
+                  placeholder="e.g. Vests, Briefs, Boxers, Trunks"
                 />
 
                 <label className="scc-field-label" htmlFor="scc-parent-category">
@@ -319,7 +292,7 @@ const CreateSubCategory = ({ parentCategory, categories = [], onBack, onDiscard,
                   className="scc-input"
                   value={parentCategoryName}
                   onChange={(e) => setParentCategoryName(e.target.value)}
-                  placeholder="Enter parent category name"
+                  placeholder="e.g. Men, Women"
                   readOnly={!!matchedParent}
                   style={matchedParent ? { backgroundColor: "#f5f5f5", cursor: "not-allowed" } : undefined}
                 />
@@ -362,7 +335,7 @@ const CreateSubCategory = ({ parentCategory, categories = [], onBack, onDiscard,
                   </div>
                 ) : (
                   <div
-                    className="scc-dropzone"
+                    className={`scc-dropzone ${imageError ? "scc-dropzone-error" : ""}`}
                     onClick={() => coverInputRef.current?.click()}
                   >
                     <button type="button" className="scc-dropzone-btn">
@@ -372,6 +345,11 @@ const CreateSubCategory = ({ parentCategory, categories = [], onBack, onDiscard,
                     <span className="scc-dropzone-hint">
                       JPG, PNG or WEBP &middot; Max 2 MB &middot; 16:9 Ratio
                     </span>
+                    {imageError && (
+                      <span style={{ color: "#ef4444", fontSize: "12.5px", marginTop: "4px", fontWeight: "600" }}>
+                        Subcategory image is required
+                      </span>
+                    )}
                   </div>
                 )}
               </section>
@@ -400,7 +378,20 @@ const CreateSubCategory = ({ parentCategory, categories = [], onBack, onDiscard,
             </div>
 
             <div className="scc-bottom-actions">
-              <button className="scc-btn scc-btn-dark" onClick={handleSaveClick} disabled={isSaving}>
+              <button
+                type="button"
+                className="scc-btn scc-btn-outline"
+                onClick={onDiscard}
+                disabled={isSaving}
+              >
+                Discard
+              </button>
+              <button
+                type="button"
+                className="scc-btn scc-btn-dark"
+                onClick={handleSaveClick}
+                disabled={isSaving}
+              >
                 {isSaving ? "Saving..." : isEditMode ? "Update Subcategory" : "Save Subcategory"}
               </button>
             </div>

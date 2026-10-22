@@ -116,7 +116,7 @@ const BannerEdit = ({ banner, onBack, onSave, onDelete }) => {
           <label className="be__label">Banner Title (Internal Reference)</label>
           <input
             className="be__input"
-            placeholder="Input your text"
+            placeholder="e.g. Summer Comfort Innerwear Collection"
             value={form.title}
             onChange={handleChange("title")}
           />
@@ -127,7 +127,7 @@ const BannerEdit = ({ banner, onBack, onSave, onDelete }) => {
           <label className="be__label">Banner tagline (optional)</label>
           <input
             className="be__input"
-            placeholder="Input your text"
+            placeholder="e.g. Ultra-breathable Combed Cotton Vests & Briefs"
             value={form.tagline}
             onChange={handleChange("tagline")}
           />
@@ -138,7 +138,7 @@ const BannerEdit = ({ banner, onBack, onSave, onDelete }) => {
           <label className="be__label">Link URL</label>
           <input
             className="be__input"
-            placeholder="Input your text"
+            placeholder="e.g. /category/men or /all-products"
             value={form.linkUrl}
             onChange={handleChange("linkUrl")}
           />
@@ -150,7 +150,7 @@ const BannerEdit = ({ banner, onBack, onSave, onDelete }) => {
             <label className="be__label">Display Order</label>
             <input
               className="be__input"
-              placeholder="Input your text"
+              placeholder="0"
               value={form.displayOrder}
               onChange={handleChange("displayOrder")}
             />
@@ -164,7 +164,7 @@ const BannerEdit = ({ banner, onBack, onSave, onDelete }) => {
                 value={form.target}
                 onChange={handleChange("target")}
               >
-                <option value="">Input your text</option>
+                <option value="">Select Target</option>
                 <option value="_self">Same Tab (_self)</option>
                 <option value="_blank">New Tab (_blank)</option>
               </select>
@@ -233,7 +233,7 @@ const BannerEdit = ({ banner, onBack, onSave, onDelete }) => {
             <div className="be__date-wrap">
               <input
                 className="be__input"
-                placeholder="Input your text"
+                placeholder="YYYY-MM-DD"
                 value={form.startDate}
                 onChange={handleChange("startDate")}
               />
@@ -250,7 +250,7 @@ const BannerEdit = ({ banner, onBack, onSave, onDelete }) => {
             <div className="be__date-wrap">
               <input
                 className="be__input"
-                placeholder="Input your text"
+                placeholder="YYYY-MM-DD"
                 value={form.endDate}
                 onChange={handleChange("endDate")}
               />
@@ -337,9 +337,9 @@ const BannerEdit = ({ banner, onBack, onSave, onDelete }) => {
           <div className="be__modal" onClick={(e) => e.stopPropagation()}>
             <div className="be__modal-icon">
               <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#ef4444" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <rect x="3" y="3" width="18" height="18" rx="2"/>
-                <circle cx="8.5" cy="8.5" r="1.5"/>
-                <polyline points="21 15 16 10 5 21"/>
+                <rect x="3" y="3" width="18" height="18" rx="2" />
+                <circle cx="8.5" cy="8.5" r="1.5" />
+                <polyline points="21 15 16 10 5 21" />
               </svg>
             </div>
             <h3 className="be__modal-title">Remove Image?</h3>

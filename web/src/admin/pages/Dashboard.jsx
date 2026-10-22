@@ -1026,20 +1026,35 @@ function SubcategoryByParent({ onSave, navigate, categories }) {
   const [searchParams] = useSearchParams();
   const parentId = searchParams.get("parentId");
   const parentCategory = categories.find(
-    (c) => String(c.category_id ?? c_id) === String(parentId)
+    (c) => String(c.category_id ?? c.id) === String(parentId)
   );
+  const handleBack = () => {
+    if (parentId) {
+      navigate(`/admin/subcategories?parentId=${parentId}`);
+    } else {
+      navigate("/admin/categories");
+    }
+  };
   return (
     <SubCategoryForm
       parentId={parentId}
+      parentCategory={parentCategory}
       categories={categories}
-      onBack={() => navigate("/admin/categories")}
-      onDiscard={() => navigate("/admin/categories")}
+      onBack={handleBack}
+      onDiscard={handleBack}
       onSave={onSave}
     />
   );
 }
 
-function SubcategoryCard({ navigate, categories, products, subcategoriesCache, fetchSubcategoriesForParent }) {
+function SubcategoryCard({
+  navigate,
+  categories,
+  products,
+  subcategoriesCache,
+  fetchSubcategoriesForParent,
+  onDeleteSubcategory,
+}) {
   const [searchParams] = useSearchParams();
   const parentId = searchParams.get("parentId");
   const parentCategory = categories.find(
@@ -1051,6 +1066,7 @@ function SubcategoryCard({ navigate, categories, products, subcategoriesCache, f
       subcategories={subcategoriesCache?.[parentId]}
       products={products}
       onFetchSubcategories={fetchSubcategoriesForParent}
+      onDeleteSubcategory={onDeleteSubcategory}
       onBack={() => navigate("/admin/categories")}
       onAddSubcategory={() => navigate(`/admin/subcategories/new?parentId=${parentId}`)}
     />
@@ -1402,8 +1418,15 @@ const Dashboard = () => {
     if (currentPath.startsWith("/admin/products")) return "All Products";
 
     if (currentPath === "/admin/categories/add") return editingCategory ? "Edit Category" : "Add Category";
-    if (currentPath === "/admin/subcategories/new") return "Add Subcategory";
-    if (currentPath.startsWith("/admin/subcategories")) return "Subcategories";
+    if (currentPath === "/admin/subcategories/new") {
+      const isEdit = new URLSearchParams(location.search).get("subcategoryId");
+      return isEdit ? "Edit Subcategory" : "Add Subcategory";
+    }
+    if (currentPath.startsWith("/admin/subcategories")) {
+      const parentId = new URLSearchParams(location.search).get("parentId");
+      const parentCat = categories.find((c) => String(c.category_id ?? c.id) === String(parentId));
+      return parentCat ? `${parentCat.name} Subcategories` : "Subcategories";
+    }
     if (currentPath.startsWith("/admin/categories")) return "All Categories";
 
     if (currentPath.startsWith("/admin/orders/detail")) return "Order Details";
@@ -1542,10 +1565,10 @@ const Dashboard = () => {
   const handleDeleteProduct = async (id) => {
     try {
       await productService.deleteProduct(id);
-      setProducts((p) => p.filter((x) => x.id !== id));
+      setProducts((p) => p.filter((x) => (x.id ?? x.product_id) !== id && x.product_id !== id));
     } catch (error) {
       console.error("Error deleting product:", error);
-      alert("Failed to delete product: " + error.message);
+      throw error;
     }
   };
 
@@ -1610,6 +1633,31 @@ const Dashboard = () => {
     navigate(`/admin/subcategories?parentId=${data.parent_id}`);
   };
 
+  const handleDeleteSubcategory = (subcategoryId, parentId) => {
+    setSubcategoriesCache((prev) => ({
+      ...prev,
+      [parentId]: (prev[parentId] || []).filter(
+        (s) => String(s.subcategory_id ?? s.id) !== String(subcategoryId)
+      ),
+    }));
+
+    setCategories((prev) =>
+      prev.map((c) => {
+        if (String(c.category_id ?? c.id) === String(parentId)) {
+          return {
+            ...c,
+            subcategories: (c.subcategories || []).filter(
+              (s) => String(s.subcategory_id ?? s.id) !== String(subcategoryId)
+            ),
+          };
+        }
+        return c;
+      })
+    );
+
+    useStore.getState().fetchCategories?.(true)?.catch(() => {});
+  };
+
   const handleSaveProductUnified = ({ product, variants }) => {
     const matchedCategory = categories.find(c => String(c.id || c.category_id) === String(product.category_id));
     const firstWithImages = variants?.find(v => v.images?.length > 0);
@@ -1641,11 +1689,7 @@ const Dashboard = () => {
         setCategories((p) => p.filter((x) => x.id !== id));
       } catch (error) {
         console.error("Error deleting category:", error);
-        if (error.code === 'CATEGORY_HAS_SUBCATEGORIES') {
-          alert("This category has subcategories inside it. Please delete or move the subcategories first.");
-        } else {
-          alert("Failed to delete category: " + error.message);
-        }
+        throw error;
       }
     }
   };
@@ -1719,7 +1763,7 @@ const Dashboard = () => {
             currentPath.startsWith("/admin/products/add") ||
             currentPath.startsWith("/admin/products/edit-multiple") ||
             currentPath.startsWith("/admin/categories/add") ||
-            currentPath.startsWith("/admin/subcategories/new") ||
+            currentPath.startsWith("/admin/subcategories") ||
             currentPath.startsWith("/admin/banners/add")) && (
               <button
                 type="button"
@@ -1743,6 +1787,8 @@ const Dashboard = () => {
                     } else {
                       navigate("/admin/categories");
                     }
+                  } else if (currentPath.startsWith("/admin/subcategories")) {
+                    navigate("/admin/categories");
                   } else if (currentPath.startsWith("/admin/banners/add")) {
                     setEditingBanner(null);
                     navigate("/admin/banners");
@@ -1778,6 +1824,43 @@ const Dashboard = () => {
                   <line x1="5" y1="12" x2="19" y2="12" />
                 </svg>
                 Add Product
+              </button>
+            </div>
+          )}
+          {currentPath === "/admin/categories" && (
+            <div className="db__header-inline-actions">
+              <button
+                type="button"
+                className="ap-header-variant-btn"
+                onClick={goToAddCategory}
+              >
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                  <line x1="12" y1="5" x2="12" y2="19" />
+                  <line x1="5" y1="12" x2="19" y2="12" />
+                </svg>
+                Add Category
+              </button>
+            </div>
+          )}
+          {currentPath.startsWith("/admin/subcategories") && currentPath !== "/admin/subcategories/new" && (
+            <div className="db__header-inline-actions">
+              <button
+                type="button"
+                className="ap-header-variant-btn"
+                onClick={() => {
+                  const parentId = new URLSearchParams(location.search).get("parentId");
+                  if (parentId) {
+                    navigate(`/admin/subcategories/new?parentId=${parentId}`);
+                  } else {
+                    navigate("/admin/subcategories/new");
+                  }
+                }}
+              >
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                  <line x1="12" y1="5" x2="12" y2="19" />
+                  <line x1="5" y1="12" x2="19" y2="12" />
+                </svg>
+                Add Subcategory
               </button>
             </div>
           )}
@@ -2074,6 +2157,7 @@ const Dashboard = () => {
                   products={products}
                   subcategoriesCache={subcategoriesCache}
                   fetchSubcategoriesForParent={fetchSubcategoriesForParent}
+                  onDeleteSubcategory={handleDeleteSubcategory}
                 />
               }
             />

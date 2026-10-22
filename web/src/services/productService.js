@@ -120,6 +120,15 @@ export const productService = {
   async deleteProduct(productId) {
     const allUrls = await this.getProductImageUrls(productId).catch(() => []);
 
+    try {
+      await supabase
+        .from('product_variants')
+        .delete()
+        .eq('product_id', productId);
+    } catch (e) {
+      console.warn('Could not delete product variants prior to product:', e);
+    }
+
     const { error } = await supabase
       .from('products')
       .delete()
@@ -130,22 +139,84 @@ export const productService = {
   },
 
   /**
+   * Extracts clean R2 storage key (e.g. "products/variants/name-123.webp") from URL.
+   * @param {string} url
+   * @returns {string|null}
+   */
+  extractR2FilePath(url) {
+    if (!url || typeof url !== 'string') return null;
+    const r2Base = import.meta.env.VITE_R2_PUBLIC_URL;
+    const match = url.match(/(?:banners|categories|products|subcategories)\/[^?#]+/);
+    if (match) return decodeURIComponent(match[0]);
+    if (r2Base && url.includes(r2Base)) {
+      const rel = url.replace(`${r2Base}/`, '').split('?')[0].split('#')[0];
+      return rel ? decodeURIComponent(rel) : null;
+    }
+    try {
+      const parsed = new URL(url);
+      const p = parsed.pathname.startsWith('/') ? parsed.pathname.slice(1) : parsed.pathname;
+      return p ? decodeURIComponent(p.split('?')[0]) : null;
+    } catch {
+      return null;
+    }
+  },
+
+  /**
    * Every image URL a product references (base images + all variant images).
    * @param {string|number} productId
    * @returns {Promise<string[]>}
    */
   async getProductImageUrls(productId) {
-    const { data, error } = await supabase
-      .from('products')
-      .select('image_url, images, product_variants(images)')
-      .eq('product_id', productId)
-      .single();
-    if (error) throw error;
-    return [
-      ...(data?.image_url ? [data.image_url] : []),
-      ...(data?.images || []),
-      ...(data?.product_variants || []).flatMap(v => v.images || []),
-    ];
+    if (!productId) return [];
+    try {
+      const { data: prod } = await supabase
+        .from('products')
+        .select('image_url, images')
+        .eq('product_id', productId)
+        .maybeSingle();
+
+      const { data: vars } = await supabase
+        .from('product_variants')
+        .select('images')
+        .eq('product_id', productId);
+
+      const extractUrls = (val) => {
+        if (!val) return [];
+        if (Array.isArray(val)) {
+          return val.flatMap((item) => {
+            if (!item) return [];
+            if (typeof item === 'string') {
+              if (item.startsWith('[') && item.endsWith(']')) {
+                try {
+                  return extractUrls(JSON.parse(item));
+                } catch {}
+              }
+              return [item];
+            }
+            if (typeof item === 'object' && item.url) return [item.url];
+            return [];
+          });
+        }
+        if (typeof val === 'string') {
+          if (val.startsWith('[') && val.endsWith(']')) {
+            try {
+              return extractUrls(JSON.parse(val));
+            } catch {}
+          }
+          return [val];
+        }
+        return [];
+      };
+
+      const prodImageUrl = prod?.image_url ? [prod.image_url] : [];
+      const prodImages = extractUrls(prod?.images);
+      const varImages = (vars || []).flatMap((v) => extractUrls(v.images));
+
+      return [...new Set([...prodImageUrl, ...prodImages, ...varImages])].filter(Boolean);
+    } catch (err) {
+      console.warn('getProductImageUrls failed:', err);
+      return [];
+    }
   },
 
   /**
@@ -153,18 +224,18 @@ export const productService = {
    * @param {string[]} urls
    */
   async deleteR2Images(urls) {
-    const r2Base = import.meta.env.VITE_R2_PUBLIC_URL;
-    const r2FilePaths = [...new Set(urls)]
-      .filter(url => url?.includes(r2Base))
-      .map(url => url.replace(`${r2Base}/`, ''));
+    if (!urls || !urls.length) return;
+    const r2FilePaths = [...new Set(urls.map((u) => this.extractR2FilePath(u)).filter(Boolean))];
 
-    await Promise.all(r2FilePaths.map(async (filePath) => {
-      try {
-        await this.deleteSubcategoryImageR2(filePath);
-      } catch (err) {
-        console.warn(`Failed to delete image ${filePath} from R2:`, err);
-      }
-    }));
+    await Promise.all(
+      r2FilePaths.map(async (filePath) => {
+        try {
+          await this.deleteSubcategoryImageR2(filePath);
+        } catch (err) {
+          console.warn(`Failed to delete image ${filePath} from R2:`, err);
+        }
+      })
+    );
   },
 
   /**
@@ -173,10 +244,21 @@ export const productService = {
    * @param {string[]} oldUrls
    */
   async deleteRemovedProductImages(productId, oldUrls) {
-    if (!oldUrls?.length) return;
+    if (!oldUrls || !oldUrls.length) return;
     try {
-      const currentUrls = new Set(await this.getProductImageUrls(productId));
-      await this.deleteR2Images(oldUrls.filter(url => !currentUrls.has(url)));
+      const currentUrls = await this.getProductImageUrls(productId);
+      const currentKeys = new Set(
+        currentUrls.map((u) => this.extractR2FilePath(u)).filter(Boolean)
+      );
+
+      const removedUrls = oldUrls.filter((url) => {
+        const key = this.extractR2FilePath(url);
+        return key && !currentKeys.has(key);
+      });
+
+      if (removedUrls.length > 0) {
+        await this.deleteR2Images(removedUrls);
+      }
     } catch (err) {
       console.warn('Failed to clean up removed product images:', err);
     }
@@ -285,23 +367,43 @@ export const productService = {
    * @returns {Promise<any>}
    */
   async updateCategory(categoryId, categoryData) {
-    const { data: existing } = await supabase
-      .from('categories')
-      .select('image_url')
-      .eq('category_id', categoryId)
-      .single();
+    let existingImageUrl = null;
+    try {
+      const { data: existing } = await supabase
+        .from('categories')
+        .select('image_url')
+        .eq('category_id', categoryId)
+        .maybeSingle();
+      existingImageUrl = existing?.image_url || null;
+    } catch (e) {
+      console.warn("Could not fetch existing category image:", e);
+    }
 
-    const { data, error } = await supabase
+    let { data, error } = await supabase
       .from('categories')
       .update(categoryData)
       .eq('category_id', categoryId)
       .select();
+
+    if (error || !data || data.length === 0) {
+      const res = await supabase
+        .from('categories')
+        .update(categoryData)
+        .eq('id', categoryId)
+        .select();
+      if (!res.error && res.data && res.data.length > 0) {
+        data = res.data;
+        error = null;
+      }
+    }
+
     if (error) throw error;
 
     // Old image replaced or removed in this edit is deleted from R2
     const saved = data?.[0];
-    if (saved && existing?.image_url && existing.image_url !== saved.image_url) {
-      await this.deleteR2Images([existing.image_url]);
+    const newImageUrl = saved ? saved.image_url : categoryData.image_url;
+    if (existingImageUrl && existingImageUrl !== newImageUrl) {
+      await this.deleteR2Images([existingImageUrl]);
     }
     return data;
   },
@@ -588,11 +690,17 @@ export const productService = {
    * @returns {Promise<any>}
    */
   async updateSubcategory(id, payload) {
-    const { data: existing } = await supabase
-      .from("subcategories")
-      .select("image_url")
-      .eq("subcategory_id", id)
-      .single();
+    let existingImageUrl = null;
+    try {
+      const { data: existing } = await supabase
+        .from("subcategories")
+        .select("image_url")
+        .eq("subcategory_id", id)
+        .maybeSingle();
+      existingImageUrl = existing?.image_url || null;
+    } catch (e) {
+      console.warn("Could not fetch existing subcategory image:", e);
+    }
 
     const { data, error } = await supabase
       .from("subcategories")
@@ -604,23 +712,30 @@ export const productService = {
     if (error) throw error;
 
     // Old image replaced or removed in this edit is deleted from R2
-    if (data && existing?.image_url && existing.image_url !== data.image_url) {
-      await this.deleteR2Images([existing.image_url]);
+    if (data && existingImageUrl && existingImageUrl !== data.image_url) {
+      await this.deleteR2Images([existingImageUrl]);
     }
     return data;
   },
 
   /**
    * Deletes a subcategory.
-   * @param {string} id
+   * @param {string|number} id
    * @returns {Promise<void>}
    */
   async deleteSubcategory(id) {
-    const { data: existing } = await supabase
-      .from("subcategories")
-      .select("image_url")
-      .eq("subcategory_id", id)
-      .single();
+    if (!id) return;
+    let existingImageUrl = null;
+    try {
+      const { data: existing } = await supabase
+        .from("subcategories")
+        .select("image_url")
+        .eq("subcategory_id", id)
+        .maybeSingle();
+      existingImageUrl = existing?.image_url || null;
+    } catch (e) {
+      console.warn("Could not fetch existing subcategory image prior to delete:", e);
+    }
 
     const { error } = await supabase
       .from("subcategories")
@@ -629,6 +744,12 @@ export const productService = {
 
     if (error) throw error;
 
-    await this.deleteR2Images([existing?.image_url]);
+    if (existingImageUrl) {
+      try {
+        await this.deleteR2Images([existingImageUrl]);
+      } catch (e) {
+        console.warn("Failed to delete subcategory image from R2:", e);
+      }
+    }
   },
 };

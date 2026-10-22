@@ -237,6 +237,16 @@ export const variantService = {
       if (!syncError && updatedProduct) {
         finalProduct = updatedProduct;
       }
+    } else {
+      const { data: updatedProduct, error: syncError } = await supabase
+        .from('products')
+        .update({ images: [], image_url: null })
+        .eq('product_id', productId)
+        .select()
+        .single();
+      if (!syncError && updatedProduct) {
+        finalProduct = updatedProduct;
+      }
     }
 
     // Images replaced or removed in this edit (incl. deleted variants) are deleted from R2

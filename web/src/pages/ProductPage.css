@@ -233,6 +233,17 @@
   transform: scale(0.97);
 }
 
+.trending-cart-pill-btn:disabled,
+.trending-cart-pill-btn.in-cart {
+  background: #f3f4f6 !important;
+  color: #9ca3af !important;
+  cursor: not-allowed !important;
+  opacity: 0.8 !important;
+  box-shadow: none !important;
+  pointer-events: none !important;
+  transform: none !important;
+}
+
 .cart-svg-icon {
   flex-shrink: 0;
   stroke: currentColor;

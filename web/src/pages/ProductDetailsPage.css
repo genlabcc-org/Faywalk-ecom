@@ -428,9 +428,14 @@
   background: rgba(0, 34, 119, 0.06);
 }
 
-.dp-add-cart-btn:disabled {
-  opacity: 0.4;
-  cursor: not-allowed;
+.dp-add-cart-btn:disabled,
+.dp-add-cart-btn.in-cart {
+  background: #f9fafb !important;
+  color: #9ca3af !important;
+  border-color: #e5e7eb !important;
+  cursor: not-allowed !important;
+  opacity: 0.75 !important;
+  pointer-events: none !important;
 }
 
 .dp-buy-now-btn {

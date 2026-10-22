@@ -57,6 +57,7 @@ export default function ProductPage({ category = "Trending" }) {
   const loading = useStore(state => state.loadingProducts);
   const fetchProductsByCategory = useStore(state => state.fetchProductsByCategory);
   const addToCart = useStore(state => state.addToCart);
+  const cartItems = useStore(state => state.cartItems);
   const setSelectedProduct = useStore(state => state.setSelectedProduct);
 
   const allCategories = useStore(state => state.categories);
@@ -399,8 +400,16 @@ export default function ProductPage({ category = "Trending" }) {
     navigate(pid ? `/product/${pid}` : "/product");
   };
 
+  const isProductInCart = (product) => {
+    const pid = String(product.productId || product.product_id || product.id || '');
+    return cartItems?.some(
+      (item) => String(item.productId || item.product_id || item.id || '') === pid
+    );
+  };
+
   const handleAddToCartClick = async (e, product) => {
     e.stopPropagation();
+    if (isProductInCart(product)) return;
     try {
       const defaultSize = (product.sizes && product.sizes.length > 0) ? product.sizes[0] : (selectedSizes[0] || null);
       await addToCart(product, 1, defaultSize);
@@ -569,29 +578,57 @@ export default function ProductPage({ category = "Trending" }) {
                         className="trending-img"
                         loading="lazy"
                       />
-                      <button
-                        type="button"
-                        onClick={(e) => handleAddToCartClick(e, product)}
-                        className="trending-cart-pill-btn"
-                        aria-label="Add to cart"
-                      >
-                        <svg
-                          viewBox="0 0 24 24"
-                          fill="none"
-                          width="14"
-                          height="14"
-                          stroke="currentColor"
-                          strokeWidth="2.2"
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                          className="cart-svg-icon"
-                        >
-                          <circle cx="9" cy="21" r="1" />
-                          <circle cx="20" cy="21" r="1" />
-                          <path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6" />
-                        </svg>
-                        <span>Add To Cart</span>
-                      </button>
+                      {(() => {
+                        const inCart = isProductInCart(product);
+                        return (
+                          <button
+                            type="button"
+                            onClick={(e) => handleAddToCartClick(e, product)}
+                            className={`trending-cart-pill-btn ${inCart ? 'in-cart' : ''}`}
+                            disabled={inCart}
+                            aria-label={inCart ? "Already in cart" : "Add to cart"}
+                            title={inCart ? "Already in cart" : "Add to cart"}
+                          >
+                            {inCart ? (
+                              <>
+                                <svg
+                                  viewBox="0 0 24 24"
+                                  fill="none"
+                                  width="14"
+                                  height="14"
+                                  stroke="currentColor"
+                                  strokeWidth="2.5"
+                                  strokeLinecap="round"
+                                  strokeLinejoin="round"
+                                  className="cart-svg-icon"
+                                >
+                                  <polyline points="20 6 9 17 4 12" />
+                                </svg>
+                                <span>Already in Cart</span>
+                              </>
+                            ) : (
+                              <>
+                                <svg
+                                  viewBox="0 0 24 24"
+                                  fill="none"
+                                  width="14"
+                                  height="14"
+                                  stroke="currentColor"
+                                  strokeWidth="2.2"
+                                  strokeLinecap="round"
+                                  strokeLinejoin="round"
+                                  className="cart-svg-icon"
+                                >
+                                  <circle cx="9" cy="21" r="1" />
+                                  <circle cx="20" cy="21" r="1" />
+                                  <path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6" />
+                                </svg>
+                                <span>Add To Cart</span>
+                              </>
+                            )}
+                          </button>
+                        );
+                      })()}
                     </div>
 
                     <div className="trending-details-box">

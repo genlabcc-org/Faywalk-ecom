@@ -92,18 +92,18 @@ const normalizeDraftSizes = (draftSizes) => {
       size: item.size || "",
       colors: color
         ? [
-            {
-              id: `cv-${Date.now()}-${variantSeq++}`,
-              variant_id: item.variant_id,
-              color,
-              quantity: item.quantity || "",
-              originalPrice: item.originalPrice || "",
-              offerPrice: item.offerPrice || "",
-              sku: item.sku || generateVariantSKU(),
-              images: item.images || [],
-              media: [],
-            },
-          ]
+          {
+            id: `cv-${Date.now()}-${variantSeq++}`,
+            variant_id: item.variant_id,
+            color,
+            quantity: item.quantity || "",
+            originalPrice: item.originalPrice || "",
+            offerPrice: item.offerPrice || "",
+            sku: item.sku || generateVariantSKU(),
+            images: item.images || [],
+            media: [],
+          },
+        ]
         : [],
       defaultVariant: {
         id: `def-${Date.now()}-${variantSeq++}`,
@@ -244,7 +244,7 @@ const AddProduct = ({
     return () => {
       try {
         sessionStorage.removeItem(draftKey);
-      } catch {}
+      } catch { }
     };
   }, [draftKey]);
 
@@ -868,7 +868,7 @@ const AddProduct = ({
     if (!window.confirm("Are you sure you want to clear all entered fields?")) return;
     try {
       sessionStorage.removeItem(draftKey);
-    } catch {}
+    } catch { }
     setTitle("");
     setDescription("");
     setSku(generateVariantSKU());
@@ -1011,8 +1011,8 @@ const AddProduct = ({
     const firstVariantWithImages = variants.find((v) => v.images && v.images.length > 0);
     const initialCoverUrl = firstVariantWithImages
       ? (typeof firstVariantWithImages.images[0] === "string"
-          ? firstVariantWithImages.images[0]
-          : firstVariantWithImages.images[0]?.url || null)
+        ? firstVariantWithImages.images[0]
+        : firstVariantWithImages.images[0]?.url || null)
       : null;
 
     const productData = {
@@ -1040,7 +1040,7 @@ const AddProduct = ({
       if (isEditing) useStore.getState().invalidateProductDetails(editingProductId);
       try {
         sessionStorage.removeItem(draftKey);
-      } catch {}
+      } catch { }
       onSave?.(result);
     } catch (err) {
       console.error("Failed to save variant product:", err);
@@ -1076,7 +1076,7 @@ const AddProduct = ({
           <input
             type="text"
             className={`cmp-input${errors.title ? " cmp-input--error" : ""}`}
-            placeholder="Input your text"
+            placeholder="e.g. Classic Cotton Ribbed Vest"
             value={title}
             onChange={(e) => {
               setTitle(e.target.value);
@@ -1092,7 +1092,7 @@ const AddProduct = ({
           <span className="cmp-label">Description</span>
           <textarea
             className={`cmp-textarea${errors.description ? " cmp-input--error" : ""}`}
-            placeholder="Enter Description"
+            placeholder="Describe the fabric, breathability, fit, and care instructions..."
             value={description}
             onChange={(e) => {
               setDescription(e.target.value);
@@ -1167,7 +1167,7 @@ const AddProduct = ({
             <input
               type="text"
               className="cmp-input"
-              placeholder="Enter Product Material"
+              placeholder="e.g. 100% Combed Cotton, MicroModal, Cotton Spandex"
               value={material}
               onChange={(e) => setMaterial(e.target.value)}
             />
@@ -1342,7 +1342,7 @@ const AddProduct = ({
             <input
               type="text"
               className="cmp-input cmp-add-size-input"
-              placeholder="Enter size (e.g. 28, 30, 32, S, M, L, XL)"
+              placeholder="Enter size (e.g. S, M, L, XL, XXL or 75, 80, 85, 90)"
               value={sizeInput}
               onChange={(e) => setSizeInput(e.target.value)}
               onKeyDown={(e) => {

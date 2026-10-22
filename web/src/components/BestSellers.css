@@ -162,6 +162,16 @@
   box-shadow: none !important;
 }
 
+.best-seller-add-cart-btn:disabled,
+.best-seller-add-cart-btn.in-cart {
+  background: #f3f4f6 !important;
+  color: #9ca3af !important;
+  cursor: not-allowed !important;
+  opacity: 0.8 !important;
+  box-shadow: none !important;
+  pointer-events: none !important;
+}
+
 .best-seller-add-cart-btn svg {
   stroke: currentColor !important;
 }
@@ -192,13 +202,57 @@
   text-overflow: ellipsis;
 }
 
+.best-seller-price-row {
+  display: flex !important;
+  align-items: center !important;
+  gap: 8px !important;
+  flex-wrap: wrap !important;
+  margin-top: 2px !important;
+}
+
 .best-seller-price {
   font-family: 'Outfit', 'Inter', -apple-system, BlinkMacSystemFont, sans-serif !important;
   font-size: 15px !important;
-  font-weight: 500 !important;
+  font-weight: 700 !important;
   color: #111111 !important;
   margin: 0 !important;
   text-align: left !important;
+  line-height: 1.2 !important;
+}
+
+.best-seller-mrp-cut {
+  font-family: 'Outfit', 'Inter', -apple-system, BlinkMacSystemFont, sans-serif !important;
+  font-size: 13.5px !important;
+  font-weight: 400 !important;
+  color: #888888 !important;
+  text-decoration: line-through !important;
+  line-height: 1.2 !important;
+}
+
+.best-seller-discount-badge {
+  position: absolute !important;
+  top: 0 !important;
+  left: 0 !important;
+  right: 0 !important;
+  width: 100% !important;
+  background: var(--blue-primary, #002277) !important;
+  color: #ffffff !important;
+  font-family: 'Outfit', 'Inter', -apple-system, BlinkMacSystemFont, sans-serif !important;
+  font-size: 11px !important;
+  font-weight: 700 !important;
+  letter-spacing: 0.5px !important;
+  padding: 5px 8px !important;
+  border-radius: 0 !important;
+  line-height: 1.2 !important;
+  text-align: center !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  z-index: 2 !important;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.12) !important;
+  text-transform: uppercase !important;
+  pointer-events: none !important;
+  box-sizing: border-box !important;
 }
 
 .best-sellers-empty {
@@ -283,8 +337,10 @@
     gap: 16px 12px !important;
   }
 
-  .best-seller-img-box {
-    border-radius: 4px !important;
+  .best-seller-card,
+  .best-seller-img-box,
+  .best-seller-img {
+    border-radius: 0 !important;
   }
 
   .best-seller-add-cart-btn {
@@ -316,9 +372,22 @@
 
   .best-seller-price {
     font-size: 13.5px !important;
-    font-weight: 600 !important;
+    font-weight: 700 !important;
     line-height: 1.2 !important;
     margin: 0 !important;
+  }
+
+  .best-seller-mrp-cut {
+    font-size: 12px !important;
+  }
+
+  .best-seller-discount-badge {
+    top: 0 !important;
+    left: 0 !important;
+    right: 0 !important;
+    width: 100% !important;
+    font-size: 10px !important;
+    padding: 4px 6px !important;
   }
 }
 
@@ -380,8 +449,23 @@
 
   .best-seller-price {
     font-size: 12.5px !important;
+    font-weight: 700 !important;
     line-height: 1.2 !important;
     margin: 0 !important;
+  }
+
+  .best-seller-mrp-cut {
+    font-size: 11px !important;
+  }
+
+  .best-seller-discount-badge {
+    top: 0 !important;
+    left: 0 !important;
+    right: 0 !important;
+    width: 100% !important;
+    font-size: 9.5px !important;
+    padding: 3px 5px !important;
+    border-radius: 0 !important;
   }
 }
 

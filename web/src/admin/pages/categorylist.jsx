@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from "react";
+import { createPortal } from "react-dom";
 import { useNavigate } from "react-router-dom";
 import "./categorylist.css";
 
@@ -195,6 +196,8 @@ const CategoryList = ({
   const [search, setSearch] = useState("");
   const [openDropdownId, setOpenDropdownId] = useState(null);
   const [blockedCategory, setBlockedCategory] = useState(null);
+  const [pendingDeleteCategory, setPendingDeleteCategory] = useState(null);
+  const [isDeleting, setIsDeleting] = useState(false);
 
   // Compute live product counts if products provided
   const categoriesWithLiveCount = React.useMemo(() => {
@@ -239,16 +242,36 @@ const CategoryList = ({
   };
 
   const handleDelete = (cat) => {
-    const catId = cat.category_id || cat.id;
+    const subCount = cat.subcategories?.length ?? 0;
     if ((cat.productCount ?? 0) > 0) {
-      setBlockedCategory(cat);
+      setBlockedCategory({ ...cat, reason: "products" });
       return;
     }
-    const confirmed = window.confirm(
-      `Delete category "${cat.name}"? This cannot be undone.`
-    );
-    if (confirmed) {
-      onDeleteCategory?.(catId);
+    if (subCount > 0) {
+      setBlockedCategory({ ...cat, reason: "subcategories", subCount });
+      return;
+    }
+    setPendingDeleteCategory(cat);
+  };
+
+  const confirmDeleteCategory = async () => {
+    if (!pendingDeleteCategory) return;
+    const catId = pendingDeleteCategory.category_id || pendingDeleteCategory.id;
+    try {
+      setIsDeleting(true);
+      await onDeleteCategory?.(catId);
+    } catch (err) {
+      console.error("Failed to delete category:", err);
+      if (err?.code === "CATEGORY_HAS_SUBCATEGORIES") {
+        setBlockedCategory({
+          ...pendingDeleteCategory,
+          reason: "subcategories",
+          subCount: pendingDeleteCategory.subcategories?.length || 1,
+        });
+      }
+    } finally {
+      setIsDeleting(false);
+      setPendingDeleteCategory(null);
     }
   };
 
@@ -281,27 +304,6 @@ const CategoryList = ({
             />
           </div>
         </div>
-
-        <button
-          type="button"
-          className="cat-add-btn"
-          onClick={onAddCategory}
-        >
-          <svg
-            width="15"
-            height="15"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="2.5"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-          >
-            <line x1="12" y1="5" x2="12" y2="19" />
-            <line x1="5" y1="12" x2="19" y2="12" />
-          </svg>
-          Add Category
-        </button>
       </div>
 
       {/* ── Categories Grid ── */}
@@ -310,19 +312,9 @@ const CategoryList = ({
           <div className="cat-empty-title">No categories found</div>
           <div className="cat-empty-desc">
             {categories.length === 0
-              ? "Add your first category to get started."
+              ? "Click Add Category in the header to get started."
               : "No categories match your search."}
           </div>
-          {categories.length === 0 && (
-            <button
-              type="button"
-              className="cat-add-btn"
-              style={{ marginTop: 12 }}
-              onClick={onAddCategory}
-            >
-              + Add Category
-            </button>
-          )}
         </div>
       ) : (
         <div className="cat-grid">
@@ -341,52 +333,67 @@ const CategoryList = ({
         </div>
       )}
 
-      {/* ── Blocked Delete Modal ── */}
-      {blockedCategory && (
+      {/* ── Screen-Centered Minimal Delete Confirmation Modal ── */}
+      {pendingDeleteCategory && typeof document !== "undefined" && createPortal(
         <div
-          style={{
-            position: "fixed",
-            inset: 0,
-            background: "rgba(0,0,0,0.5)",
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            zIndex: 1000,
-            padding: 16,
-          }}
-          onClick={() => setBlockedCategory(null)}
+          className="cat-confirm-overlay"
+          onClick={() => !isDeleting && setPendingDeleteCategory(null)}
+          role="dialog"
+          aria-modal="true"
         >
-          <div
-            style={{
-              background: "#fff",
-              borderRadius: 14,
-              padding: "28px 26px",
-              maxWidth: 380,
-              width: "100%",
-              textAlign: "center",
-              boxShadow: "0 12px 40px rgba(0,0,0,0.18)",
-            }}
-            onClick={(e) => e.stopPropagation()}
-          >
-            <div
-              style={{
-                width: 44,
-                height: 44,
-                borderRadius: "50%",
-                background: "#fff0f0",
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                margin: "0 auto 14px",
-              }}
-            >
+          <div className="cat-confirm-modal" onClick={(e) => e.stopPropagation()}>
+            <div className="cat-confirm-icon">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                <polyline points="3 6 5 6 21 6" />
+                <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
+                <line x1="10" y1="11" x2="10" y2="17" />
+                <line x1="14" y1="11" x2="14" y2="17" />
+              </svg>
+            </div>
+            <h3 className="cat-confirm-title">Delete Category</h3>
+            <p className="cat-confirm-text">
+              Are you sure you want to delete <strong>"{pendingDeleteCategory.name}"</strong>? This action cannot be undone.
+            </p>
+            <div className="cat-confirm-actions">
+              <button
+                type="button"
+                className="cat-confirm-cancel"
+                onClick={() => setPendingDeleteCategory(null)}
+                disabled={isDeleting}
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                className="cat-confirm-ok"
+                onClick={confirmDeleteCategory}
+                disabled={isDeleting}
+              >
+                {isDeleting ? "Deleting..." : "Delete"}
+              </button>
+            </div>
+          </div>
+        </div>,
+        document.body
+      )}
+
+      {/* ── Blocked Delete Modal (Screen-Centered via Portal) ── */}
+      {blockedCategory && typeof document !== "undefined" && createPortal(
+        <div
+          className="cat-confirm-overlay"
+          onClick={() => setBlockedCategory(null)}
+          role="dialog"
+          aria-modal="true"
+        >
+          <div className="cat-confirm-modal" onClick={(e) => e.stopPropagation()}>
+            <div className="cat-confirm-icon" style={{ background: "#fef2f2", borderColor: "#fecaca" }}>
               <svg
                 width="20"
                 height="20"
                 viewBox="0 0 24 24"
                 fill="none"
-                stroke="#ef4444"
-                strokeWidth="2.5"
+                stroke="#dc2626"
+                strokeWidth="2.4"
                 strokeLinecap="round"
                 strokeLinejoin="round"
               >
@@ -396,48 +403,33 @@ const CategoryList = ({
               </svg>
             </div>
 
-            <div
-              style={{
-                fontSize: 15,
-                fontWeight: 700,
-                color: "#1c1c1e",
-                marginBottom: 8,
-              }}
-            >
-              Can't delete "{blockedCategory.name}"
-            </div>
+            <h3 className="cat-confirm-title">Can't delete "{blockedCategory.name}"</h3>
 
-            <div
-              style={{
-                fontSize: 13,
-                color: "#666",
-                lineHeight: 1.6,
-                marginBottom: 20,
-              }}
-            >
-              This category still has{" "}
-              <strong>{blockedCategory.productCount}</strong> product
-              {blockedCategory.productCount > 1 ? "s" : ""} linked to it. Move
-              or delete those products first, then try again.
+            <p className="cat-confirm-text">
+              {blockedCategory.reason === "subcategories" ? (
+                <>
+                  This category has <strong>{blockedCategory.subCount}</strong> subcategor{blockedCategory.subCount > 1 ? "ies" : "y"} inside it. Please delete or move them first.
+                </>
+              ) : (
+                <>
+                  This category has <strong>{blockedCategory.productCount}</strong> product{blockedCategory.productCount > 1 ? "s" : ""} linked to it. Move or delete those products first, then try again.
+                </>
+              )}
+            </p>
+
+            <div className="cat-confirm-actions">
+              <button
+                type="button"
+                className="cat-confirm-cancel"
+                onClick={() => setBlockedCategory(null)}
+                style={{ width: "100%", justifyContent: "center" }}
+              >
+                Got it
+              </button>
             </div>
-            <button
-              onClick={() => setBlockedCategory(null)}
-              style={{
-                background: "#1c1c1e",
-                color: "#fff",
-                border: "none",
-                borderRadius: 8,
-                padding: "10px 28px",
-                fontSize: 13.5,
-                fontWeight: 500,
-                cursor: "pointer",
-                fontFamily: "inherit",
-              }}
-            >
-              Got it!
-            </button>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
     </div>
   );

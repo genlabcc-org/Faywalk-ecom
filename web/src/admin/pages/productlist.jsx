@@ -76,7 +76,15 @@ const MobileProductCard = ({ product, onEdit, onDelete, expandedRows, toggleExpa
           <button className="pl-action-btn" aria-label="Edit" onClick={() => onEdit(product)}>
             <img src={editIcon} alt="Edit" className="pl-action-icon" />
           </button>
-          <button className="pl-action-btn pl-action-btn--delete" aria-label="Delete" onClick={() => onDelete(product.id)}>
+          <button
+            type="button"
+            className="pl-action-btn pl-action-btn--delete"
+            aria-label="Delete"
+            onClick={(e) => {
+              e.stopPropagation();
+              onDelete(product.id ?? product.product_id);
+            }}
+          >
             <img src={trashIcon} alt="Delete" className="pl-action-icon pl-action-icon--delete" />
           </button>
         </div>
@@ -394,18 +402,19 @@ const ProductList = ({ onAddProduct, onEditProduct, onDeleteProduct, products = 
 
   const confirmDelete = async () => {
     const id = pendingDeleteId;
-    if (onDeleteProduct) {
-      try {
-        setIsDeleting(true);
+    if (!id) {
+      setPendingDeleteId(null);
+      return;
+    }
+    try {
+      setIsDeleting(true);
+      if (onDeleteProduct) {
         await onDeleteProduct(id);
-      } catch (err) {
-        console.error("Error deleting product:", err);
-      } finally {
-        setIsDeleting(false);
-        setSelectedRows((prev) => prev.filter((rowId) => rowId !== id));
-        setPendingDeleteId(null);
       }
-    } else {
+    } catch (err) {
+      console.error("Error deleting product:", err);
+    } finally {
+      setIsDeleting(false);
       setPendingDeleteId(null);
     }
   };
@@ -733,9 +742,13 @@ const ProductList = ({ onAddProduct, onEditProduct, onDeleteProduct, products = 
                           <img src={editIcon} alt="Edit" className="pl-action-icon" />
                         </button>
                         <button
+                          type="button"
                           className="pl-action-btn pl-action-btn--delete"
                           aria-label="Delete"
-                          onClick={() => requestDelete(product.id)}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            requestDelete(product.id ?? product.product_id);
+                          }}
                         >
                           <img src={trashIcon} alt="Delete" className="pl-action-icon pl-action-icon--delete" />
                         </button>

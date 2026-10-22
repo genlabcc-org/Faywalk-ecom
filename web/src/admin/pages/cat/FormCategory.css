@@ -34,17 +34,27 @@
 }
 
 .scc-back-btn {
-  width: 32px;
-  height: 32px;
+  width: 36px;
+  height: 36px;
   border-radius: 8px;
-  border: 1px solid #e0e0e3;
-  background: #fff;
+  border: 1px solid var(--admin-border, #e5e7eb);
+  background: var(--admin-card-bg, #ffffff);
+  color: var(--admin-text, #111827);
   display: flex;
   align-items: center;
   justify-content: center;
   cursor: pointer;
-  font-size: 16px;
-  color: #222;
+  flex-shrink: 0;
+  transition: all 0.15s ease;
+}
+
+.scc-back-btn:hover {
+  background: #f8fafc;
+  border-color: #cbd5e1;
+}
+
+.scc-back-btn:active {
+  transform: scale(0.96);
 }
 
 .scc-title {
@@ -177,6 +187,11 @@
   cursor: pointer;
   box-sizing: border-box;
   text-align: center;
+}
+
+.scc-dropzone.scc-dropzone-error {
+  border-color: #ef4444;
+  background-color: #fef2f2;
 }
 
 .scc-dropzone-btn {
@@ -387,7 +402,8 @@
 .scc-bottom-actions {
   display: flex;
   justify-content: flex-end;
-  margin-top: 6px;
+  gap: 12px;
+  margin-top: 14px;
 }
 
 /* ===== Success Toast (matches reference design) ===== */

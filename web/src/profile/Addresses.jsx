@@ -505,8 +505,8 @@ export default function Addresses() {
                 {isSubmitting
                   ? "Saving..."
                   : editingAddressId
-                  ? "Update Address"
-                  : "Add New Address"}
+                    ? "Update Address"
+                    : "Add New Address"}
               </button>
               <button
                 type="button"

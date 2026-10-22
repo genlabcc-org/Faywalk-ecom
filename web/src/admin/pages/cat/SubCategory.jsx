@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from "react";
+import { createPortal } from "react-dom";
 import { useNavigate } from "react-router-dom";
 import { productService } from "../../../services/productService";
 import "../categorylist.css";
@@ -47,7 +48,8 @@ const SubcategoryCard = ({
   onEdit,
   onDelete,
 }) => {
-  const isDropdownOpen = openDropdownId === sub.subcategory_id;
+  const subId = sub.subcategory_id ?? sub.id;
+  const isDropdownOpen = String(openDropdownId) === String(subId);
   const dropdownRef = useRef(null);
 
   useEffect(() => {
@@ -103,7 +105,7 @@ const SubcategoryCard = ({
               className="cat-card-more-btn"
               onClick={(e) => {
                 e.stopPropagation();
-                setOpenDropdownId(isDropdownOpen ? null : sub.subcategory_id);
+                setOpenDropdownId(isDropdownOpen ? null : subId);
               }}
               title="More actions"
               aria-label="More options"
@@ -193,6 +195,9 @@ const SubcategoryCards = ({
   );
   const [loading, setLoading] = useState(!propSubcategories);
   const [openDropdownId, setOpenDropdownId] = useState(null);
+  const [pendingDeleteSub, setPendingDeleteSub] = useState(null);
+  const [isDeleting, setIsDeleting] = useState(false);
+  const [blockedSub, setBlockedSub] = useState(null);
   const parentId = parentCategory?.category_id || parentCategory?.id;
 
   useEffect(() => {
@@ -226,69 +231,64 @@ const SubcategoryCards = ({
 
   const productCountBySubcategory = React.useMemo(() => {
     const counts = {};
-    products.forEach((p) => {
-      if (p.subcategory_id) {
-        counts[p.subcategory_id] = (counts[p.subcategory_id] || 0) + 1;
+    (products || []).forEach((p) => {
+      if (p.subcategory_id != null) {
+        const idStr = String(p.subcategory_id);
+        counts[idStr] = (counts[idStr] || 0) + 1;
       }
     });
     return counts;
   }, [products]);
 
   const handleOpen = (sub) => {
-    navigate(`/admin/products?subcategory=${sub.subcategory_id}`);
+    navigate(`/admin/products?subcategory=${sub.subcategory_id ?? sub.id}`);
   };
 
   const handleEdit = (sub) => {
+    const sId = sub.subcategory_id ?? sub.id;
     navigate(
-      `/admin/subcategories/new?parentId=${parentId}&subcategoryId=${sub.subcategory_id}`
+      `/admin/subcategories/new?parentId=${parentId}&subcategoryId=${sId}`
     );
   };
 
-  const handleDelete = async (sub) => {
-    const confirmed = window.confirm(`Delete "${sub.name}"?`);
-    if (!confirmed) return;
+  const handleDelete = (sub) => {
+    const sId = sub.subcategory_id ?? sub.id;
+    const count = productCountBySubcategory[String(sId)] || 0;
+    if (count > 0) {
+      setBlockedSub({ ...sub, productCount: count });
+      return;
+    }
+    setPendingDeleteSub(sub);
+  };
+
+  const confirmDeleteSub = async () => {
+    if (!pendingDeleteSub) return;
+    const sId = pendingDeleteSub.subcategory_id ?? pendingDeleteSub.id;
     try {
-      await productService.deleteSubcategory(sub.subcategory_id);
+      setIsDeleting(true);
+      await productService.deleteSubcategory(sId);
       setLocalSubcategories((prev) =>
-        prev.filter((s) => s.subcategory_id !== sub.subcategory_id)
+        prev.filter((s) => (s.subcategory_id ?? s.id) !== sId)
       );
       if (onDeleteSubcategory) {
-        onDeleteSubcategory(sub.subcategory_id, parentId);
+        onDeleteSubcategory(sId, parentId);
       }
     } catch (error) {
-      alert("Failed to delete: " + error.message);
+      console.error("Failed to delete subcategory:", error);
+      alert(error.message || "Failed to delete subcategory. Please try again.");
+    } finally {
+      setIsDeleting(false);
+      setPendingDeleteSub(null);
     }
   };
 
   return (
     <div className="cat-page">
       <div className="subcat-topbar">
-        <button
-          className="db__header-back-btn"
-          onClick={onBack}
-          aria-label="Go back"
-          title="Back to Categories"
-        >
-          <svg
-            width="18"
-            height="18"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="2.5"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-          >
-            <polyline points="15 18 9 12 15 6" />
-          </svg>
-        </button>
         <h1 className="subcat-title">
           {parentCategory?.name || "Category"}{" "}
           <span className="subcat-title-sub">Subcategories</span>
         </h1>
-        <button className="cat-add-btn" onClick={onAddSubcategory}>
-          + Add Subcategory
-        </button>
       </div>
 
       {loading ? (
@@ -299,16 +299,8 @@ const SubcategoryCards = ({
         <div className="cat-empty">
           <div className="cat-empty-title">No subcategories yet</div>
           <div className="cat-empty-desc">
-            Click "+ Add Subcategory" to add items to {parentCategory?.name || "this category"}.
+            Click Add Subcategory in the header to add items to {parentCategory?.name || "this category"}.
           </div>
-          <button
-            type="button"
-            className="cat-add-btn"
-            style={{ marginTop: 12 }}
-            onClick={onAddSubcategory}
-          >
-            + Add Subcategory
-          </button>
         </div>
       ) : (
         <div className="cat-grid">
@@ -325,6 +317,97 @@ const SubcategoryCards = ({
             />
           ))}
         </div>
+      )}
+
+      {/* ── Screen-Centered Minimal Delete Confirmation Modal ── */}
+      {pendingDeleteSub && typeof document !== "undefined" && createPortal(
+        <div
+          className="cat-confirm-overlay"
+          onClick={() => !isDeleting && setPendingDeleteSub(null)}
+          role="dialog"
+          aria-modal="true"
+        >
+          <div className="cat-confirm-modal" onClick={(e) => e.stopPropagation()}>
+            <div className="cat-confirm-icon">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                <polyline points="3 6 5 6 21 6" />
+                <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
+                <line x1="10" y1="11" x2="10" y2="17" />
+                <line x1="14" y1="11" x2="14" y2="17" />
+              </svg>
+            </div>
+            <h3 className="cat-confirm-title">Delete Subcategory</h3>
+            <p className="cat-confirm-text">
+              Are you sure you want to delete <strong>"{pendingDeleteSub.name}"</strong>? This action cannot be undone.
+            </p>
+            <div className="cat-confirm-actions">
+              <button
+                type="button"
+                className="cat-confirm-cancel"
+                onClick={() => setPendingDeleteSub(null)}
+                disabled={isDeleting}
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                className="cat-confirm-ok"
+                onClick={confirmDeleteSub}
+                disabled={isDeleting}
+              >
+                {isDeleting ? "Deleting..." : "Delete"}
+              </button>
+            </div>
+          </div>
+        </div>,
+        document.body
+      )}
+
+      {/* ── Blocked Delete Modal (Screen-Centered via Portal) ── */}
+      {blockedSub && typeof document !== "undefined" && createPortal(
+        <div
+          className="cat-confirm-overlay"
+          onClick={() => setBlockedSub(null)}
+          role="dialog"
+          aria-modal="true"
+        >
+          <div className="cat-confirm-modal" onClick={(e) => e.stopPropagation()}>
+            <div className="cat-confirm-icon" style={{ background: "#fef2f2", borderColor: "#fecaca" }}>
+              <svg
+                width="20"
+                height="20"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="#dc2626"
+                strokeWidth="2.4"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              >
+                <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z" />
+                <line x1="12" y1="9" x2="12" y2="13" />
+                <line x1="12" y1="17" x2="12.01" y2="17" />
+              </svg>
+            </div>
+
+            <h3 className="cat-confirm-title">Can't delete "{blockedSub.name}"</h3>
+
+            <p className="cat-confirm-text">
+              This subcategory has <strong>{blockedSub.productCount}</strong> product{blockedSub.productCount > 1 ? "s" : ""} linked to it. Move or delete those products first, then try again.
+            </p>
+
+            <div className="cat-confirm-actions">
+              <button
+                type="button"
+                className="cat-confirm-cancel"
+                onClick={() => setBlockedSub(null)}
+                style={{ width: "100%", justifyContent: "center" }}
+              >
+                Got it
+              </button>
+            </div>
+          </div>
+        </div>,
+        document.body
       )}
     </div>
   );

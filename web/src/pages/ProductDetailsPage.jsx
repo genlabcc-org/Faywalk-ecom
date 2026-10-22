@@ -271,11 +271,13 @@ export default function ProductDetailsPage({ onBack = () => window.history.back(
   const setSelectedProduct = useStore(state => state.setSelectedProduct);
   const categories = useStore(state => state.categories);
   const addToCart = useStore(state => state.addToCart);
+  const cartItems = useStore(state => state.cartItems);
   const fetchProductsByCategory = useStore(state => state.fetchProductsByCategory);
   const productsCache = useStore(state => state.products);
 
   const activeProductId = cleanId(rawId) || cleanId(selectedProduct?.productId || selectedProduct?.id || selectedProduct?.product_id);
   const productId = activeProductId;
+
 
   const [loadingProduct, setLoadingProduct] = useState(() => {
     if (activeProductId && (!selectedProduct || String(selectedProduct?.productId || selectedProduct?.id || selectedProduct?.product_id) !== String(activeProductId))) {
@@ -622,6 +624,42 @@ export default function ProductDetailsPage({ onBack = () => window.history.back(
     setActiveThumb(0);
   }, [selectedSize, selectedColor]);
 
+  // Variant-aware check (strictly checks selected color and size)
+  const isCurrentProductInCart = useMemo(() => {
+    if (!productId || !cartItems || cartItems.length === 0) return false;
+
+    const currentId = String(productId).trim();
+    const activeColorNorm = String(selectedColor || (availableColors.length === 1 ? availableColors[0] : '') || '').trim().toLowerCase();
+    const activeSizeNorm = String(selectedSize || (Array.isArray(size) && size.length === 1 ? size[0] : '') || '').trim().toLowerCase();
+
+    return cartItems.some((item) => {
+      const itemPid = String(item.productId || item.product_id || item.id || '').trim();
+      if (itemPid !== currentId) return false;
+
+      // Color check: If product offers colors
+      if (availableColors && availableColors.length > 0) {
+        if (activeColorNorm) {
+          const itemColorNorm = String(item.color || '').trim().toLowerCase();
+          if (itemColorNorm !== activeColorNorm) return false;
+        } else {
+          return false;
+        }
+      }
+
+      // Size check: If product offers sizes
+      if (Array.isArray(size) && size.length > 0) {
+        if (activeSizeNorm) {
+          const itemSizeNorm = String(item.size || '').trim().toLowerCase();
+          if (itemSizeNorm !== activeSizeNorm) return false;
+        } else {
+          return false;
+        }
+      }
+
+      return true;
+    });
+  }, [productId, cartItems, selectedColor, selectedSize, availableColors, size]);
+
   // Gallery Thumbnails
   const dynamicThumbs = useMemo(() => {
     let imgs = [];
@@ -887,6 +925,7 @@ export default function ProductDetailsPage({ onBack = () => window.history.back(
   }, [size, availableColors, selectedSize, selectedColor, selectedProduct]);
 
   const handleAddToCart = async () => {
+    if (isCurrentProductInCart) return;
     if (!validateOptionsSelection()) {
       return;
     }
@@ -1164,11 +1203,11 @@ export default function ProductDetailsPage({ onBack = () => window.history.back(
           <div className="dp-action-buttons-group">
             <button
               type="button"
-              className="dp-add-cart-btn"
-              disabled={!canAddToCart}
+              className={`dp-add-cart-btn ${isCurrentProductInCart ? 'in-cart' : ''}`}
+              disabled={!canAddToCart || isCurrentProductInCart}
               onClick={handleAddToCart}
             >
-              {canAddToCart ? "ADD TO CART" : "OUT OF STOCK"}
+              {canAddToCart ? (isCurrentProductInCart ? "ALREADY IN CART" : "ADD TO CART") : "OUT OF STOCK"}
             </button>
 
             <button
