@@ -208,40 +208,7 @@ export const emailService = {
         }
       }
 
-      // 3. Fallback to FormSubmit
-      console.log(`[emailService] Using FormSubmit fallback for order #${orderId}...`);
-      const formSubmitPayload = {
-        _subject: subject,
-        _template: 'table',
-        _captcha: 'false',
-        'Order Number': `#${orderId}`,
-        'Payment Method': paymentMethod,
-        'Customer Name': customerName,
-        'Customer Email': customerEmail,
-        'Customer Phone': customerPhone,
-        'Shipping Address': formattedAddress || 'N/A',
-        'SKU': skuList || 'N/A',
-        'Category': categoryList || 'N/A',
-        'Order Breakdown': itemsListFormatted || 'N/A',
-        'Subtotal': `₹${Number(subtotal).toLocaleString('en-IN')}`,
-        'Discount': discount > 0 ? `-₹${Number(discount).toLocaleString('en-IN')}` : '₹0',
-        'Shipping': shippingFee > 0 ? `₹${Number(shippingFee).toLocaleString('en-IN')}` : 'Free',
-        'Total Amount': `₹${Number(totalPrice).toLocaleString('en-IN')}`,
-      };
-
-      const response = await fetch(`https://formsubmit.co/ajax/${ADMIN_EMAIL}`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Accept': 'application/json',
-        },
-        body: JSON.stringify(formSubmitPayload),
-      });
-
-      if (response.ok) {
-        console.log('[emailService] FormSubmit fallback email dispatched to', ADMIN_EMAIL);
-        return true;
-      }
+      return false;
     } catch (err) {
       console.error('[emailService] Failed to send order notification email:', err);
     }
@@ -430,38 +397,7 @@ ${message}
         console.warn('[emailService] Edge function attempt failed:', e);
       }
 
-      // 3. Fallback to FormSubmit
-      try {
-        console.log(`[emailService] Using FormSubmit fallback for contact inquiry to ${targetEmail}...`);
-        const formSubmitPayload = {
-          _subject: subject,
-          _template: 'table',
-          _captcha: 'false',
-          'Full Name': fullName,
-          'Email': email,
-          'Phone': phone || 'N/A',
-          'Message': message,
-          'Submitted At': dateStr,
-        };
-
-        const response = await fetch(`https://formsubmit.co/ajax/${targetEmail}`, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Accept': 'application/json',
-          },
-          body: JSON.stringify(formSubmitPayload),
-        });
-
-        if (response.ok) {
-          console.log('[emailService] FormSubmit fallback email dispatched to', targetEmail);
-          return { success: true, provider: 'formsubmit' };
-        }
-      } catch (fsErr) {
-        console.warn('[emailService] FormSubmit fallback error:', fsErr);
-      }
-
-      return { success: false, error: 'Failed to send contact inquiry' };
+      return { success: false, error: 'Failed to send contact inquiry via Brevo' };
     } catch (err) {
       console.error('[emailService] Failed to send contact email:', err);
       return { success: false, error: err.message };

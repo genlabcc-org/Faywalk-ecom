@@ -323,48 +323,16 @@ Deno.serve(async (req: Request) => {
       );
     }
 
-    // 2. Fallback to FormSubmit if Brevo rejected or unavailable
-    console.log(`[send-order-email] Falling back to FormSubmit dispatcher for order #${orderId}...`);
-    const fallbackPayload = {
-      _subject: subject,
-      _template: "table",
-      _captcha: "false",
-      "Order Number": `#${orderId}`,
-      "Payment Method": String(paymentMethod),
-      "Customer Name": String(customerName),
-      "Customer Email": String(customerEmail),
-      "Customer Phone": String(customerPhone),
-      "Shipping Address": String(address),
-      "SKU": String(skuId),
-      "Category": String(category),
-      "Order Breakdown": String(itemsListFormatted),
-      "Subtotal": `₹${Number(subtotal).toLocaleString("en-IN")}`,
-      "Discount": discount > 0 ? `-₹${Number(discount).toLocaleString("en-IN")}` : "₹0",
-      "Shipping": shippingFee > 0 ? `₹${Number(shippingFee).toLocaleString("en-IN")}` : "Free",
-      "Total Amount": `₹${Number(totalPrice).toLocaleString("en-IN")}`,
-      _brevo_error: brevoError || undefined,
-    };
-
-    const fsRes = await fetch(`https://formsubmit.co/ajax/${adminEmail}`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "Accept": "application/json",
-      },
-      body: JSON.stringify(fallbackPayload),
-    });
-
-    const fsResult = await fsRes.json().catch(() => ({}));
-
+    // Brevo failed or was unavailable
+    console.warn(`[send-order-email] Brevo dispatch failed for #${orderId}:`, brevoError);
     return new Response(
       JSON.stringify({
-        success: fsRes.ok,
-        provider: "formsubmit_fallback",
-        brevoError,
+        success: false,
+        provider: "brevo",
+        error: brevoError || "Failed to deliver email via Brevo",
         recipient: adminEmail,
-        result: fsResult,
       }),
-      { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   } catch (err) {
     const errMsg = err instanceof Error ? err.message : String(err);

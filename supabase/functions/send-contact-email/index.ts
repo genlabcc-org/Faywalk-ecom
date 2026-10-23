@@ -197,40 +197,16 @@ Deno.serve(async (req: Request) => {
       );
     }
 
-    // 2. Fallback to FormSubmit if Brevo rejected or unavailable
-    console.log(`[send-contact-email] Falling back to FormSubmit dispatcher for ${recipientEmail}...`);
-    const fallbackPayload = {
-      _subject: subject,
-      _template: "table",
-      _captcha: "false",
-      "Full Name": fullName,
-      "Email Address": email,
-      "Phone Number": phone || "N/A",
-      "Message": message,
-      "Submitted At": dateStr,
-      _brevo_error: brevoError || undefined,
-    };
-
-    const fsRes = await fetch(`https://formsubmit.co/ajax/${recipientEmail}`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "Accept": "application/json",
-      },
-      body: JSON.stringify(fallbackPayload),
-    });
-
-    const fsResult = await fsRes.json().catch(() => ({}));
-
+    // Brevo failed or was unavailable
+    console.warn(`[send-contact-email] Brevo dispatch failed for ${recipientEmail}:`, brevoError);
     return new Response(
       JSON.stringify({
-        success: fsRes.ok,
-        provider: "formsubmit_fallback",
-        brevoError,
+        success: false,
+        provider: "brevo",
+        error: brevoError || "Failed to deliver email via Brevo",
         recipient: recipientEmail,
-        result: fsResult,
       }),
-      { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   } catch (err) {
     const errMsg = err instanceof Error ? err.message : String(err);
