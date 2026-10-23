@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { FaWhatsapp, FaFacebook, FaInstagram } from 'react-icons/fa';
+import { emailService } from '../services/emailService';
 import './ContactUs.css';
 
 const ContactUs = () => {
@@ -10,17 +11,46 @@ const ContactUs = () => {
     email: '',
     message: '',
   });
-  const [submitted, setSubmitted] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [status, setStatus] = useState({ type: null, message: '' });
 
   const handleChange = (e) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
+    if (status.type) {
+      setStatus({ type: null, message: '' });
+    }
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    setSubmitted(true);
-    setTimeout(() => setSubmitted(false), 4000);
-    setFormData({ firstName: '', lastName: '', phone: '', email: '', message: '' });
+    if (isSubmitting) return;
+
+    setStatus({ type: null, message: '' });
+    setIsSubmitting(true);
+
+    try {
+      const res = await emailService.sendContactUsEmail(formData);
+      if (res.success) {
+        setStatus({
+          type: 'success',
+          message: 'Thank you! Your message has been sent successfully. We will get back to you soon.',
+        });
+        setFormData({ firstName: '', lastName: '', phone: '', email: '', message: '' });
+      } else {
+        setStatus({
+          type: 'error',
+          message: res.error || 'Unable to send your message at this time. Please try again.',
+        });
+      }
+    } catch (err) {
+      console.error('Failed to submit contact form:', err);
+      setStatus({
+        type: 'error',
+        message: 'Something went wrong while sending your message. Please try again.',
+      });
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (
@@ -37,6 +67,24 @@ const ContactUs = () => {
 
       {/* ── Form ── */}
       <form className="contactus-form" onSubmit={handleSubmit} autoComplete="off">
+        {status.type === 'success' && (
+          <div className="contactus-alert contactus-alert--success" role="alert">
+            <svg className="contactus-alert-icon" viewBox="0 0 20 20" fill="currentColor">
+              <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+            </svg>
+            <span>{status.message}</span>
+          </div>
+        )}
+
+        {status.type === 'error' && (
+          <div className="contactus-alert contactus-alert--error" role="alert">
+            <svg className="contactus-alert-icon" viewBox="0 0 20 20" fill="currentColor">
+              <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
+            </svg>
+            <span>{status.message}</span>
+          </div>
+        )}
+
         <div className="contactus-row">
           <div className="contactus-field">
             <label htmlFor="cu-firstName">First Name</label>
@@ -105,8 +153,19 @@ const ContactUs = () => {
         </div>
 
         <div className="contactus-btn-wrap">
-          <button type="submit" className="contactus-submit-btn">
-            {submitted ? 'Sent ✓' : 'Submit'}
+          <button
+            type="submit"
+            className={`contactus-submit-btn ${isSubmitting ? 'contactus-submit-btn--loading' : ''}`}
+            disabled={isSubmitting}
+          >
+            {isSubmitting ? (
+              <span className="contactus-btn-spinner-wrap">
+                <span className="contactus-btn-spinner" />
+                <span>Sending...</span>
+              </span>
+            ) : (
+              'Submit'
+            )}
           </button>
         </div>
       </form>
