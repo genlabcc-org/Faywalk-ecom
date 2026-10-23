@@ -170,12 +170,12 @@ export default function CheckoutPage() {
       }
     });
 
-    couponService.getActiveCoupons().then((list) => {
+    couponService.getActiveCoupons(subtotal, userId).then((list) => {
       setActiveCoupons(list || []);
     }).catch((err) => {
       console.warn("Failed to load active coupons:", err);
     });
-  }, []);
+  }, [userId, subtotal]);
 
   // If selectedId is null and user has addresses, pick the first address by default
   useEffect(() => {
@@ -395,10 +395,11 @@ export default function CheckoutPage() {
     setDiscountInput(code);
 
     try {
-      const res = await couponService.validateCoupon(code, subtotal, checkoutItems, categories);
+      const res = await couponService.validateCoupon(code, subtotal, checkoutItems, categories, userId);
       if (res.valid) {
         setAppliedDiscount({
           code: res.code,
+          couponId: res.coupon?.id || null,
           discountAmount: res.discountAmount,
           pct: res.pct || 0,
           type: res.type,
@@ -764,6 +765,8 @@ export default function CheckoutPage() {
             quantity: checkoutItems.reduce((sum, item) => sum + (item.qty || 1), 0),
             total_price: grandTotal,
             shipping_fee: shippingFee || 0,
+            discount_amount: discountAmount || 0,
+            coupon_code: appliedDiscount?.code || null,
             payment: "COD",
             type: "Regular",
             status: "Order Placed",
@@ -795,6 +798,15 @@ export default function CheckoutPage() {
           .insert(orderItemsToInsert);
 
         if (itemsError) throw itemsError;
+
+        if (appliedDiscount) {
+          couponService.recordCouponUsage({
+            couponId: appliedDiscount.couponId,
+            couponCode: appliedDiscount.code,
+            userId: userId,
+            orderId: generatedOrderId,
+          });
+        }
 
         // Auto-book courier shipment with iCarry for COD order
         try {
@@ -908,6 +920,15 @@ export default function CheckoutPage() {
                 for (const item of checkoutItems) {
                   await removeFromCart(item.id);
                 }
+              }
+
+              if (appliedDiscount) {
+                couponService.recordCouponUsage({
+                  couponId: appliedDiscount.couponId,
+                  couponCode: appliedDiscount.code,
+                  userId: userId,
+                  orderId: orderData?.orderId,
+                });
               }
 
               showToast("Payment successful! Your order has been placed.", "success");

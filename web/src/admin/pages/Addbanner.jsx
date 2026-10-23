@@ -3,6 +3,13 @@ import { useLocation } from "react-router-dom";
 import "./Addbanner.css";
 import { bannerService } from "../../services/bannerService";
 
+const LinkIcon = () => (
+  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71" />
+    <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71" />
+  </svg>
+);
+
 const UploadIcon = () => (
   <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
     <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
@@ -63,6 +70,23 @@ const AddBanner = ({ onBack, onPublish, initialData }) => {
   const [previewMobileImage, setPreviewMobileImage] = useState(() => bannerData?.mobile_url || bannerData?.mobile_image_url || null);
   const [mobileImageFile, setMobileImageFile] = useState(null);
   const [isDraggingMobile, setIsDraggingMobile] = useState(false);
+
+  // Product Link State
+  const [productLink, setProductLink] = useState(() => bannerData?.link_url || bannerData?.product_link || bannerData?.linkUrl || "");
+
+  useEffect(() => {
+    if (bannerData) {
+      if (bannerData.link_url !== undefined || bannerData.product_link !== undefined || bannerData.linkUrl !== undefined) {
+        setProductLink(bannerData.link_url || bannerData.product_link || bannerData.linkUrl || "");
+      }
+      if (bannerData.image_url || bannerData.image) {
+        setPreviewImage(bannerData.image_url || bannerData.image);
+      }
+      if (bannerData.mobile_url || bannerData.mobile_image_url) {
+        setPreviewMobileImage(bannerData.mobile_url || bannerData.mobile_image_url);
+      }
+    }
+  }, [bannerData]);
 
   const [previewMode, setPreviewMode] = useState("desktop"); // 'desktop' | 'mobile'
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -164,11 +188,13 @@ const AddBanner = ({ onBack, onPublish, initialData }) => {
         bannerResult = await bannerService.updateBanner(editingId, {
           imageUrl: finalImageUrl,
           mobileUrl: finalMobileUrl,
+          linkUrl: productLink,
         });
       } else {
         bannerResult = await bannerService.createBanner({
           imageUrl: finalImageUrl,
           mobileUrl: finalMobileUrl,
+          linkUrl: productLink,
         });
       }
 
@@ -315,6 +341,55 @@ const AddBanner = ({ onBack, onPublish, initialData }) => {
               )}
             </div>
           </div>
+        </div>
+
+        {/* Product / Destination Link */}
+        <div className="ab__link-section">
+          <label className="ab__label" style={{ fontWeight: 600, fontSize: "13.5px", marginBottom: "4px" }}>
+            Product Link / Destination URL <span style={{ color: "#9ca3af", fontWeight: "normal" }}>(Optional)</span>
+          </label>
+          <span className="ab__hint" style={{ marginTop: 0, marginBottom: "8px" }}>
+            When customers click this banner on the home page, they will navigate to this link.
+          </span>
+
+          <div className="ab__link-input-wrap">
+            <span className="ab__link-icon">
+              <LinkIcon />
+            </span>
+            <input
+              type="text"
+              className="ab__input ab__input--link"
+              placeholder="e.g. /product/35 or /rings or https://..."
+              value={productLink}
+              onChange={(e) => setProductLink(e.target.value)}
+            />
+            {productLink && (
+              <button
+                type="button"
+                className="ab__link-clear-btn"
+                onClick={() => setProductLink("")}
+                title="Clear link"
+              >
+                &times;
+              </button>
+            )}
+          </div>
+
+          {productLink && (
+            <div className="ab__link-preview-badge">
+              <span>Customer action: Clicking this banner navigates to <strong>{productLink}</strong></span>
+              {productLink.startsWith("/") && (
+                <a
+                  href={productLink}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  style={{ marginLeft: "8px" }}
+                >
+                  Test Link ↗
+                </a>
+              )}
+            </div>
+          )}
         </div>
 
         {/* Home Page Hero Preview */}

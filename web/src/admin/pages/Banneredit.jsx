@@ -23,7 +23,7 @@ const BannerEdit = ({ banner, onBack, onSave, onDelete }) => {
       setForm({
         title: banner.title || "",
         tagline: banner.tagline || "",
-        linkUrl: banner.linkUrl || "",
+        linkUrl: banner.link_url || banner.product_link || banner.linkUrl || "",
         displayOrder: banner.displayOrder ?? "",
         target: banner.target || "",
         startDate: banner.startDate || "",

@@ -30,8 +30,13 @@ export const couponService = {
   /**
    * Fetch all currently active & unexpired coupons for customer display
    */
-  async getActiveCoupons() {
+  async getActiveCoupons(subtotal = 0, userId = null) {
     try {
+      if (!userId) {
+        const { data: { session } } = await supabase.auth.getSession().catch(() => ({ data: {} }));
+        userId = session?.user?.id || null;
+      }
+
       let { data, error } = await supabase
         .from("coupons")
         .select("*, categories:category_id(category_id, name), subcategories:subcategory_id(subcategory_id, name)")
@@ -51,12 +56,43 @@ export const couponService = {
         data = fallbackData;
       }
 
+      // Fetch user usage counts for coupons with per_user_limit
+      let userUsageMap = {};
+      if (userId && data && data.length > 0) {
+        try {
+          const couponIdsWithPerUserLimit = data
+            .filter((c) => c.per_user_limit && Number(c.per_user_limit) > 0)
+            .map((c) => c.id);
+
+          if (couponIdsWithPerUserLimit.length > 0) {
+            const { data: usages } = await supabase
+              .from("coupon_usages")
+              .select("coupon_id")
+              .eq("user_id", String(userId))
+              .in("coupon_id", couponIdsWithPerUserLimit);
+
+            if (usages) {
+              usages.forEach((u) => {
+                userUsageMap[u.coupon_id] = (userUsageMap[u.coupon_id] || 0) + 1;
+              });
+            }
+          }
+        } catch (e) {
+          console.warn("Could not check coupon usages for user:", e);
+        }
+      }
+
       const now = new Date();
       return (data || []).filter((c) => {
         if (!c.is_active) return false;
         if (c.start_date && new Date(c.start_date) > now) return false;
         if (c.expiry_date && new Date(c.expiry_date) < now) return false;
         if (c.usage_limit && c.used_count >= c.usage_limit) return false;
+        // Filter out if user reached their individual per-user limit (defaults to 1)
+        const userLimit = c.per_user_limit !== null && c.per_user_limit !== undefined ? Number(c.per_user_limit) : 1;
+        if (userLimit > 0 && userUsageMap[c.id]) {
+          if (userUsageMap[c.id] >= userLimit) return false;
+        }
         return true;
       });
     } catch (err) {
@@ -93,6 +129,9 @@ export const couponService = {
         min_order_amount: couponData.min_order_amount ? Number(couponData.min_order_amount) : 0,
         max_discount_amount: couponData.max_discount_amount ? Number(couponData.max_discount_amount) : null,
         usage_limit: couponData.usage_limit ? Number(couponData.usage_limit) : null,
+        per_user_limit: couponData.per_user_limit !== undefined && couponData.per_user_limit !== "" && couponData.per_user_limit !== null
+          ? Number(couponData.per_user_limit)
+          : 1,
         is_active: couponData.is_active !== undefined ? Boolean(couponData.is_active) : true,
         start_date: couponData.start_date || new Date().toISOString(),
         expiry_date: couponData.expiry_date || null,
@@ -149,6 +188,11 @@ export const couponService = {
       if (payload.usage_limit !== undefined) {
         payload.usage_limit = payload.usage_limit ? Number(payload.usage_limit) : null;
       }
+      if (payload.per_user_limit !== undefined) {
+        payload.per_user_limit = payload.per_user_limit !== "" && payload.per_user_limit !== null
+          ? Number(payload.per_user_limit)
+          : 1;
+      }
 
       const { data, error } = await supabase
         .from("coupons")
@@ -202,8 +246,9 @@ export const couponService = {
    * @param {number} subtotal 
    * @param {Array} items - List of items in cart/checkout
    * @param {Array} categories - Optional categories list for matching
+   * @param {string} userId - Optional user ID for per-user limit checking
    */
-  async validateCoupon(code, subtotal = 0, items = [], categories = []) {
+  async validateCoupon(code, subtotal = 0, items = [], categories = [], userId = null) {
     try {
       const cleanedCode = String(code || "").trim().toUpperCase();
       if (!cleanedCode) {
@@ -240,6 +285,38 @@ export const couponService = {
 
       if (coupon.usage_limit && coupon.used_count >= coupon.usage_limit) {
         return { valid: false, error: `Coupon "${coupon.code}" has reached its maximum usage limit.` };
+      }
+
+      // Check per-user usage limit (defaults to 1)
+      const maxUses = coupon.per_user_limit !== null && coupon.per_user_limit !== undefined
+        ? Number(coupon.per_user_limit)
+        : 1;
+
+      if (maxUses > 0) {
+        let currentUserId = userId;
+        if (!currentUserId) {
+          const { data: sessionData } = await supabase.auth.getSession().catch(() => ({ data: {} }));
+          currentUserId = sessionData?.session?.user?.id || null;
+        }
+
+        if (currentUserId) {
+          try {
+            const { count, error: usageErr } = await supabase
+              .from("coupon_usages")
+              .select("*", { count: "exact", head: true })
+              .eq("coupon_id", coupon.id)
+              .eq("user_id", String(currentUserId));
+
+            if (!usageErr && count !== null && count >= maxUses) {
+              return {
+                valid: false,
+                error: `You have already used coupon "${coupon.code}" the maximum allowed number of times (${maxUses} time${maxUses > 1 ? "s" : ""}).`,
+              };
+            }
+          } catch (usageErr) {
+            console.warn("Error checking per-user coupon usage:", usageErr);
+          }
+        }
       }
 
       // Check Category / Subcategory Restriction if specified
@@ -352,6 +429,62 @@ export const couponService = {
     } catch (err) {
       console.error("Coupon validation error:", err);
       return { valid: false, error: "Error checking coupon code." };
+    }
+  },
+
+  /**
+   * Record coupon usage when an order is placed
+   * @param {Object} params
+   * @param {number} [params.couponId]
+   * @param {string} params.couponCode
+   * @param {string} params.userId
+   * @param {string} [params.orderId]
+   */
+  async recordCouponUsage({ couponId, couponCode, userId, orderId }) {
+    try {
+      if (!couponId && !couponCode) return;
+
+      let targetCouponId = couponId ? Number(couponId) : null;
+      let targetCode = String(couponCode || "").toUpperCase();
+
+      // Look up coupon ID if only code provided
+      if (!targetCouponId && targetCode) {
+        const { data: c } = await supabase
+          .from("coupons")
+          .select("id, code, used_count")
+          .ilike("code", targetCode)
+          .maybeSingle();
+        if (c) {
+          targetCouponId = c.id;
+          targetCode = c.code;
+        }
+      }
+
+      // 1. Insert into coupon_usages table
+      await supabase.from("coupon_usages").insert({
+        coupon_id: targetCouponId,
+        coupon_code: targetCode,
+        user_id: userId ? String(userId) : null,
+        order_id: orderId ? String(orderId) : null,
+      });
+
+      // 2. Increment used_count on the coupon
+      if (targetCouponId) {
+        const { data: c } = await supabase
+          .from("coupons")
+          .select("used_count")
+          .eq("id", targetCouponId)
+          .maybeSingle();
+
+        if (c) {
+          await supabase
+            .from("coupons")
+            .update({ used_count: (c.used_count || 0) + 1 })
+            .eq("id", targetCouponId);
+        }
+      }
+    } catch (err) {
+      console.warn("Failed to record coupon usage:", err);
     }
   },
 };

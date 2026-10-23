@@ -221,6 +221,12 @@ CREATE POLICY "Users can manage their own addresses"
   USING (auth.uid() = user_id)
   WITH CHECK (auth.uid() = user_id);
 
+DROP POLICY IF EXISTS "Admins can manage all addresses" ON public.addresses;
+CREATE POLICY "Admins can manage all addresses"
+  ON public.addresses FOR ALL
+  USING (public.is_admin())
+  WITH CHECK (public.is_admin());
+
 
 -- =============================================================================
 -- 7. ORDERS TABLE (With iCarry Logistics Integration)
@@ -392,6 +398,7 @@ CREATE TABLE IF NOT EXISTS public.banners (
   id          bigint GENERATED ALWAYS AS (banner_id) STORED,
   image_url   text,
   mobile_url  text,
+  link_url    text,
   is_active   boolean DEFAULT true,
   created_at  timestamp with time zone DEFAULT timezone('utc'::text, now()) NOT NULL,
   updated_at  timestamp with time zone DEFAULT timezone('utc'::text, now())
@@ -479,6 +486,7 @@ CREATE TABLE IF NOT EXISTS public.coupons (
   category_id         bigint REFERENCES public.categories(category_id) ON DELETE SET NULL,
   subcategory_id      bigint REFERENCES public.subcategories(subcategory_id) ON DELETE SET NULL,
   usage_limit         integer,
+  per_user_limit      integer DEFAULT 1,
   used_count          integer NOT NULL DEFAULT 0,
   start_date          timestamp with time zone DEFAULT timezone('utc'::text, now()) NOT NULL,
   expiry_date         timestamp with time zone,

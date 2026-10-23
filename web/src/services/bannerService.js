@@ -62,10 +62,11 @@ export const bannerService = {
    * @param {Object} bannerData 
    * @returns {Promise<any>}
    */
-  async createBanner({ imageUrl, mobileUrl }) {
+  async createBanner({ imageUrl, mobileUrl, linkUrl }) {
     const record = {
       image_url: imageUrl || '',
       mobile_url: mobileUrl || null,
+      link_url: linkUrl ? linkUrl.trim() : null,
       created_at: new Date().toISOString(),
     };
 
@@ -91,13 +92,13 @@ export const bannerService = {
    * @param {Object} bannerData 
    * @returns {Promise<any>}
    */
-  async updateBanner(id, { imageUrl, mobileUrl }) {
+  async updateBanner(id, { imageUrl, mobileUrl, linkUrl }) {
     // 1. Fetch current banner to find old image URLs
     let existingBanner = null;
     try {
       const { data: bData } = await supabase
         .from('banners')
-        .select('image_url, mobile_url')
+        .select('image_url, mobile_url, link_url')
         .or(`banner_id.eq.${id},id.eq.${id}`)
         .maybeSingle();
       existingBanner = bData;
@@ -113,6 +114,9 @@ export const bannerService = {
     }
     if (mobileUrl !== undefined) {
       updates.mobile_url = mobileUrl || null;
+    }
+    if (linkUrl !== undefined) {
+      updates.link_url = linkUrl ? linkUrl.trim() : null;
     }
 
     // Try updating using 'banner_id' column first

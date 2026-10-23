@@ -269,123 +269,490 @@ function getSmoothSplinePath(points) {
 
 const TotalCustomersChart = ({ orders = [], customers = [], loading = false }) => {
   const [timeFilter, setTimeFilter] = useState("This Week");
+  const [isDropdownOpen, setIsDropdownOpen] = useState(false);
+  const [hoveredIdx, setHoveredIdx] = useState(null);
+  const dropdownRef = useRef(null);
 
-  const days = ["Mo", "TU", "WE", "TH", "FR", "SA", "SU"];
+  // Close dropdown on click outside
+  useEffect(() => {
+    const handleClickOutside = (e) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(e.target)) {
+        setIsDropdownOpen(false);
+      }
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
 
-  // Compute real day-of-week data from actual orders & customers
-  const { revPath, custPath, totalRev, highlightPt, growthRate } = useMemo(() => {
-    const revByDay = [0, 0, 0, 0, 0, 0, 0];
-    const custByDay = [0, 0, 0, 0, 0, 0, 0];
+  // Compute real data based on timeFilter
+  const chartData = useMemo(() => {
+    const now = new Date();
 
-    const sumRev = orders
-      .filter(o => !['cancelled', 'returned'].includes(o.status?.toLowerCase()))
-      .reduce((acc, o) => acc + Number(o.total_price || 0), 0);
+    const getDate = (item) => {
+      const val = item?.order_date || item?.created_at;
+      if (!val) return null;
+      const d = new Date(val);
+      return isNaN(d.getTime()) ? null : d;
+    };
 
-    // Group actual orders by day of week (Monday=0 ... Sunday=6)
-    orders.forEach(o => {
-      const d = o.order_date || o.created_at;
-      if (d) {
-        const dateObj = new Date(d);
-        const dayIdx = (dateObj.getDay() + 6) % 7;
-        revByDay[dayIdx] += Number(o.total_price || 0);
+    const validOrders = orders.filter((o) => {
+      const s = (o.status || "").toLowerCase().trim();
+      return !["cancelled", "returned"].includes(s);
+    });
+
+    let buckets = [];
+    let periodRev = 0;
+    let prevPeriodRev = 0;
+    let periodCust = 0;
+    let prevPeriodCust = 0;
+    let periodLabel = "vs. Previous Period";
+
+    if (timeFilter === "Today") {
+      periodLabel = "vs. Yesterday";
+      const startToday = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 0, 0, 0, 0);
+      const endToday = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59, 999);
+      const startYesterday = new Date(startToday);
+      startYesterday.setDate(startYesterday.getDate() - 1);
+      const endYesterday = new Date(endToday);
+      endYesterday.setDate(endYesterday.getDate() - 1);
+
+      const labels = ["12 AM", "4 AM", "8 AM", "12 PM", "4 PM", "8 PM", "11 PM"];
+      const hourRanges = [4, 8, 12, 16, 20, 23, 24];
+      buckets = labels.map((l) => ({ label: l, rev: 0, cust: 0, orders: 0 }));
+
+      validOrders.forEach((o) => {
+        const d = getDate(o);
+        if (!d) return;
+        const val = Number(o.total_price || 0);
+        if (d >= startToday && d <= endToday) {
+          periodRev += val;
+          const h = d.getHours();
+          const bIdx = hourRanges.findIndex((limit) => h < limit);
+          const safeIdx = bIdx >= 0 ? bIdx : buckets.length - 1;
+          buckets[safeIdx].rev += val;
+          buckets[safeIdx].orders += 1;
+        } else if (d >= startYesterday && d <= endYesterday) {
+          prevPeriodRev += val;
+        }
+      });
+
+      customers.forEach((c) => {
+        const d = getDate(c);
+        if (!d) return;
+        if (d >= startToday && d <= endToday) {
+          periodCust += 1;
+          const h = d.getHours();
+          const bIdx = hourRanges.findIndex((limit) => h < limit);
+          const safeIdx = bIdx >= 0 ? bIdx : buckets.length - 1;
+          buckets[safeIdx].cust += 1;
+        } else if (d >= startYesterday && d <= endYesterday) {
+          prevPeriodCust += 1;
+        }
+      });
+    } else if (timeFilter === "This Week") {
+      periodLabel = "vs. Last Week";
+      const currentDay = (now.getDay() + 6) % 7; // Monday = 0 ... Sunday = 6
+      const startThisWeek = new Date(now.getFullYear(), now.getMonth(), now.getDate() - currentDay, 0, 0, 0, 0);
+      const endThisWeek = new Date(now.getFullYear(), now.getMonth(), now.getDate() - currentDay + 6, 23, 59, 59, 999);
+      const startLastWeek = new Date(startThisWeek);
+      startLastWeek.setDate(startLastWeek.getDate() - 7);
+      const endLastWeek = new Date(endThisWeek);
+      endLastWeek.setDate(endLastWeek.getDate() - 7);
+
+      const labels = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
+      buckets = labels.map((l) => ({ label: l, rev: 0, cust: 0, orders: 0 }));
+
+      validOrders.forEach((o) => {
+        const d = getDate(o);
+        if (!d) return;
+        const val = Number(o.total_price || 0);
+        if (d >= startThisWeek && d <= endThisWeek) {
+          periodRev += val;
+          const dayIdx = (d.getDay() + 6) % 7;
+          buckets[dayIdx].rev += val;
+          buckets[dayIdx].orders += 1;
+        } else if (d >= startLastWeek && d <= endLastWeek) {
+          prevPeriodRev += val;
+        }
+      });
+
+      customers.forEach((c) => {
+        const d = getDate(c);
+        if (!d) return;
+        if (d >= startThisWeek && d <= endThisWeek) {
+          periodCust += 1;
+          const dayIdx = (d.getDay() + 6) % 7;
+          buckets[dayIdx].cust += 1;
+        } else if (d >= startLastWeek && d <= endLastWeek) {
+          prevPeriodCust += 1;
+        }
+      });
+    } else if (timeFilter === "Last 7 Days") {
+      periodLabel = "vs. Prev 7 Days";
+      const daysList = [];
+      for (let i = 6; i >= 0; i--) {
+        const d = new Date(now.getFullYear(), now.getMonth(), now.getDate() - i, 0, 0, 0, 0);
+        const dayLabel = i === 0 ? "Today" : d.toLocaleDateString("en-IN", { day: "numeric", month: "short" });
+        daysList.push({ date: d, label: dayLabel });
+      }
+
+      buckets = daysList.map((d) => ({ label: d.label, rev: 0, cust: 0, orders: 0 }));
+
+      const start7 = new Date(daysList[0].date);
+      const end7 = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59, 999);
+      const startPrev7 = new Date(start7);
+      startPrev7.setDate(startPrev7.getDate() - 7);
+      const endPrev7 = new Date(start7);
+      endPrev7.setMilliseconds(-1);
+
+      validOrders.forEach((o) => {
+        const d = getDate(o);
+        if (!d) return;
+        const val = Number(o.total_price || 0);
+        if (d >= start7 && d <= end7) {
+          periodRev += val;
+          const diffDays = Math.floor((d.getTime() - start7.getTime()) / (1000 * 60 * 60 * 24));
+          const idx = Math.min(Math.max(diffDays, 0), buckets.length - 1);
+          buckets[idx].rev += val;
+          buckets[idx].orders += 1;
+        } else if (d >= startPrev7 && d <= endPrev7) {
+          prevPeriodRev += val;
+        }
+      });
+
+      customers.forEach((c) => {
+        const d = getDate(c);
+        if (!d) return;
+        if (d >= start7 && d <= end7) {
+          periodCust += 1;
+          const diffDays = Math.floor((d.getTime() - start7.getTime()) / (1000 * 60 * 60 * 24));
+          const idx = Math.min(Math.max(diffDays, 0), buckets.length - 1);
+          buckets[idx].cust += 1;
+        } else if (d >= startPrev7 && d <= endPrev7) {
+          prevPeriodCust += 1;
+        }
+      });
+    } else if (timeFilter === "This Month") {
+      periodLabel = "vs. Last Month";
+      const startMonth = new Date(now.getFullYear(), now.getMonth(), 1, 0, 0, 0, 0);
+      const endMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59, 999);
+      const startLastMonth = new Date(now.getFullYear(), now.getMonth() - 1, 1, 0, 0, 0, 0);
+      const endLastMonth = new Date(now.getFullYear(), now.getMonth(), 0, 23, 59, 59, 999);
+
+      const labels = ["1-7", "8-14", "15-21", "22-28", "29+"];
+      buckets = labels.map((l) => ({ label: l, rev: 0, cust: 0, orders: 0 }));
+
+      validOrders.forEach((o) => {
+        const d = getDate(o);
+        if (!d) return;
+        const val = Number(o.total_price || 0);
+        if (d >= startMonth && d <= endMonth) {
+          periodRev += val;
+          const dayNum = d.getDate();
+          const bIdx = Math.min(Math.floor((dayNum - 1) / 7), 4);
+          buckets[bIdx].rev += val;
+          buckets[bIdx].orders += 1;
+        } else if (d >= startLastMonth && d <= endLastMonth) {
+          prevPeriodRev += val;
+        }
+      });
+
+      customers.forEach((c) => {
+        const d = getDate(c);
+        if (!d) return;
+        if (d >= startMonth && d <= endMonth) {
+          periodCust += 1;
+          const dayNum = d.getDate();
+          const bIdx = Math.min(Math.floor((dayNum - 1) / 7), 4);
+          buckets[bIdx].cust += 1;
+        } else if (d >= startLastMonth && d <= endLastMonth) {
+          prevPeriodCust += 1;
+        }
+      });
+    } else if (timeFilter === "This Year") {
+      periodLabel = "vs. Last Year";
+      const startYear = new Date(now.getFullYear(), 0, 1, 0, 0, 0, 0);
+      const endYear = new Date(now.getFullYear(), 11, 31, 23, 59, 59, 999);
+      const startLastYear = new Date(now.getFullYear() - 1, 0, 1, 0, 0, 0, 0);
+      const endLastYear = new Date(now.getFullYear() - 1, 11, 31, 23, 59, 59, 999);
+
+      const labels = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+      buckets = labels.map((l) => ({ label: l, rev: 0, cust: 0, orders: 0 }));
+
+      validOrders.forEach((o) => {
+        const d = getDate(o);
+        if (!d) return;
+        const val = Number(o.total_price || 0);
+        if (d >= startYear && d <= endYear) {
+          periodRev += val;
+          const m = d.getMonth();
+          buckets[m].rev += val;
+          buckets[m].orders += 1;
+        } else if (d >= startLastYear && d <= endLastYear) {
+          prevPeriodRev += val;
+        }
+      });
+
+      customers.forEach((c) => {
+        const d = getDate(c);
+        if (!d) return;
+        if (d >= startYear && d <= endYear) {
+          periodCust += 1;
+          const m = d.getMonth();
+          buckets[m].cust += 1;
+        } else if (d >= startLastYear && d <= endLastYear) {
+          prevPeriodCust += 1;
+        }
+      });
+    } else {
+      // "All Time"
+      periodLabel = "All-Time Overview";
+      const months = [];
+      for (let i = 6; i >= 0; i--) {
+        const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+        months.push({
+          year: d.getFullYear(),
+          month: d.getMonth(),
+          label: d.toLocaleDateString("en-IN", { month: "short" })
+        });
+      }
+      buckets = months.map((m) => ({ label: m.label, rev: 0, cust: 0, orders: 0 }));
+
+      validOrders.forEach((o) => {
+        const d = getDate(o);
+        if (!d) return;
+        const val = Number(o.total_price || 0);
+        periodRev += val;
+        const mIdx = months.findIndex((m) => m.year === d.getFullYear() && m.month === d.getMonth());
+        if (mIdx >= 0) {
+          buckets[mIdx].rev += val;
+          buckets[mIdx].orders += 1;
+        }
+      });
+
+      customers.forEach((c) => {
+        const d = getDate(c);
+        if (!d) return;
+        periodCust += 1;
+        const mIdx = months.findIndex((m) => m.year === d.getFullYear() && m.month === d.getMonth());
+        if (mIdx >= 0) {
+          buckets[mIdx].cust += 1;
+        }
+      });
+    }
+
+    // Growth calculation
+    let growthRate = "0%";
+    let isGrowthPositive = true;
+    if (prevPeriodRev > 0) {
+      const pct = ((periodRev - prevPeriodRev) / prevPeriodRev) * 100;
+      isGrowthPositive = pct >= 0;
+      growthRate = `${Math.abs(pct).toFixed(1)}%`;
+    } else if (periodRev > 0) {
+      growthRate = "100%";
+      isGrowthPositive = true;
+    }
+
+    // Dynamic scale ceiling calculations
+    const rawMaxRev = Math.max(...buckets.map((b) => b.rev), 0);
+    const rawMaxCust = Math.max(...buckets.map((b) => b.cust), 0);
+
+    const ceilRev = rawMaxRev <= 0
+      ? 1000
+      : rawMaxRev <= 2000
+        ? Math.ceil(rawMaxRev / 500) * 500
+        : rawMaxRev <= 10000
+          ? Math.ceil(rawMaxRev / 2000) * 2000
+          : Math.ceil(rawMaxRev / 5000) * 5000;
+
+    const ceilCust = rawMaxCust <= 0
+      ? 10
+      : Math.max(Math.ceil(rawMaxCust * 1.25), 4);
+
+    const padL = 50;
+    const padR = 40;
+    const padT = 30;
+    const padB = 30;
+    const chartW = 520 - padL - padR; // 430
+    const chartH = 180 - padT - padB; // 120
+
+    const ptsRev = buckets.map((b, idx) => {
+      const ratio = ceilRev > 0 ? b.rev / ceilRev : 0;
+      const x = padL + (idx / Math.max(buckets.length - 1, 1)) * chartW;
+      const y = padT + chartH - ratio * chartH;
+      return { x, y: Number.isFinite(y) ? y : padT + chartH, ...b };
+    });
+
+    const ptsCust = buckets.map((b, idx) => {
+      const ratio = ceilCust > 0 ? b.cust / ceilCust : 0;
+      const x = padL + (idx / Math.max(buckets.length - 1, 1)) * chartW;
+      const y = padT + chartH - ratio * chartH;
+      return { x, y: Number.isFinite(y) ? y : padT + chartH, ...b };
+    });
+
+    let bestIdx = 0;
+    let highVal = -1;
+    buckets.forEach((b, idx) => {
+      if (b.rev > highVal) {
+        highVal = b.rev;
+        bestIdx = idx;
       }
     });
 
-    // Group customers by creation day
-    customers.forEach(c => {
-      const d = c.created_at;
-      if (d) {
-        const dateObj = new Date(d);
-        const dayIdx = (dateObj.getDay() + 6) % 7;
-        custByDay[dayIdx] += 1;
-      }
-    });
+    const highlightPt = ptsRev[bestIdx] || ptsRev[0];
+    const revPath = getSmoothSplinePath(ptsRev);
+    const custPath = getSmoothSplinePath(ptsCust);
 
-    const maxRev = Math.max(...revByDay, 100);
-    const maxCust = Math.max(...custByDay, 10);
-
-    // Map into SVG Y-coordinate space (Y=30 to Y=150)
-    const ptsRev = days.map((_, idx) => {
-      const ratio = revByDay[idx] / maxRev;
-      const y = 145 - ratio * 105;
-      return { x: 45 + idx * 72, y: Number.isFinite(y) ? y : 140 };
-    });
-
-    const ptsCust = days.map((_, idx) => {
-      const ratio = custByDay[idx] / maxCust;
-      const y = 145 - ratio * 105;
-      return { x: 45 + idx * 72, y: Number.isFinite(y) ? y : 140 };
-    });
-
-    // Find highest revenue point to highlight with the active dot
-    let bestIdx = 2; // default Wednesday
-    let high = -1;
-    revByDay.forEach((val, i) => {
-      if (val > high) {
-        high = val;
-        bestIdx = i;
-      }
-    });
+    const formatAxisCurrency = (val) => {
+      if (val >= 100000) return `₹${(val / 100000).toFixed(1)}L`;
+      if (val >= 1000) return `₹${(val / 1000).toFixed(0)}K`;
+      return `₹${Math.round(val)}`;
+    };
 
     return {
-      revPath: getSmoothSplinePath(ptsRev),
-      custPath: getSmoothSplinePath(ptsCust),
-      totalRev: sumRev,
-      highlightPt: ptsRev[bestIdx] || ptsRev[2],
-      growthRate: orders.length > 0 ? "37.8%" : "0%"
+      buckets,
+      ptsRev,
+      ptsCust,
+      revPath,
+      custPath,
+      totalRev: periodRev,
+      totalCust: periodCust,
+      growthRate,
+      isGrowthPositive,
+      periodLabel,
+      highlightPt,
+      ceilRev,
+      ceilCust,
+      formatAxisCurrency,
+      padL,
+      padR,
+      chartW,
     };
-  }, [orders, customers]);
+  }, [orders, customers, timeFilter]);
+
+  const activePoint = hoveredIdx !== null ? chartData.ptsRev[hoveredIdx] : chartData.highlightPt;
+  const activeCustPoint = hoveredIdx !== null ? chartData.ptsCust[hoveredIdx] : null;
 
   return (
     <div className="dc__card">
       <div className="dc__card-header">
-        <h2 className="dc__card-title">Total customers</h2>
-        <div className="dc__time-pill">
-          <span>{timeFilter}</span>
-          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-            <polyline points="6 9 12 15 18 9" />
-          </svg>
+        <h2 className="dc__card-title">Revenue & Customers</h2>
+
+        {/* Real Working Time Filter Dropdown */}
+        <div className="dc__time-filter-wrap" ref={dropdownRef}>
+          <button
+            type="button"
+            className="dc__time-pill"
+            onClick={() => setIsDropdownOpen(!isDropdownOpen)}
+            aria-expanded={isDropdownOpen}
+          >
+            <span>{timeFilter}</span>
+            <svg
+              width="12"
+              height="12"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2.5"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              style={{
+                transform: isDropdownOpen ? "rotate(180deg)" : "none",
+                transition: "transform 0.15s ease",
+              }}
+            >
+              <polyline points="6 9 12 15 18 9" />
+            </svg>
+          </button>
+
+          {isDropdownOpen && (
+            <div className="dc__time-dropdown-menu">
+              {["Today", "This Week", "Last 7 Days", "This Month", "This Year", "All Time"].map((opt) => (
+                <button
+                  key={opt}
+                  type="button"
+                  className={`dc__time-dropdown-item ${timeFilter === opt ? "dc__time-dropdown-item--active" : ""}`}
+                  onClick={() => {
+                    setTimeFilter(opt);
+                    setIsDropdownOpen(false);
+                    setHoveredIdx(null);
+                  }}
+                >
+                  {opt}
+                </button>
+              ))}
+            </div>
+          )}
         </div>
       </div>
 
       <div className="dc__metric-row">
-        <span className="dc__metric-value">₹{totalRev.toLocaleString("en-IN")}</span>
+        <span className="dc__metric-value">₹{chartData.totalRev.toLocaleString("en-IN")}</span>
         <div className="dc__metric-trend">
-          <span className="dc__trend-up">↑ {growthRate}</span>
-          <span className="dc__trend-period">vs. Yesterday</span>
+          <span className={chartData.isGrowthPositive ? "dc__trend-up" : "dc__trend-down"}>
+            {chartData.isGrowthPositive ? "↑" : "↓"} {chartData.growthRate}
+          </span>
+          <span className="dc__trend-period">{chartData.periodLabel}</span>
         </div>
       </div>
 
-      {/* Responsive SVG Chart */}
+      {/* Responsive SVG Chart with Real Dynamic Axes and Interactive Tooltip */}
       <div style={{ width: "100%", position: "relative" }}>
+        {/* Floating Tooltip */}
+        {hoveredIdx !== null && activePoint && (
+          <div
+            className="dc__chart-tooltip"
+            style={{
+              left: `${(activePoint.x / 520) * 100}%`,
+              top: `${(Math.min(activePoint.y, activeCustPoint?.y || activePoint.y) / 180) * 100}%`,
+            }}
+          >
+            <div className="dc__chart-tooltip-title">{activePoint.label}</div>
+            <div className="dc__chart-tooltip-row">
+              <span style={{ color: "#93c5fd" }}>● Revenue:</span>
+              <strong>₹{activePoint.rev.toLocaleString("en-IN")}</strong>
+            </div>
+            <div className="dc__chart-tooltip-row">
+              <span style={{ color: "#fda4af" }}>● Customers:</span>
+              <strong>+{activePoint.cust}</strong>
+            </div>
+            {activePoint.orders > 0 && (
+              <div className="dc__chart-tooltip-row">
+                <span style={{ color: "#cbd5e1" }}>Orders:</span>
+                <span>{activePoint.orders}</span>
+              </div>
+            )}
+          </div>
+        )}
+
         <svg viewBox="0 0 520 180" width="100%" height="auto" style={{ overflow: "visible" }}>
           {/* Horizontal Dashed Grid lines */}
           <g stroke="#E2E8F0" strokeDasharray="3 3">
-            <line x1="45" y1="30" x2="480" y2="30" />
-            <line x1="45" y1="70" x2="480" y2="70" />
-            <line x1="45" y1="110" x2="480" y2="110" />
-            <line x1="45" y1="150" x2="480" y2="150" />
+            <line x1="50" y1="30" x2="480" y2="30" />
+            <line x1="50" y1="70" x2="480" y2="70" />
+            <line x1="50" y1="110" x2="480" y2="110" />
+            <line x1="50" y1="150" x2="480" y2="150" />
           </g>
 
-          {/* Left Y-axis labels */}
-          <g fontSize="10.5" fill="#94A3B8" textAnchor="end">
-            <text x="36" y="34">₹20K</text>
-            <text x="36" y="74">₹15K</text>
-            <text x="36" y="114">₹10K</text>
-            <text x="36" y="154">₹5K</text>
+          {/* Dynamic Left Y-axis labels (Revenue) */}
+          <g fontSize="10" fill="#94A3B8" textAnchor="end">
+            <text x="42" y="34">{chartData.formatAxisCurrency(chartData.ceilRev)}</text>
+            <text x="42" y="74">{chartData.formatAxisCurrency(chartData.ceilRev * (2 / 3))}</text>
+            <text x="42" y="114">{chartData.formatAxisCurrency(chartData.ceilRev * (1 / 3))}</text>
+            <text x="42" y="154">₹0</text>
           </g>
 
-          {/* Right Y-axis labels */}
-          <g fontSize="10.5" fill="#94A3B8" textAnchor="start">
-            <text x="490" y="34">150</text>
-            <text x="490" y="74">60</text>
-            <text x="490" y="114">30</text>
-            <text x="490" y="154">0</text>
+          {/* Dynamic Right Y-axis labels (Customers) */}
+          <g fontSize="10" fill="#94A3B8" textAnchor="start">
+            <text x="488" y="34">{Math.round(chartData.ceilCust)}</text>
+            <text x="488" y="74">{Math.round(chartData.ceilCust * (2 / 3))}</text>
+            <text x="488" y="114">{Math.round(chartData.ceilCust * (1 / 3))}</text>
+            <text x="488" y="154">0</text>
           </g>
 
           {/* Curve 1: Red/Pink Dotted Curve (Customer) */}
           <path
-            d={custPath}
+            d={chartData.custPath}
             fill="none"
             stroke="#FB7185"
             strokeWidth="2.5"
@@ -395,37 +762,66 @@ const TotalCustomersChart = ({ orders = [], customers = [], loading = false }) =
 
           {/* Curve 2: Solid Navy Blue Curve (Revenue) */}
           <path
-            d={revPath}
+            d={chartData.revPath}
             fill="none"
             stroke="#0A2582"
             strokeWidth="3"
             strokeLinecap="round"
           />
 
-          {/* Highlight Dot on highest revenue day */}
-          <circle cx={highlightPt.x} cy={highlightPt.y} r="8" fill="#0A2582" opacity="0.18" />
-          <circle cx={highlightPt.x} cy={highlightPt.y} r="4.5" fill="#0A2582" stroke="#ffffff" strokeWidth="2" />
+          {/* Highlight Dot on active/hovered point */}
+          {activePoint && (
+            <>
+              <circle cx={activePoint.x} cy={activePoint.y} r="8" fill="#0A2582" opacity="0.18" />
+              <circle cx={activePoint.x} cy={activePoint.y} r="4.5" fill="#0A2582" stroke="#ffffff" strokeWidth="2" />
+            </>
+          )}
 
-          {/* X-axis Day Labels */}
+          {activeCustPoint && (
+            <>
+              <circle cx={activeCustPoint.x} cy={activeCustPoint.y} r="7" fill="#FB7185" opacity="0.2" />
+              <circle cx={activeCustPoint.x} cy={activeCustPoint.y} r="3.5" fill="#FB7185" stroke="#ffffff" strokeWidth="1.5" />
+            </>
+          )}
+
+          {/* X-axis Bucket Labels */}
           <g fontSize="11" fill="#64748B" textAnchor="middle">
-            {days.map((day, idx) => (
-              <text key={day} x={45 + idx * 72} y="174">
-                {day}
+            {chartData.ptsRev.map((pt, idx) => (
+              <text key={idx} x={pt.x} y="172">
+                {pt.label}
               </text>
             ))}
           </g>
+
+          {/* Transparent Hover detection columns */}
+          {chartData.ptsRev.map((pt, idx) => {
+            const colWidth = chartData.chartW / Math.max(chartData.ptsRev.length, 1);
+            return (
+              <rect
+                key={idx}
+                x={pt.x - colWidth / 2}
+                y="20"
+                width={colWidth}
+                height="140"
+                fill="transparent"
+                style={{ cursor: "pointer" }}
+                onMouseEnter={() => setHoveredIdx(idx)}
+                onMouseLeave={() => setHoveredIdx(null)}
+              />
+            );
+          })}
         </svg>
       </div>
 
-      {/* Chart Legend */}
+      {/* Chart Legend with Live Counts */}
       <div className="dc__chart-legend-box">
         <span className="dc__chart-legend-item">
           <span className="dc__legend-line-solid" />
-          Revenue
+          Revenue ({chartData.formatAxisCurrency(chartData.totalRev)})
         </span>
         <span className="dc__chart-legend-item">
           <span className="dc__legend-line-dotted" />
-          Customer
+          Customers (+{chartData.totalCust})
         </span>
       </div>
     </div>

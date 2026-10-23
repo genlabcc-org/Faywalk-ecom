@@ -252,6 +252,7 @@ const OrderDetails = ({ order, onBack, onInvoicePrinted }) => {
   useEffect(() => {
     if (order) {
       setCurrentOrder(order);
+      setAddress(getExistingOrderAddress(order));
       if (order.admin_notes !== undefined) {
         setAdminNote(order.admin_notes || "");
       }

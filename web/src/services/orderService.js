@@ -76,13 +76,17 @@ export const orderService = {
         .maybeSingle();
       if (!error && data) return data;
 
-      // 2. Try matching by id (uuid or numeric)
-      const { data: dataById, error: errById } = await supabase
-        .from('addresses')
-        .select('*')
-        .eq('id', addressId)
-        .maybeSingle();
-      if (!errById && dataById) return dataById;
+      // 2. Try matching by id (uuid or numeric) if table has id column
+      try {
+        const { data: dataById, error: errById } = await supabase
+          .from('addresses')
+          .select('*')
+          .eq('id', addressId)
+          .maybeSingle();
+        if (!errById && dataById) return dataById;
+      } catch (_) {
+        // 'id' column may not exist in all schemas (table uses address_id)
+      }
     } catch (err) {
       console.warn('orderService.getAddressById error:', err);
     }

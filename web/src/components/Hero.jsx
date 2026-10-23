@@ -56,15 +56,17 @@ export default function Hero() {
           const img = b.image_url || b.image;
           if (!img) return null;
 
+          const targetUrl = b.link_url || b.product_link || b.linkUrl;
+
           return (
-            <SwiperSlide key={b.banner_id ?? i}>
+            <SwiperSlide key={b.banner_id ?? b.id ?? i}>
               <div
                 className="hero-image-wrapper"
-                style={{ cursor: b.link_url ? "pointer" : "default" }}
+                style={{ cursor: targetUrl ? "pointer" : "default" }}
                 onClick={() => {
-                  if (!b.link_url) return;
-                  if (b.link_url.startsWith("/")) navigate(b.link_url);
-                  else window.open(b.link_url, "_blank", "noopener");
+                  if (!targetUrl) return;
+                  if (targetUrl.startsWith("/")) navigate(targetUrl);
+                  else window.open(targetUrl, "_blank", "noopener");
                 }}
               >
                 <picture style={{ display: "block", width: "100%", height: "100%" }}>

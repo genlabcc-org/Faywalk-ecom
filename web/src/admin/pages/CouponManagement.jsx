@@ -14,6 +14,7 @@ const EMPTY_COUPON_FORM = {
   min_order_amount: "",
   max_discount_amount: "",
   usage_limit: "",
+  per_user_limit: "1",
   start_date: new Date().toISOString().split("T")[0],
   expiry_date: "",
   is_active: true,
@@ -105,6 +106,7 @@ export default function CouponManagement() {
       min_order_amount: coupon.min_order_amount || "",
       max_discount_amount: coupon.max_discount_amount || "",
       usage_limit: coupon.usage_limit || "",
+      per_user_limit: coupon.per_user_limit !== null && coupon.per_user_limit !== undefined ? String(coupon.per_user_limit) : "1",
       start_date: coupon.start_date ? coupon.start_date.split("T")[0] : "",
       expiry_date: coupon.expiry_date ? coupon.expiry_date.split("T")[0] : "",
       is_active: coupon.is_active,
@@ -495,6 +497,11 @@ export default function CouponManagement() {
                           {coupon.used_count || 0}
                           {coupon.usage_limit ? ` / ${coupon.usage_limit}` : " used"}
                         </span>
+                        {coupon.per_user_limit && (
+                          <div style={{ color: "#0A2582", fontSize: "11.5px", marginTop: "2px", fontWeight: 500 }}>
+                            {coupon.per_user_limit}x per user
+                          </div>
+                        )}
                         {coupon.usage_limit && coupon.used_count >= coupon.usage_limit && (
                           <div style={{ color: "#dc2626", fontSize: "12px", marginTop: "2px" }}>
                             Limit reached
@@ -813,7 +820,7 @@ export default function CouponManagement() {
                 ) : (
                   <div className="cpm-field-group">
                     <label className="cpm-field-label">
-                      <span>Usage Limit</span>
+                      <span>Total Usage Limit</span>
                       <span className="cpm-field-label-sub">Optional</span>
                     </label>
                     <input
@@ -830,12 +837,12 @@ export default function CouponManagement() {
                 )}
               </div>
 
-              {/* Row 5: Usage Limit (if percentage) & Expiry Date */}
+              {/* Row 5: Total Usage Limit (if percentage) & Usage Per User */}
               <div className="cpm-form-row">
-                {formData.discount_type === "percentage" && (
+                {formData.discount_type === "percentage" ? (
                   <div className="cpm-field-group">
                     <label className="cpm-field-label">
-                      <span>Usage Limit</span>
+                      <span>Total Usage Limit</span>
                       <span className="cpm-field-label-sub">Optional</span>
                     </label>
                     <input
@@ -849,23 +856,62 @@ export default function CouponManagement() {
                       }
                     />
                   </div>
-                )}
+                ) : null}
 
                 <div className="cpm-field-group">
                   <label className="cpm-field-label">
-                    <span>Expiry Date</span>
-                    <span className="cpm-field-label-sub">Optional</span>
+                    <span>Usage Per User</span>
+                    <span className="cpm-field-label-sub">Default: 1</span>
                   </label>
                   <input
-                    type="date"
+                    type="number"
+                    min="1"
                     className="cpm-input"
-                    value={formData.expiry_date}
+                    placeholder="1"
+                    value={formData.per_user_limit}
                     onChange={(e) =>
-                      setFormData((prev) => ({ ...prev, expiry_date: e.target.value }))
+                      setFormData((prev) => ({ ...prev, per_user_limit: e.target.value }))
                     }
                   />
                 </div>
+
+                {formData.discount_type !== "percentage" && (
+                  <div className="cpm-field-group">
+                    <label className="cpm-field-label">
+                      <span>Expiry Date</span>
+                      <span className="cpm-field-label-sub">Optional</span>
+                    </label>
+                    <input
+                      type="date"
+                      className="cpm-input"
+                      value={formData.expiry_date}
+                      onChange={(e) =>
+                        setFormData((prev) => ({ ...prev, expiry_date: e.target.value }))
+                      }
+                    />
+                  </div>
+                )}
               </div>
+
+              {/* Row 6: Expiry Date (if percentage) */}
+              {formData.discount_type === "percentage" && (
+                <div className="cpm-form-row">
+                  <div className="cpm-field-group">
+                    <label className="cpm-field-label">
+                      <span>Expiry Date</span>
+                      <span className="cpm-field-label-sub">Optional</span>
+                    </label>
+                    <input
+                      type="date"
+                      className="cpm-input"
+                      value={formData.expiry_date}
+                      onChange={(e) =>
+                        setFormData((prev) => ({ ...prev, expiry_date: e.target.value }))
+                      }
+                    />
+                  </div>
+                </div>
+              )}
 
               {/* Active Toggle */}
               <div className="cpm-field-group" style={{ marginTop: "2px" }}>

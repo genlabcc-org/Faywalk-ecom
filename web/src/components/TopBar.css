@@ -7,6 +7,13 @@
   box-sizing: border-box;
   text-align: center;
   user-select: none;
+  position: relative;
+  z-index: 40;
+  overflow: hidden;
+}
+
+.topbar--marquee {
+  padding: 8px 0;
 }
 
 .topbar-content {
@@ -15,6 +22,45 @@
   justify-content: center;
   max-width: 1540px;
   margin: 0 auto;
+  position: relative;
+  min-height: 20px;
+}
+
+/* ── Continuous Marquee Ticker ── */
+.topbar-marquee-wrapper {
+  display: flex;
+  width: 100%;
+  overflow: hidden;
+}
+
+.topbar-marquee-track {
+  display: flex;
+  align-items: center;
+  white-space: nowrap;
+  width: max-content;
+  animation: topbarMarqueeScroll 28s linear infinite;
+  will-change: transform;
+}
+
+/* Pause running animation on hover so user can easily read and click */
+.topbar:hover .topbar-marquee-track {
+  animation-play-state: paused;
+}
+
+@keyframes topbarMarqueeScroll {
+  0% {
+    transform: translate3d(0, 0, 0);
+  }
+  100% {
+    transform: translate3d(-50%, 0, 0);
+  }
+}
+
+.topbar-marquee-item {
+  display: inline-flex;
+  align-items: center;
+  flex-shrink: 0;
+  padding: 0 45px;
 }
 
 .topbar-text {
@@ -24,6 +70,7 @@
   letter-spacing: 0.25px;
   color: #ffffff;
   line-height: 1.4;
+  white-space: nowrap;
 }
 
 .topbar-link {
@@ -45,7 +92,20 @@
     padding: 7px 12px;
   }
 
+  .topbar--marquee {
+    padding: 7px 0;
+  }
+
+  .topbar-marquee-item {
+    padding: 0 28px;
+  }
+
   .topbar-text {
     font-size: 12px;
+    letter-spacing: 0.1px;
+  }
+
+  .topbar-marquee-track {
+    animation-duration: 22s;
   }
 }
