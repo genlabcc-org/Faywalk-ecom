@@ -1649,7 +1649,7 @@ const DashboardHome = ({ orders = [], customers = [], products = [], categories 
           value={loading ? "—" : stats.revenue}
           subtext={
             stats.cancelledRevenue > 0
-              ? `Total Sale: ${stats.grossRevenue}`
+              ? `Total Sales: ${stats.grossRevenue}`
               : undefined
           }
           showTrend={false}
@@ -2220,7 +2220,7 @@ const Dashboard = () => {
     try {
       sessionStorage.removeItem("faywalk_variant_draft_new");
       sessionStorage.removeItem("faywalk_product_draft_new");
-    } catch {}
+    } catch { }
     navigate("/admin/products/add");
   };
 
@@ -2332,7 +2332,7 @@ const Dashboard = () => {
       })
     );
 
-    useStore.getState().fetchCategories?.(true)?.catch(() => {});
+    useStore.getState().fetchCategories?.(true)?.catch(() => { });
   };
 
   const handleSaveProductUnified = ({ product, variants }) => {
@@ -2568,11 +2568,10 @@ const Dashboard = () => {
             <button
               className="db__action-icon-btn notification-btn"
               onClick={() => setNotificationOpen((prev) => !prev)}
-              aria-label={`Notifications${
-                unprintedOrdersCount
+              aria-label={`Notifications${unprintedOrdersCount
                   ? `, ${unprintedOrdersCount} orders pending invoice print`
                   : ""
-              }`}
+                }`}
             >
               <svg
                 width="18"

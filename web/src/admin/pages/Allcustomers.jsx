@@ -17,8 +17,8 @@ const formatOrdinalJoinedDate = (dateVal) => {
   const day = d.getDate();
   const suffix =
     day % 10 === 1 && day !== 11 ? "st" :
-    day % 10 === 2 && day !== 12 ? "nd" :
-    day % 10 === 3 && day !== 13 ? "rd" : "th";
+      day % 10 === 2 && day !== 12 ? "nd" :
+        day % 10 === 3 && day !== 13 ? "rd" : "th";
   const month = d.toLocaleDateString("en-US", { month: "short" });
   const year = d.getFullYear();
   return `${day}${suffix} ${month},${year}`;
@@ -120,7 +120,7 @@ const AddCustomerModal = ({ onClose, onAdd }) => {
 
   const validate = () => {
     const e = {};
-    if (!form.name.trim())  e.name  = "Name is required";
+    if (!form.name.trim()) e.name = "Name is required";
     if (!form.email.trim()) e.email = "Email is required";
     if (!form.phone.trim()) e.phone = "Phone is required";
     return e;
@@ -138,13 +138,13 @@ const AddCustomerModal = ({ onClose, onAdd }) => {
       setIsSubmitting(true);
       await onAdd({
         id: Date.now(),
-        name:       form.name.trim(),
-        email:      form.email.trim(),
-        phone:      form.phone.trim(),
-        orders:     parseInt(form.orders, 10)     || 0,
-        totalSpent: parseFloat(form.totalSpent)   || 0,
-        joined:     form.joined.trim() || new Date().toISOString(),
-        status:     form.status,
+        name: form.name.trim(),
+        email: form.email.trim(),
+        phone: form.phone.trim(),
+        orders: parseInt(form.orders, 10) || 0,
+        totalSpent: parseFloat(form.totalSpent) || 0,
+        joined: form.joined.trim() || new Date().toISOString(),
+        status: form.status,
       });
       onClose();
     } finally {
@@ -225,11 +225,11 @@ const AddCustomerModal = ({ onClose, onAdd }) => {
 
 /* ── Main Component ────────────────────────────────────────────── */
 const AllCustomers = ({ customers = [], loading, onViewDetail }) => {
-  const [selectedIds, setSelectedIds]   = useState([]);
+  const [selectedIds, setSelectedIds] = useState([]);
   const [amountFilter, setAmountFilter] = useState("All Amounts");
-  const [searchQuery, setSearchQuery]   = useState("");
-  const [currentPage, setCurrentPage]   = useState(1);
-  const [showModal, setShowModal]       = useState(false);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [currentPage, setCurrentPage] = useState(1);
+  const [showModal, setShowModal] = useState(false);
   const [localCustomers, setLocalCustomers] = useState([]);
 
   // Merge local added customers (if any) with database customers
@@ -265,22 +265,22 @@ const AllCustomers = ({ customers = [], loading, onViewDetail }) => {
   });
 
   const totalPages = Math.max(1, Math.ceil(filtered.length / ROWS_PER_PAGE));
-  const safePage   = Math.min(currentPage, totalPages);
-  const paginated  = filtered.slice((safePage - 1) * ROWS_PER_PAGE, safePage * ROWS_PER_PAGE);
+  const safePage = Math.min(currentPage, totalPages);
+  const paginated = filtered.slice((safePage - 1) * ROWS_PER_PAGE, safePage * ROWS_PER_PAGE);
 
   /* Select logic */
   const allChecked = paginated.length > 0 && paginated.every((c) => selectedIds.includes(c.id));
-  const toggleAll  = () => setSelectedIds(allChecked
+  const toggleAll = () => setSelectedIds(allChecked
     ? selectedIds.filter((id) => !paginated.find((c) => c.id === id))
     : [...new Set([...selectedIds, ...paginated.map((c) => c.id)])]);
-  const toggleOne  = (id) => setSelectedIds((prev) =>
+  const toggleOne = (id) => setSelectedIds((prev) =>
     prev.includes(id) ? prev.filter((i) => i !== id) : [...prev, id]);
 
   /* Stats calculation */
   const totalCustomers = allCustomers.length;
   const now = new Date();
   const currentMonthYear = now.toLocaleDateString("en-US", { month: "short", year: "numeric" }); // e.g. "May 2026"
-  
+
   const newThisMonth = allCustomers.filter((c) => {
     if (c.created_at) {
       const d = new Date(c.created_at);
@@ -290,7 +290,7 @@ const AllCustomers = ({ customers = [], loading, onViewDetail }) => {
   }).length;
 
   const activeAccounts = allCustomers.filter((c) => (c.status || "Confirmed") === "Confirmed").length;
-  
+
   const totalOrdersCount = allCustomers.reduce((s, c) => s + (c.orderCount || c.orders || 0), 0);
   const totalSpentSum = allCustomers.reduce((s, c) => s + (Number(c.totalSpent) || 0), 0);
   const avgOrderValue = totalOrdersCount > 0

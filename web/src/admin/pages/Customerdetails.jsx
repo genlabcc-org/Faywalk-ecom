@@ -22,12 +22,12 @@ const RingProductImage = () => (
 
 const StatusBadge = ({ status }) => {
   const map = {
-    Pending:   { bg: "#fef3c7", color: "#b45309" },
+    Pending: { bg: "#fef3c7", color: "#b45309" },
     Delivered: { bg: "#f0fdf4", color: "#16a34a" },
     Cancelled: { bg: "#fef2f2", color: "#dc2626" },
-    Blocked:   { bg: "#fef2f2", color: "#dc2626" },
+    Blocked: { bg: "#fef2f2", color: "#dc2626" },
     Confirmed: { bg: "#f5f3ff", color: "#7c3aed" },
-    Shipped:   { bg: "#fef9c3", color: "#a16207" }
+    Shipped: { bg: "#fef9c3", color: "#a16207" }
   };
   const s = map[status] || { bg: "#fef3c7", color: "#b45309" };
   return (
@@ -48,9 +48,9 @@ const formatJoinedDateTime = (dateVal) => {
 
 const CustomerDetails = ({ customer, onBack }) => {
   const [showDisableConfirm, setShowDisableConfirm] = useState(false);
-  const [showDeleteConfirm, setShowDeleteConfirm]   = useState(false);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [isDisabling, setIsDisabling] = useState(false);
-  const [isDeleting, setIsDeleting]   = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
   const [addresses, setAddresses] = useState([]);
   const [addressesLoading, setAddressesLoading] = useState(false);
   const [orders, setOrders] = useState([]);
@@ -131,7 +131,7 @@ const CustomerDetails = ({ customer, onBack }) => {
       .filter(o => o.status?.toLowerCase() !== 'cancelled')
       .reduce((sum, o) => sum + Number(o.total_price || 0), 0);
     const avgOrderValue = totalOrders > 0 ? totalSpent / totalOrders : 0;
-    const lastOrder = orders[0]?.order_date 
+    const lastOrder = orders[0]?.order_date
       ? new Date(orders[0].order_date).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" })
       : "N/A";
 
@@ -301,8 +301,8 @@ const CustomerDetails = ({ customer, onBack }) => {
             {addresses.map((addr, i) => (
               <div key={i} className="cd__card">
                 <div className="cd__address-card-title">
-                  {addr.address_type 
-                    ? (addr.is_default ? `${addr.address_type} (Default)` : addr.address_type) 
+                  {addr.address_type
+                    ? (addr.is_default ? `${addr.address_type} (Default)` : addr.address_type)
                     : (addr.is_default ? "Default Address" : `Address ${i + 1}`)}
                 </div>
                 <div className="cd__address-lines">
@@ -350,12 +350,12 @@ const CustomerDetails = ({ customer, onBack }) => {
                   const orderItems = order.order_items && order.order_items.length > 0
                     ? order.order_items
                     : [{
-                        product_id: order.product_id || null,
-                        product_name: order.item_name || "Order Item",
-                        quantity: order.quantity || 1,
-                        price: order.total_price || 0,
-                        sku: order.sku || null
-                      }];
+                      product_id: order.product_id || null,
+                      product_name: order.item_name || "Order Item",
+                      quantity: order.quantity || 1,
+                      price: order.total_price || 0,
+                      sku: order.sku || null
+                    }];
 
                   const orderRef = order.order_number || (order.id ? (String(order.id).length > 8 ? order.id.slice(-8).toUpperCase() : order.id) : "N/A");
                   const displayOrderId = String(orderRef).startsWith("#") ? orderRef : `#${orderRef}`;

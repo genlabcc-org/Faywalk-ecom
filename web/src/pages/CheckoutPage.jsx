@@ -169,13 +169,7 @@ export default function CheckoutPage() {
         fetchAddresses(emailVal);
       }
     });
-
-    couponService.getActiveCoupons(subtotal, userId).then((list) => {
-      setActiveCoupons(list || []);
-    }).catch((err) => {
-      console.warn("Failed to load active coupons:", err);
-    });
-  }, [userId, subtotal]);
+  }, []);
 
   // If selectedId is null and user has addresses, pick the first address by default
   useEffect(() => {
@@ -582,6 +576,15 @@ export default function CheckoutPage() {
     (sum, item) => sum + (parsePrice(item.price) || 0) * (Number(item.qty) || 0),
     0
   );
+
+  // Fetch active coupons based on initialized subtotal and userId
+  useEffect(() => {
+    couponService.getActiveCoupons(subtotal, userId).then((list) => {
+      setActiveCoupons(list || []);
+    }).catch((err) => {
+      console.warn("Failed to load active coupons:", err);
+    });
+  }, [userId, subtotal]);
 
   const discountAmount = appliedDiscount
     ? (typeof appliedDiscount.discountAmount === "number"
