@@ -921,8 +921,25 @@ const AllOrders = ({ orders = [], products = [], categories: categoriesProp = []
   };
   const count = statusCount;
 
+  const isCancelledOrRefundedOrder = (o) => {
+    if (!o) return false;
+    const s = String(o.status || "").toLowerCase().trim();
+    const p = String(o.payment_status || "").toLowerCase().trim();
+    const d = String(o.delivery_status || "").toLowerCase().trim();
+    return (
+      s.includes("cancel") ||
+      s.includes("refund") ||
+      s.includes("return") ||
+      p === "refunded" ||
+      p === "refund_initiated" ||
+      p === "cancelled" ||
+      d.includes("cancel") ||
+      d.includes("return")
+    );
+  };
+
   const revenue = localOrders
-    .filter((o) => !["cancelled", "returned"].includes(o.status?.toLowerCase()))
+    .filter((o) => !isCancelledOrRefundedOrder(o))
     .reduce((s, o) => s + Number(o.total_price || 0), 0);
 
   /* ── Filtered Orders ── */

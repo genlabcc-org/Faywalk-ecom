@@ -224,7 +224,10 @@ const StatCard = ({ label, value, trend, trendLabel, subtext, showTrend = true, 
       </div>
 
       <div className="dc__stat-body">
-        <div className="dc__stat-value">{value}</div>
+        <div style={{ display: 'flex', flexDirection: 'column' }}>
+          <div className="dc__stat-value">{value}</div>
+          {subtext && <div className="dc__stat-subtext">{subtext}</div>}
+        </div>
         {showTrend && trend && (
           <div className="dc__stat-trend-wrap">
             <div className="dc__stat-trend-badge">
@@ -267,6 +270,23 @@ function getSmoothSplinePath(points) {
   return d;
 }
 
+export const isCancelledOrRefunded = (order) => {
+  if (!order) return false;
+  const s = String(order.status || "").toLowerCase().trim();
+  const p = String(order.payment_status || "").toLowerCase().trim();
+  const d = String(order.delivery_status || "").toLowerCase().trim();
+  return (
+    s.includes("cancel") ||
+    s.includes("refund") ||
+    s.includes("return") ||
+    p === "refunded" ||
+    p === "refund_initiated" ||
+    p === "cancelled" ||
+    d.includes("cancel") ||
+    d.includes("return")
+  );
+};
+
 const TotalCustomersChart = ({ orders = [], customers = [], loading = false }) => {
   const [timeFilter, setTimeFilter] = useState("This Week");
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
@@ -288,21 +308,27 @@ const TotalCustomersChart = ({ orders = [], customers = [], loading = false }) =
   const chartData = useMemo(() => {
     const now = new Date();
 
-    const getDate = (item) => {
+    const getOrderDate = (item) => {
       const val = item?.order_date || item?.created_at;
       if (!val) return null;
       const d = new Date(val);
       return isNaN(d.getTime()) ? null : d;
     };
 
-    const validOrders = orders.filter((o) => {
-      const s = (o.status || "").toLowerCase().trim();
-      return !["cancelled", "returned"].includes(s);
-    });
+    const getCancelDate = (item) => {
+      const val = item?.updated_at || item?.order_date || item?.created_at;
+      if (!val) return null;
+      const d = new Date(val);
+      return isNaN(d.getTime()) ? null : d;
+    };
 
     let buckets = [];
-    let periodRev = 0;
-    let prevPeriodRev = 0;
+    let periodTotalSale = 0;
+    let periodNetRev = 0;
+    let periodCancelledRev = 0;
+    let prevPeriodTotalSale = 0;
+    let prevPeriodNetRev = 0;
+    let prevPeriodCancelledRev = 0;
     let periodCust = 0;
     let prevPeriodCust = 0;
     let periodLabel = "vs. Previous Period";
@@ -318,26 +344,57 @@ const TotalCustomersChart = ({ orders = [], customers = [], loading = false }) =
 
       const labels = ["12 AM", "4 AM", "8 AM", "12 PM", "4 PM", "8 PM", "11 PM"];
       const hourRanges = [4, 8, 12, 16, 20, 23, 24];
-      buckets = labels.map((l) => ({ label: l, rev: 0, cust: 0, orders: 0 }));
+      buckets = labels.map((l) => ({
+        label: l,
+        rev: 0,
+        totalSale: 0,
+        cancelledRev: 0,
+        cust: 0,
+        orders: 0,
+        cancelledOrders: 0,
+      }));
 
-      validOrders.forEach((o) => {
-        const d = getDate(o);
+      orders.forEach((o) => {
+        const d = getOrderDate(o);
         if (!d) return;
-        const val = Number(o.total_price || 0);
+        const val = Number(o.total_price ?? o.grandTotal ?? o.amount ?? 0);
+        const price = isNaN(val) ? 0 : val;
+        const isCancelled = isCancelledOrRefunded(o);
+
         if (d >= startToday && d <= endToday) {
-          periodRev += val;
+          periodTotalSale += price;
           const h = d.getHours();
           const bIdx = hourRanges.findIndex((limit) => h < limit);
           const safeIdx = bIdx >= 0 ? bIdx : buckets.length - 1;
-          buckets[safeIdx].rev += val;
+          buckets[safeIdx].totalSale += price;
           buckets[safeIdx].orders += 1;
+          if (!isCancelled) {
+            periodNetRev += price;
+          }
         } else if (d >= startYesterday && d <= endYesterday) {
-          prevPeriodRev += val;
+          prevPeriodTotalSale += price;
+          if (!isCancelled) {
+            prevPeriodNetRev += price;
+          }
+        }
+
+        if (isCancelled) {
+          const dc = getCancelDate(o) || d;
+          if (dc >= startToday && dc <= endToday) {
+            periodCancelledRev += price;
+            const h = dc.getHours();
+            const bIdx = hourRanges.findIndex((limit) => h < limit);
+            const safeIdx = bIdx >= 0 ? bIdx : buckets.length - 1;
+            buckets[safeIdx].cancelledRev += price;
+            buckets[safeIdx].cancelledOrders += 1;
+          } else if (dc >= startYesterday && dc <= endYesterday) {
+            prevPeriodCancelledRev += price;
+          }
         }
       });
 
       customers.forEach((c) => {
-        const d = getDate(c);
+        const d = getOrderDate(c);
         if (!d) return;
         if (d >= startToday && d <= endToday) {
           periodCust += 1;
@@ -360,24 +417,53 @@ const TotalCustomersChart = ({ orders = [], customers = [], loading = false }) =
       endLastWeek.setDate(endLastWeek.getDate() - 7);
 
       const labels = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
-      buckets = labels.map((l) => ({ label: l, rev: 0, cust: 0, orders: 0 }));
+      buckets = labels.map((l) => ({
+        label: l,
+        rev: 0,
+        totalSale: 0,
+        cancelledRev: 0,
+        cust: 0,
+        orders: 0,
+        cancelledOrders: 0,
+      }));
 
-      validOrders.forEach((o) => {
-        const d = getDate(o);
+      orders.forEach((o) => {
+        const d = getOrderDate(o);
         if (!d) return;
-        const val = Number(o.total_price || 0);
+        const val = Number(o.total_price ?? o.grandTotal ?? o.amount ?? 0);
+        const price = isNaN(val) ? 0 : val;
+        const isCancelled = isCancelledOrRefunded(o);
+
         if (d >= startThisWeek && d <= endThisWeek) {
-          periodRev += val;
+          periodTotalSale += price;
           const dayIdx = (d.getDay() + 6) % 7;
-          buckets[dayIdx].rev += val;
+          buckets[dayIdx].totalSale += price;
           buckets[dayIdx].orders += 1;
+          if (!isCancelled) {
+            periodNetRev += price;
+          }
         } else if (d >= startLastWeek && d <= endLastWeek) {
-          prevPeriodRev += val;
+          prevPeriodTotalSale += price;
+          if (!isCancelled) {
+            prevPeriodNetRev += price;
+          }
+        }
+
+        if (isCancelled) {
+          const dc = getCancelDate(o) || d;
+          if (dc >= startThisWeek && dc <= endThisWeek) {
+            periodCancelledRev += price;
+            const dayIdx = (dc.getDay() + 6) % 7;
+            buckets[dayIdx].cancelledRev += price;
+            buckets[dayIdx].cancelledOrders += 1;
+          } else if (dc >= startLastWeek && dc <= endLastWeek) {
+            prevPeriodCancelledRev += price;
+          }
         }
       });
 
       customers.forEach((c) => {
-        const d = getDate(c);
+        const d = getOrderDate(c);
         if (!d) return;
         if (d >= startThisWeek && d <= endThisWeek) {
           periodCust += 1;
@@ -396,7 +482,15 @@ const TotalCustomersChart = ({ orders = [], customers = [], loading = false }) =
         daysList.push({ date: d, label: dayLabel });
       }
 
-      buckets = daysList.map((d) => ({ label: d.label, rev: 0, cust: 0, orders: 0 }));
+      buckets = daysList.map((d) => ({
+        label: d.label,
+        rev: 0,
+        totalSale: 0,
+        cancelledRev: 0,
+        cust: 0,
+        orders: 0,
+        cancelledOrders: 0,
+      }));
 
       const start7 = new Date(daysList[0].date);
       const end7 = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59, 999);
@@ -405,23 +499,45 @@ const TotalCustomersChart = ({ orders = [], customers = [], loading = false }) =
       const endPrev7 = new Date(start7);
       endPrev7.setMilliseconds(-1);
 
-      validOrders.forEach((o) => {
-        const d = getDate(o);
+      orders.forEach((o) => {
+        const d = getOrderDate(o);
         if (!d) return;
-        const val = Number(o.total_price || 0);
+        const val = Number(o.total_price ?? o.grandTotal ?? o.amount ?? 0);
+        const price = isNaN(val) ? 0 : val;
+        const isCancelled = isCancelledOrRefunded(o);
+
         if (d >= start7 && d <= end7) {
-          periodRev += val;
+          periodTotalSale += price;
           const diffDays = Math.floor((d.getTime() - start7.getTime()) / (1000 * 60 * 60 * 24));
           const idx = Math.min(Math.max(diffDays, 0), buckets.length - 1);
-          buckets[idx].rev += val;
+          buckets[idx].totalSale += price;
           buckets[idx].orders += 1;
+          if (!isCancelled) {
+            periodNetRev += price;
+          }
         } else if (d >= startPrev7 && d <= endPrev7) {
-          prevPeriodRev += val;
+          prevPeriodTotalSale += price;
+          if (!isCancelled) {
+            prevPeriodNetRev += price;
+          }
+        }
+
+        if (isCancelled) {
+          const dc = getCancelDate(o) || d;
+          if (dc >= start7 && dc <= end7) {
+            periodCancelledRev += price;
+            const diffDays = Math.floor((dc.getTime() - start7.getTime()) / (1000 * 60 * 60 * 24));
+            const idx = Math.min(Math.max(diffDays, 0), buckets.length - 1);
+            buckets[idx].cancelledRev += price;
+            buckets[idx].cancelledOrders += 1;
+          } else if (dc >= startPrev7 && dc <= endPrev7) {
+            prevPeriodCancelledRev += price;
+          }
         }
       });
 
       customers.forEach((c) => {
-        const d = getDate(c);
+        const d = getOrderDate(c);
         if (!d) return;
         if (d >= start7 && d <= end7) {
           periodCust += 1;
@@ -440,25 +556,55 @@ const TotalCustomersChart = ({ orders = [], customers = [], loading = false }) =
       const endLastMonth = new Date(now.getFullYear(), now.getMonth(), 0, 23, 59, 59, 999);
 
       const labels = ["1-7", "8-14", "15-21", "22-28", "29+"];
-      buckets = labels.map((l) => ({ label: l, rev: 0, cust: 0, orders: 0 }));
+      buckets = labels.map((l) => ({
+        label: l,
+        rev: 0,
+        totalSale: 0,
+        cancelledRev: 0,
+        cust: 0,
+        orders: 0,
+        cancelledOrders: 0,
+      }));
 
-      validOrders.forEach((o) => {
-        const d = getDate(o);
+      orders.forEach((o) => {
+        const d = getOrderDate(o);
         if (!d) return;
-        const val = Number(o.total_price || 0);
+        const val = Number(o.total_price ?? o.grandTotal ?? o.amount ?? 0);
+        const price = isNaN(val) ? 0 : val;
+        const isCancelled = isCancelledOrRefunded(o);
+
         if (d >= startMonth && d <= endMonth) {
-          periodRev += val;
+          periodTotalSale += price;
           const dayNum = d.getDate();
           const bIdx = Math.min(Math.floor((dayNum - 1) / 7), 4);
-          buckets[bIdx].rev += val;
+          buckets[bIdx].totalSale += price;
           buckets[bIdx].orders += 1;
+          if (!isCancelled) {
+            periodNetRev += price;
+          }
         } else if (d >= startLastMonth && d <= endLastMonth) {
-          prevPeriodRev += val;
+          prevPeriodTotalSale += price;
+          if (!isCancelled) {
+            prevPeriodNetRev += price;
+          }
+        }
+
+        if (isCancelled) {
+          const dc = getCancelDate(o) || d;
+          if (dc >= startMonth && dc <= endMonth) {
+            periodCancelledRev += price;
+            const dayNum = dc.getDate();
+            const bIdx = Math.min(Math.floor((dayNum - 1) / 7), 4);
+            buckets[bIdx].cancelledRev += price;
+            buckets[bIdx].cancelledOrders += 1;
+          } else if (dc >= startLastMonth && dc <= endLastMonth) {
+            prevPeriodCancelledRev += price;
+          }
         }
       });
 
       customers.forEach((c) => {
-        const d = getDate(c);
+        const d = getOrderDate(c);
         if (!d) return;
         if (d >= startMonth && d <= endMonth) {
           periodCust += 1;
@@ -477,24 +623,53 @@ const TotalCustomersChart = ({ orders = [], customers = [], loading = false }) =
       const endLastYear = new Date(now.getFullYear() - 1, 11, 31, 23, 59, 59, 999);
 
       const labels = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
-      buckets = labels.map((l) => ({ label: l, rev: 0, cust: 0, orders: 0 }));
+      buckets = labels.map((l) => ({
+        label: l,
+        rev: 0,
+        totalSale: 0,
+        cancelledRev: 0,
+        cust: 0,
+        orders: 0,
+        cancelledOrders: 0,
+      }));
 
-      validOrders.forEach((o) => {
-        const d = getDate(o);
+      orders.forEach((o) => {
+        const d = getOrderDate(o);
         if (!d) return;
-        const val = Number(o.total_price || 0);
+        const val = Number(o.total_price ?? o.grandTotal ?? o.amount ?? 0);
+        const price = isNaN(val) ? 0 : val;
+        const isCancelled = isCancelledOrRefunded(o);
+
         if (d >= startYear && d <= endYear) {
-          periodRev += val;
+          periodTotalSale += price;
           const m = d.getMonth();
-          buckets[m].rev += val;
+          buckets[m].totalSale += price;
           buckets[m].orders += 1;
+          if (!isCancelled) {
+            periodNetRev += price;
+          }
         } else if (d >= startLastYear && d <= endLastYear) {
-          prevPeriodRev += val;
+          prevPeriodTotalSale += price;
+          if (!isCancelled) {
+            prevPeriodNetRev += price;
+          }
+        }
+
+        if (isCancelled) {
+          const dc = getCancelDate(o) || d;
+          if (dc >= startYear && dc <= endYear) {
+            periodCancelledRev += price;
+            const m = dc.getMonth();
+            buckets[m].cancelledRev += price;
+            buckets[m].cancelledOrders += 1;
+          } else if (dc >= startLastYear && dc <= endLastYear) {
+            prevPeriodCancelledRev += price;
+          }
         }
       });
 
       customers.forEach((c) => {
-        const d = getDate(c);
+        const d = getOrderDate(c);
         if (!d) return;
         if (d >= startYear && d <= endYear) {
           periodCust += 1;
@@ -516,22 +691,46 @@ const TotalCustomersChart = ({ orders = [], customers = [], loading = false }) =
           label: d.toLocaleDateString("en-IN", { month: "short" })
         });
       }
-      buckets = months.map((m) => ({ label: m.label, rev: 0, cust: 0, orders: 0 }));
+      buckets = months.map((m) => ({
+        label: m.label,
+        rev: 0,
+        totalSale: 0,
+        cancelledRev: 0,
+        cust: 0,
+        orders: 0,
+        cancelledOrders: 0,
+      }));
 
-      validOrders.forEach((o) => {
-        const d = getDate(o);
+      orders.forEach((o) => {
+        const d = getOrderDate(o);
         if (!d) return;
-        const val = Number(o.total_price || 0);
-        periodRev += val;
+        const val = Number(o.total_price ?? o.grandTotal ?? o.amount ?? 0);
+        const price = isNaN(val) ? 0 : val;
+        const isCancelled = isCancelledOrRefunded(o);
+
+        periodTotalSale += price;
         const mIdx = months.findIndex((m) => m.year === d.getFullYear() && m.month === d.getMonth());
         if (mIdx >= 0) {
-          buckets[mIdx].rev += val;
+          buckets[mIdx].totalSale += price;
           buckets[mIdx].orders += 1;
+        }
+        if (!isCancelled) {
+          periodNetRev += price;
+        }
+
+        if (isCancelled) {
+          const dc = getCancelDate(o) || d;
+          periodCancelledRev += price;
+          const mdcIdx = months.findIndex((m) => m.year === dc.getFullYear() && m.month === dc.getMonth());
+          if (mdcIdx >= 0) {
+            buckets[mdcIdx].cancelledRev += price;
+            buckets[mdcIdx].cancelledOrders += 1;
+          }
         }
       });
 
       customers.forEach((c) => {
-        const d = getDate(c);
+        const d = getOrderDate(c);
         if (!d) return;
         periodCust += 1;
         const mIdx = months.findIndex((m) => m.year === d.getFullYear() && m.month === d.getMonth());
@@ -541,20 +740,31 @@ const TotalCustomersChart = ({ orders = [], customers = [], loading = false }) =
       });
     }
 
-    // Growth calculation
+    // Net Revenue: decreased if order is cancelled and refunded
+    buckets.forEach((b) => {
+      b.rev = Math.max(0, b.totalSale - b.cancelledRev);
+    });
+
+    const totalNetRev = Math.max(0, periodNetRev);
+    const prevTotalNetRev = Math.max(0, prevPeriodNetRev);
+
+    // Growth calculation based on net revenue
     let growthRate = "0%";
     let isGrowthPositive = true;
-    if (prevPeriodRev > 0) {
-      const pct = ((periodRev - prevPeriodRev) / prevPeriodRev) * 100;
+    if (prevTotalNetRev > 0) {
+      const pct = ((totalNetRev - prevTotalNetRev) / prevTotalNetRev) * 100;
       isGrowthPositive = pct >= 0;
       growthRate = `${Math.abs(pct).toFixed(1)}%`;
-    } else if (periodRev > 0) {
+    } else if (totalNetRev > 0) {
       growthRate = "100%";
       isGrowthPositive = true;
     }
 
-    // Dynamic scale ceiling calculations
-    const rawMaxRev = Math.max(...buckets.map((b) => b.rev), 0);
+    // Dynamic scale ceiling calculations covering max of Net Revenue and Cancelled/Refund amount
+    const rawMaxRev = Math.max(
+      ...buckets.map((b) => Math.max(b.rev, b.cancelledRev || 0, b.totalSale || 0)),
+      0
+    );
     const rawMaxCust = Math.max(...buckets.map((b) => b.cust), 0);
 
     const ceilRev = rawMaxRev <= 0
@@ -583,6 +793,13 @@ const TotalCustomersChart = ({ orders = [], customers = [], loading = false }) =
       return { x, y: Number.isFinite(y) ? y : padT + chartH, ...b };
     });
 
+    const ptsCancelled = buckets.map((b, idx) => {
+      const ratio = ceilRev > 0 ? b.cancelledRev / ceilRev : 0;
+      const x = padL + (idx / Math.max(buckets.length - 1, 1)) * chartW;
+      const y = padT + chartH - ratio * chartH;
+      return { x, y: Number.isFinite(y) ? y : padT + chartH, ...b };
+    });
+
     const ptsCust = buckets.map((b, idx) => {
       const ratio = ceilCust > 0 ? b.cust / ceilCust : 0;
       const x = padL + (idx / Math.max(buckets.length - 1, 1)) * chartW;
@@ -601,6 +818,7 @@ const TotalCustomersChart = ({ orders = [], customers = [], loading = false }) =
 
     const highlightPt = ptsRev[bestIdx] || ptsRev[0];
     const revPath = getSmoothSplinePath(ptsRev);
+    const cancelledPath = getSmoothSplinePath(ptsCancelled);
     const custPath = getSmoothSplinePath(ptsCust);
 
     const formatAxisCurrency = (val) => {
@@ -612,10 +830,14 @@ const TotalCustomersChart = ({ orders = [], customers = [], loading = false }) =
     return {
       buckets,
       ptsRev,
+      ptsCancelled,
       ptsCust,
       revPath,
+      cancelledPath,
       custPath,
-      totalRev: periodRev,
+      totalRev: totalNetRev,
+      totalGrossRev: periodTotalSale,
+      totalCancelledRev: periodCancelledRev,
       totalCust: periodCust,
       growthRate,
       isGrowthPositive,
@@ -631,6 +853,7 @@ const TotalCustomersChart = ({ orders = [], customers = [], loading = false }) =
   }, [orders, customers, timeFilter]);
 
   const activePoint = hoveredIdx !== null ? chartData.ptsRev[hoveredIdx] : chartData.highlightPt;
+  const activeCancelledPoint = hoveredIdx !== null ? chartData.ptsCancelled[hoveredIdx] : null;
   const activeCustPoint = hoveredIdx !== null ? chartData.ptsCust[hoveredIdx] : null;
 
   return (
@@ -687,7 +910,19 @@ const TotalCustomersChart = ({ orders = [], customers = [], loading = false }) =
       </div>
 
       <div className="dc__metric-row">
-        <span className="dc__metric-value">₹{chartData.totalRev.toLocaleString("en-IN")}</span>
+        <div style={{ display: "flex", flexDirection: "column" }}>
+          <span className="dc__metric-value">₹{chartData.totalRev.toLocaleString("en-IN")}</span>
+          <div className="dc__metric-sub-row">
+            <span className="dc__totalsale-subtext">
+              Total Sale: ₹{chartData.totalGrossRev.toLocaleString("en-IN")}
+            </span>
+            {chartData.totalCancelledRev > 0 && (
+              <span className="dc__cancelled-subtext">
+                Cancelled / Refunded: -₹{chartData.totalCancelledRev.toLocaleString("en-IN")}
+              </span>
+            )}
+          </div>
+        </div>
         <div className="dc__metric-trend">
           <span className={chartData.isGrowthPositive ? "dc__trend-up" : "dc__trend-down"}>
             {chartData.isGrowthPositive ? "↑" : "↓"} {chartData.growthRate}
@@ -704,22 +939,32 @@ const TotalCustomersChart = ({ orders = [], customers = [], loading = false }) =
             className="dc__chart-tooltip"
             style={{
               left: `${(activePoint.x / 520) * 100}%`,
-              top: `${(Math.min(activePoint.y, activeCustPoint?.y || activePoint.y) / 180) * 100}%`,
+              top: `${(Math.min(activePoint.y, activeCancelledPoint?.y || activePoint.y, activeCustPoint?.y || activePoint.y) / 180) * 100}%`,
             }}
           >
             <div className="dc__chart-tooltip-title">{activePoint.label}</div>
             <div className="dc__chart-tooltip-row">
-              <span style={{ color: "#93c5fd" }}>● Revenue:</span>
+              <span style={{ color: "#93c5fd" }}>● Net Revenue:</span>
               <strong>₹{activePoint.rev.toLocaleString("en-IN")}</strong>
             </div>
             <div className="dc__chart-tooltip-row">
-              <span style={{ color: "#fda4af" }}>● Customers:</span>
+              <span style={{ color: "#e2e8f0" }}>● Total Sale:</span>
+              <strong>₹{(activePoint.totalSale || 0).toLocaleString("en-IN")}</strong>
+            </div>
+            <div className="dc__chart-tooltip-row">
+              <span style={{ color: "#fca5a5" }}>● Cancelled & Refund:</span>
+              <strong>₹{activePoint.cancelledRev.toLocaleString("en-IN")}</strong>
+            </div>
+            <div className="dc__chart-tooltip-row">
+              <span style={{ color: "#c4b5fd" }}>● Customers:</span>
               <strong>+{activePoint.cust}</strong>
             </div>
-            {activePoint.orders > 0 && (
-              <div className="dc__chart-tooltip-row">
-                <span style={{ color: "#cbd5e1" }}>Orders:</span>
-                <span>{activePoint.orders}</span>
+            {(activePoint.orders > 0 || activePoint.cancelledOrders > 0) && (
+              <div className="dc__chart-tooltip-footer">
+                <span>Active: {activePoint.orders}</span>
+                {activePoint.cancelledOrders > 0 && (
+                  <span style={{ color: "#f87171" }}>Cancelled: {activePoint.cancelledOrders}</span>
+                )}
               </div>
             )}
           </div>
@@ -734,7 +979,7 @@ const TotalCustomersChart = ({ orders = [], customers = [], loading = false }) =
             <line x1="50" y1="150" x2="480" y2="150" />
           </g>
 
-          {/* Dynamic Left Y-axis labels (Revenue) */}
+          {/* Dynamic Left Y-axis labels (Revenue & Refund Currency) */}
           <g fontSize="10" fill="#94A3B8" textAnchor="end">
             <text x="42" y="34">{chartData.formatAxisCurrency(chartData.ceilRev)}</text>
             <text x="42" y="74">{chartData.formatAxisCurrency(chartData.ceilRev * (2 / 3))}</text>
@@ -750,17 +995,27 @@ const TotalCustomersChart = ({ orders = [], customers = [], loading = false }) =
             <text x="488" y="154">0</text>
           </g>
 
-          {/* Curve 1: Red/Pink Dotted Curve (Customer) */}
+          {/* Curve 1: Red/Crimson Dashed Curve (Cancelled & Refund) */}
+          <path
+            d={chartData.cancelledPath}
+            fill="none"
+            stroke="#EF4444"
+            strokeWidth="2.5"
+            strokeDasharray="5 3"
+            strokeLinecap="round"
+          />
+
+          {/* Curve 2: Violet/Purple Dotted Curve (Customer Registrations) */}
           <path
             d={chartData.custPath}
             fill="none"
-            stroke="#FB7185"
+            stroke="#8B5CF6"
             strokeWidth="2.5"
             strokeDasharray="3 4"
             strokeLinecap="round"
           />
 
-          {/* Curve 2: Solid Navy Blue Curve (Revenue) */}
+          {/* Curve 3: Solid Navy Blue Curve (Revenue) */}
           <path
             d={chartData.revPath}
             fill="none"
@@ -769,7 +1024,7 @@ const TotalCustomersChart = ({ orders = [], customers = [], loading = false }) =
             strokeLinecap="round"
           />
 
-          {/* Highlight Dot on active/hovered point */}
+          {/* Highlight Dots on active/hovered points */}
           {activePoint && (
             <>
               <circle cx={activePoint.x} cy={activePoint.y} r="8" fill="#0A2582" opacity="0.18" />
@@ -777,10 +1032,17 @@ const TotalCustomersChart = ({ orders = [], customers = [], loading = false }) =
             </>
           )}
 
+          {activeCancelledPoint && (
+            <>
+              <circle cx={activeCancelledPoint.x} cy={activeCancelledPoint.y} r="7" fill="#EF4444" opacity="0.2" />
+              <circle cx={activeCancelledPoint.x} cy={activeCancelledPoint.y} r="3.5" fill="#EF4444" stroke="#ffffff" strokeWidth="1.5" />
+            </>
+          )}
+
           {activeCustPoint && (
             <>
-              <circle cx={activeCustPoint.x} cy={activeCustPoint.y} r="7" fill="#FB7185" opacity="0.2" />
-              <circle cx={activeCustPoint.x} cy={activeCustPoint.y} r="3.5" fill="#FB7185" stroke="#ffffff" strokeWidth="1.5" />
+              <circle cx={activeCustPoint.x} cy={activeCustPoint.y} r="7" fill="#8B5CF6" opacity="0.2" />
+              <circle cx={activeCustPoint.x} cy={activeCustPoint.y} r="3.5" fill="#8B5CF6" stroke="#ffffff" strokeWidth="1.5" />
             </>
           )}
 
@@ -818,6 +1080,10 @@ const TotalCustomersChart = ({ orders = [], customers = [], loading = false }) =
         <span className="dc__chart-legend-item">
           <span className="dc__legend-line-solid" />
           Revenue ({chartData.formatAxisCurrency(chartData.totalRev)})
+        </span>
+        <span className="dc__chart-legend-item">
+          <span className="dc__legend-line-dashed-red" />
+          Cancelled & Refund ({chartData.formatAxisCurrency(chartData.totalCancelledRev)})
         </span>
         <span className="dc__chart-legend-item">
           <span className="dc__legend-line-dotted" />
@@ -896,7 +1162,7 @@ const SalesByCategoryCard = ({ orders = [], products = [], categories = [], load
     // 2. Compute from actual orders
     let totalOrderSalesFound = 0;
     orders.forEach(order => {
-      if (['cancelled', 'returned'].includes(order.status?.toLowerCase())) return;
+      if (isCancelledOrRefunded(order)) return;
       const items = order.order_items || [];
       if (items.length > 0) {
         items.forEach(item => {
@@ -1342,13 +1608,21 @@ const DashboardHome = ({ orders = [], customers = [], products = [], categories 
   const stats = useMemo(() => {
     const totalOrders = orders.length;
 
-    // Real all-time total revenue from non-cancelled/non-returned orders
-    const validOrders = orders.filter((o) => {
-      const s = (o.status || "").toLowerCase().trim();
-      return !["cancelled", "returned"].includes(s);
-    });
+    // Real all-time total revenue from non-cancelled/non-returned/non-refunded orders
+    const validOrders = orders.filter((o) => !isCancelledOrRefunded(o));
 
     const revenue = validOrders.reduce((sum, o) => {
+      const val = Number(o.total_price ?? o.grandTotal ?? o.amount ?? 0);
+      return sum + (isNaN(val) ? 0 : val);
+    }, 0);
+
+    const grossRevenue = orders.reduce((sum, o) => {
+      const val = Number(o.total_price ?? o.grandTotal ?? o.amount ?? 0);
+      return sum + (isNaN(val) ? 0 : val);
+    }, 0);
+
+    const cancelledOrders = orders.filter((o) => isCancelledOrRefunded(o));
+    const cancelledRevenue = cancelledOrders.reduce((sum, o) => {
       const val = Number(o.total_price ?? o.grandTotal ?? o.amount ?? 0);
       return sum + (isNaN(val) ? 0 : val);
     }, 0);
@@ -1359,6 +1633,8 @@ const DashboardHome = ({ orders = [], customers = [], products = [], categories 
     return {
       totalOrders,
       revenue: `₹${Math.round(revenue).toLocaleString("en-IN")}`,
+      grossRevenue: `₹${Math.round(grossRevenue).toLocaleString("en-IN")}`,
+      cancelledRevenue: Math.round(cancelledRevenue),
       totalCustomers,
       totalProducts,
     };
@@ -1371,6 +1647,11 @@ const DashboardHome = ({ orders = [], customers = [], products = [], categories 
         <StatCard
           label="Total Revenue"
           value={loading ? "—" : stats.revenue}
+          subtext={
+            stats.cancelledRevenue > 0
+              ? `Total Sale: ${stats.grossRevenue}`
+              : undefined
+          }
           showTrend={false}
           loading={loading}
           onClick={() => navigate("/admin/orders")}
