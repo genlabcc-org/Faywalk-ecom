@@ -169,8 +169,15 @@
 }
 
 .star-icon {
-  color: #eab308;
   font-size: 11px;
+}
+
+.star-icon.star-filled {
+  color: #eab308;
+}
+
+.star-icon.star-empty {
+  color: #e2e8f0;
 }
 
 /* Keyframes: Scrolling from Left to Right (Reversed Direction) */

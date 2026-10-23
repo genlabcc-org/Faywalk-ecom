@@ -8,7 +8,7 @@ const TESTIMONIALS = [
     name: 'Ashik R.',
     title: 'Best everyday comfort!',
     text: 'The breathable cotton fabric is a game changer for daily wear. The waistband does not roll down or leave any marks even after a long workday. Truly impressed with Faywalk\'s quality!',
-    rating: '4.9',
+    rating: '5',
     stars: 5,
   },
   {
@@ -16,15 +16,15 @@ const TESTIMONIALS = [
     name: 'Ilangovan M.',
     title: 'Unbelievable softness & fit',
     text: 'Hands down the softest innerwear I have purchased online. The stitching is seamless, fits true to size, and holds its exact shape even after several machine washes.',
-    rating: '4.8',
-    stars: 5,
+    rating: '4',
+    stars: 4,
   },
   {
     id: 3,
     name: 'Sneha Patel',
     title: 'Super comfortable & lightweight',
     text: 'The fabric softness and breathable feel exceeded all expectations. It feels completely weightless under clothing and provides great all-day support with zero irritation.',
-    rating: '4.9',
+    rating: '5',
     stars: 5,
   },
   {
@@ -32,7 +32,7 @@ const TESTIMONIALS = [
     name: 'Vignesh K.',
     title: 'Outstanding fabric & durability',
     text: 'Smooth seams, premium stretch, and sweat-wicking comfort that works wonderfully even in humid weather. Prompt delivery and neat packaging too.',
-    rating: '5.0',
+    rating: '5',
     stars: 5,
   },
   {
@@ -40,7 +40,7 @@ const TESTIMONIALS = [
     name: 'Ananya Reddy',
     title: 'Pure everyday luxury',
     text: 'Gentle on sensitive skin and ultra-lightweight. You barely feel it on, and the premium quality shows in every single detail. Definitely my go-to brand now.',
-    rating: '4.9',
+    rating: '5',
     stars: 5,
   },
   {
@@ -48,15 +48,15 @@ const TESTIMONIALS = [
     name: 'Rahul Verma',
     title: 'Worth every rupee!',
     text: 'Replaced my old brand with Faywalk after trying my first order. The fit, comfort, and fabric longevity are miles ahead of other brands in this price range.',
-    rating: '4.8',
-    stars: 5,
+    rating: '4',
+    stars: 4,
   },
   {
     id: 7,
     name: 'Pooja Sharma',
     title: 'Breathable & perfectly tailored',
     text: 'Ordered the comfort collection and love how snug yet non-restrictive the fit is. The fabric stays soft and colors remain vibrant without fading.',
-    rating: '5.0',
+    rating: '5',
     stars: 5,
   },
   {
@@ -64,7 +64,7 @@ const TESTIMONIALS = [
     name: 'Karthik Sundaram',
     title: 'Exceptional quality & fast shipping',
     text: 'Ordered a combo pack and was blown away by the fabric hand-feel. Excellent elasticity, zero chafing, and quick delivery. Highly recommended!',
-    rating: '4.9',
+    rating: '5',
     stars: 5,
   },
 ];
@@ -156,8 +156,11 @@ const RealExperience = () => {
                 <div className="testimonial-rating">
                   <span className="rating-score">{item.rating}</span>
                   <div className="rating-stars">
-                    {[...Array(item.stars)].map((_, sIdx) => (
-                      <FaStar key={sIdx} className="star-icon" />
+                    {[...Array(5)].map((_, sIdx) => (
+                      <FaStar
+                        key={sIdx}
+                        className={`star-icon ${sIdx < (item.stars || parseInt(item.rating, 10)) ? 'star-filled' : 'star-empty'}`}
+                      />
                     ))}
                   </div>
                 </div>
