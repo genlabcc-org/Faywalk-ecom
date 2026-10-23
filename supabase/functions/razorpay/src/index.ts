@@ -43,7 +43,7 @@ export default {
       const razorpayService = new RazorpayService(ctx.supabaseAdmin);
 
       if (action === "create_order") {
-        const { items, addressId, discountCode } = body;
+        const { items, addressId, discountCode, discountAmount, discountPct } = body;
 
         if (!items || !Array.isArray(items) || items.length === 0) {
           return new Response(
@@ -57,6 +57,8 @@ export default {
           items,
           addressId: addressId ? Number(addressId) : undefined,
           discountCode,
+          discountAmount: discountAmount !== undefined && discountAmount !== null ? Number(discountAmount) : undefined,
+          discountPct: discountPct !== undefined && discountPct !== null ? Number(discountPct) : undefined,
         });
         return new Response(
           JSON.stringify({
@@ -79,6 +81,8 @@ export default {
           items,
           addressId,
           discountCode,
+          discountAmount,
+          discountPct,
         } = body;
 
         if (!razorpay_order_id || !razorpay_payment_id || !razorpay_signature || !items || !Array.isArray(items) || items.length === 0) {
@@ -96,6 +100,8 @@ export default {
           items,
           addressId: addressId ? Number(addressId) : undefined,
           discountCode,
+          discountAmount: discountAmount !== undefined && discountAmount !== null ? Number(discountAmount) : undefined,
+          discountPct: discountPct !== undefined && discountPct !== null ? Number(discountPct) : undefined,
         });
 
         return new Response(

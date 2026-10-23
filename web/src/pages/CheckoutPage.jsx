@@ -879,6 +879,7 @@ export default function CheckoutPage() {
             items: paymentItems,
             addressId: addressId ? Number(addressId) : null,
             discountCode: appliedDiscount?.code || null,
+            discountAmount: discountAmount || 0,
             discountPct: appliedDiscount?.pct || 0,
             shippingFee: shippingFee || 0,
           }
@@ -1498,19 +1499,34 @@ export default function CheckoutPage() {
 
                 {/* Discount Code Input */}
                 <div className="checkout-inline-discount-wrap">
-                  <input
-                    type="text"
-                    placeholder="Discount code"
-                    value={discountInput}
-                    onChange={(e) => setDiscountInput(e.target.value)}
-                    className="checkout-styled-input checkout-discount-input"
-                  />
+                  <div className="checkout-discount-input-wrap">
+                    <input
+                      type="text"
+                      placeholder={appliedDiscount ? `Coupon applied: ${appliedDiscount.code}` : "Discount code"}
+                      value={appliedDiscount ? appliedDiscount.code : discountInput}
+                      onChange={(e) => setDiscountInput(e.target.value)}
+                      disabled={Boolean(appliedDiscount)}
+                      className="checkout-styled-input checkout-discount-input"
+                    />
+                    {appliedDiscount && (
+                      <button
+                        type="button"
+                        onClick={handleRemoveDiscount}
+                        className="checkout-discount-field-clear-icon"
+                        title="Remove coupon"
+                        aria-label="Remove coupon"
+                      >
+                        ✕
+                      </button>
+                    )}
+                  </div>
                   <button
                     type="button"
                     onClick={() => handleApplyDiscount()}
+                    disabled={Boolean(appliedDiscount)}
                     className="checkout-discount-apply-btn"
                   >
-                    Apply
+                    {appliedDiscount ? "Applied" : "Apply"}
                   </button>
                 </div>
 
@@ -1520,6 +1536,11 @@ export default function CheckoutPage() {
                   <span className="grand-total-label">Total</span>
                   <div className="grand-total-amount-wrap">
                     <span className="currency-label">INR</span>
+                    {appliedDiscount && discountAmount > 0 && (
+                      <span className="grand-total-cut" title="Original total before coupon">
+                        ₹{(subtotal + shippingFee + platformFee).toFixed(2)}
+                      </span>
+                    )}
                     <span className="grand-total-val">₹{grandTotal.toFixed(2)}</span>
                   </div>
                 </div>

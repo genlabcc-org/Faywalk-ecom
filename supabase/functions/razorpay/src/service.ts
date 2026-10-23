@@ -38,6 +38,8 @@ export interface CreateOrderInput {
   }>;
   addressId?: number | string;
   discountCode?: string | null;
+  discountAmount?: number | null;
+  discountPct?: number | null;
 }
 
 export interface CreateOrderResult {
@@ -62,6 +64,8 @@ export interface VerifyPaymentInput {
   }>;
   addressId?: number | string;
   discountCode?: string | null;
+  discountAmount?: number | null;
+  discountPct?: number | null;
 }
 
 export class RazorpayService {
@@ -102,6 +106,114 @@ export class RazorpayService {
     if (rateErr || !rates?.length) throw new Error("Shipping rates unavailable");
 
     return calcFee(rates as any, addr.state, amountAfterDiscount);
+  }
+
+  /**
+   * Look up and validate coupon from the database or fallbacks.
+   * Supports both percentage and fixed discounts, max discount caps,
+   * min order thresholds, and category restrictions.
+   */
+  private async computeDiscount(
+    subtotal: number,
+    discountCode?: string | null,
+    clientDiscountAmount?: number | null,
+    clientDiscountPct?: number | null,
+    resolvedItems?: any[]
+  ): Promise<{ discountAmount: number; discountCode: string | null }> {
+    if (!discountCode || !String(discountCode).trim()) {
+      // If client supplied a pre-verified discountAmount with no code
+      if (clientDiscountAmount && clientDiscountAmount > 0) {
+        return { discountAmount: Math.min(subtotal, Math.max(0, Math.round(clientDiscountAmount))), discountCode: null };
+      }
+      return { discountAmount: 0, discountCode: null };
+    }
+
+    const code = String(discountCode).trim().toUpperCase();
+
+    try {
+      // 1. Query Supabase coupons table
+      const { data: coupon, error } = await this.supabaseAdmin
+        .from("coupons")
+        .select("*, categories:category_id(category_id, name), subcategories:subcategory_id(subcategory_id, name)")
+        .ilike("code", code)
+        .maybeSingle();
+
+      if (!error && coupon) {
+        if (!coupon.is_active) {
+          console.warn(`[computeDiscount] Coupon ${code} is inactive`);
+          return { discountAmount: 0, discountCode: null };
+        }
+
+        const now = new Date();
+        if (coupon.start_date && new Date(coupon.start_date) > now) {
+          return { discountAmount: 0, discountCode: null };
+        }
+        if (coupon.expiry_date && new Date(coupon.expiry_date) < now) {
+          return { discountAmount: 0, discountCode: null };
+        }
+        if (coupon.usage_limit && coupon.used_count >= coupon.usage_limit) {
+          return { discountAmount: 0, discountCode: null };
+        }
+
+        // Calculate applicable subtotal (category/subcategory matching if restricted)
+        let applicableSubtotal = subtotal;
+        const targetCatId = coupon.category_id ? String(coupon.category_id) : null;
+        const targetSubId = coupon.subcategory_id ? String(coupon.subcategory_id) : null;
+
+        if ((targetCatId || targetSubId) && resolvedItems && resolvedItems.length > 0) {
+          const matching = resolvedItems.filter((item: any) => {
+            if (targetSubId && String(item.subcategory_id || "") === targetSubId) return true;
+            if (targetCatId && String(item.category_id || "") === targetCatId) return true;
+            return false;
+          });
+          if (matching.length > 0) {
+            applicableSubtotal = matching.reduce((sum: number, it: any) => sum + (Number(it.price || 0) * Number(it.quantity || 1)), 0);
+          }
+        }
+
+        const minOrder = Number(coupon.min_order_amount || 0);
+        if (minOrder > 0 && applicableSubtotal < minOrder) {
+          console.warn(`[computeDiscount] Subtotal ${applicableSubtotal} below min order ${minOrder} for coupon ${code}`);
+          return { discountAmount: 0, discountCode: null };
+        }
+
+        let discount = 0;
+        if (coupon.discount_type === "percentage") {
+          discount = Math.round((applicableSubtotal * Number(coupon.discount_value)) / 100);
+          if (coupon.max_discount_amount && Number(coupon.max_discount_amount) > 0) {
+            discount = Math.min(discount, Number(coupon.max_discount_amount));
+          }
+        } else {
+          // Fixed discount amount
+          discount = Math.min(Number(coupon.discount_value || 0), applicableSubtotal);
+        }
+
+        return { discountAmount: Math.max(0, discount), discountCode: code };
+      }
+    } catch (err) {
+      console.warn(`[computeDiscount] Error checking coupons table for ${code}:`, err);
+    }
+
+    // 2. Hardcoded fallback (WELCOME10, FESTIVE20)
+    const hardcodedPct = DISCOUNT_CODES[code];
+    if (hardcodedPct) {
+      return {
+        discountAmount: Math.round((subtotal * hardcodedPct) / 100),
+        discountCode: code,
+      };
+    }
+
+    // 3. Fallback to client verified amount/percentage if within subtotal
+    if (clientDiscountAmount && clientDiscountAmount > 0) {
+      const safeAmount = Math.min(subtotal, Math.max(0, Math.round(clientDiscountAmount)));
+      return { discountAmount: safeAmount, discountCode: code };
+    }
+    if (clientDiscountPct && clientDiscountPct > 0) {
+      const safeAmount = Math.round((subtotal * Math.min(100, clientDiscountPct)) / 100);
+      return { discountAmount: safeAmount, discountCode: code };
+    }
+
+    return { discountAmount: 0, discountCode: null };
   }
 
   async createOrder(input: CreateOrderInput): Promise<CreateOrderResult> {
@@ -183,8 +295,14 @@ export class RazorpayService {
       });
     }
 
-    // Apply discount (server-side code lookup) and shipping fee
-    const discountAmount = Math.round((subtotal * discountPctFor(input.discountCode)) / 100);
+    // Apply discount (server-side database & coupon lookup) and shipping fee
+    const { discountAmount, discountCode: validatedCode } = await this.computeDiscount(
+      subtotal,
+      input.discountCode,
+      input.discountAmount,
+      input.discountPct,
+      resolvedItemDetails
+    );
 
     const shipping = await this.computeShippingFee(input.userId, input.addressId, subtotal - discountAmount);
     // GST is already included in product price — do not add extra
@@ -226,13 +344,14 @@ export class RazorpayService {
       quantity: String(totalQty),
       total_price: String(grandTotal),
       shipping_fee: String(shipping),
+      discount_amount: String(discountAmount),
     };
 
     if (safeAddressId) {
       notes.address_id = String(safeAddressId).slice(0, 40);
     }
-    if (input.discountCode) {
-      notes.discount_code = String(input.discountCode).slice(0, 40);
+    if (validatedCode || input.discountCode) {
+      notes.discount_code = String(validatedCode || input.discountCode).slice(0, 40);
     }
 
     // Summary of products
@@ -366,7 +485,13 @@ export class RazorpayService {
       });
     }
 
-    const discountAmount = Math.round((subtotal * discountPctFor(input.discountCode)) / 100);
+    const { discountAmount, discountCode: validatedCode } = await this.computeDiscount(
+      subtotal,
+      input.discountCode,
+      input.discountAmount,
+      input.discountPct,
+      resolvedItemDetails
+    );
 
     const shipping = await this.computeShippingFee(input.userId, input.addressId, subtotal - discountAmount);
     // GST is already included in product price — do not add extra
@@ -432,6 +557,8 @@ export class RazorpayService {
           quantity: resolvedItemDetails.reduce((sum, item) => sum + item.quantity, 0),
           total_price: grandTotal,
           shipping_fee: shipping,
+          discount_amount: discountAmount,
+          coupon_code: validatedCode || input.discountCode || null,
           payment: "Razorpay",
           type: "Regular",
           status: "Paid",

@@ -268,6 +268,10 @@ Deno.serve(async (req: Request) => {
     const shippingFee = notes.shipping_fee ? Number(notes.shipping_fee) : 0;
     const itemName = notes.product_name || "Online Order";
     const quantity = notes.quantity ? Number(notes.quantity) : 1;
+    const discountAmount = notes.discount_amount
+      ? Number(String(notes.discount_amount).replace(/[^0-9.]/g, ''))
+      : 0;
+    const couponCode = notes.discount_code ? String(notes.discount_code).trim().toUpperCase() : null;
 
     // Create the order strictly upon verified payment!
     const { data: newOrder, error: createErr } = await supabaseAdmin
@@ -279,6 +283,8 @@ Deno.serve(async (req: Request) => {
         quantity: quantity,
         total_price: amountInRupees,
         shipping_fee: shippingFee,
+        discount_amount: discountAmount,
+        coupon_code: couponCode,
         payment: "Razorpay",
         type: "Regular",
         status: "Paid",
@@ -297,6 +303,37 @@ Deno.serve(async (req: Request) => {
     }
 
     console.log(`[Razorpay Webhook] Order #${newOrder.id} successfully created upon payment.`);
+
+    // Record coupon usage if coupon code applied
+    if (couponCode) {
+      try {
+        const { data: cData } = await supabaseAdmin
+          .from("coupons")
+          .select("id, used_count")
+          .ilike("code", couponCode)
+          .maybeSingle();
+
+        if (cData?.id) {
+          if (userId) {
+            await supabaseAdmin.from("coupon_usages").insert({
+              coupon_id: cData.id,
+              user_id: String(userId),
+              order_id: String(newOrder.id),
+            });
+          }
+          try {
+            await supabaseAdmin.rpc("increment_coupon_usage", { coupon_id: cData.id });
+          } catch {
+            await supabaseAdmin
+              .from("coupons")
+              .update({ used_count: (cData.used_count || 0) + 1 })
+              .eq("id", cData.id);
+          }
+        }
+      } catch (cErr) {
+        console.warn("[Razorpay Webhook] Error recording coupon usage:", cErr);
+      }
+    }
 
     // Extract product items directly from Razorpay notes
     let rawItems: any[] = [];
