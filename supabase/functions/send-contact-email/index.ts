@@ -1,6 +1,6 @@
 import { handleCorsPreflight, corsHeaders } from "../_shared/cors.ts";
 
-const DEFAULT_RECIPIENT_EMAIL = "jreshma930@gmail.com";
+const DEFAULT_RECIPIENT_EMAIL = "faywalkvibee@gmail.com";
 const SENDER_EMAIL = "faywalkvibee@gmail.com";
 
 function buildContactHtmlTemplate(data: {

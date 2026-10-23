@@ -45,7 +45,7 @@ export const cartService = {
     if (!userId) return [];
     const { data, error } = await supabase
       .from('cart_items')
-      .select('*, products(*, categories(name), product_variants(*))')
+      .select('*, products(*, categories(name), subcategories(name), product_variants(*))')
       .eq('user_id', userId);
 
     if (error) throw error;
@@ -60,6 +60,9 @@ export const cartService = {
           price: 0,
           originalPrice: 0,
           category: '',
+          category_id: null,
+          subcategory_id: null,
+          subcategory: '',
           qty: item.qty || 1,
           size: item.size || '',
           color: item.color || '',
@@ -113,6 +116,9 @@ export const cartService = {
         price: price,
         originalPrice: originalPrice,
         category: product.categories?.name || '',
+        category_id: product.category_id || null,
+        subcategory_id: product.subcategory_id || null,
+        subcategory: product.subcategories?.name || '',
         sku: sku,
         qty: item.qty || 1,
         stock: stock,

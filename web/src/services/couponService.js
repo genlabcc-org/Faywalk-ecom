@@ -336,31 +336,53 @@ export const couponService = {
           };
         }
 
+        // Fetch products from database if category/subcategory details are missing on cart/checkout items
+        const productIdsToFetch = items
+          .map((it) => it.productId || it.product_id || it.id)
+          .filter(Boolean);
+
+        let productMap = {};
+        if (productIdsToFetch.length > 0) {
+          try {
+            const { data: dbProds } = await supabase
+              .from("products")
+              .select("product_id, category_id, subcategory_id, categories(name), subcategories(name)")
+              .in("product_id", productIdsToFetch);
+            if (dbProds && dbProds.length > 0) {
+              dbProds.forEach((p) => {
+                productMap[String(p.product_id)] = p;
+              });
+            }
+          } catch (dbErr) {
+            console.warn("Could not fetch products for category/subcategory validation:", dbErr);
+          }
+        }
+
         const isItemEligible = (item) => {
+          const pKey = String(item.productId || item.product_id || item.id || "");
+          const dbProd = productMap[pKey] || {};
+
+          const itemSubId = String(item.subcategory_id || item.subcategoryId || dbProd.subcategory_id || "");
+          const itemSubName = String(
+            item.subcategory || item.subcategory_name || item.subcategories?.name || dbProd.subcategories?.name || ""
+          ).trim().toLowerCase();
+
+          const itemCatId = String(item.category_id || item.categoryId || dbProd.category_id || "");
+          const itemCatName = String(
+            item.category || item.category_name || item.categories?.name || dbProd.categories?.name || ""
+          ).trim().toLowerCase();
+
           // If subcategory is restricted
           if (targetSubId) {
-            const itemSubId = String(item.subcategory_id || item.subcategoryId || "");
             if (itemSubId && itemSubId === targetSubId) return true;
-
-            const itemSubName = String(
-              item.subcategory || item.subcategory_name || item.subcategories?.name || ""
-            ).trim().toLowerCase();
-            if (subName && itemSubName === subName.trim().toLowerCase()) return true;
+            if (subName && itemSubName && itemSubName === subName.trim().toLowerCase()) return true;
             return false;
           }
 
           // If category is restricted
           if (targetCatId) {
-            if (item.category_id && String(item.category_id) === targetCatId) return true;
-            if (item.categoryId && String(item.categoryId) === targetCatId) return true;
-
-            const itemCatName = String(
-              item.category || item.category_name || item.categories?.name || ""
-            ).trim().toLowerCase();
-
-            if (catName && itemCatName === catName.trim().toLowerCase()) {
-              return true;
-            }
+            if (itemCatId && itemCatId === targetCatId) return true;
+            if (catName && itemCatName && itemCatName === catName.trim().toLowerCase()) return true;
 
             if (categories && categories.length > 0) {
               const matchedCat = categories.find(
@@ -415,6 +437,10 @@ export const couponService = {
         discountAmount = Math.min(Number(coupon.discount_value), applicableSubtotal);
       }
 
+      const displayName = coupon.subcategories?.name
+        ? `${coupon.categories?.name ? coupon.categories.name + " > " : ""}${coupon.subcategories.name}`
+        : (coupon.categories?.name || null);
+
       return {
         valid: true,
         coupon,
@@ -423,7 +449,7 @@ export const couponService = {
         pct: coupon.discount_type === "percentage" ? Number(coupon.discount_value) : null,
         type: coupon.discount_type,
         value: Number(coupon.discount_value),
-        categoryName: coupon.categories?.name || null,
+        categoryName: displayName,
         applicableSubtotal,
       };
     } catch (err) {

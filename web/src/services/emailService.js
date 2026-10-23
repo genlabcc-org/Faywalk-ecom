@@ -2,7 +2,7 @@ import { supabase } from '../lib/supabase';
 import { getColorName } from '../utils/colorUtils';
 
 const ADMIN_EMAIL = 'faywalkvibee@gmail.com';
-const CONTACT_EMAIL = import.meta.env.VITE_CONTACT_EMAIL || 'jreshma930@gmail.com';
+const CONTACT_EMAIL = import.meta.env.VITE_CONTACT_EMAIL || 'faywalkvibee@gmail.com';
 const BREVO_KEY = import.meta.env.VITE_BREVO_API_KEY || import.meta.env.BREVO_API_KEY || '';
 
 export const emailService = {

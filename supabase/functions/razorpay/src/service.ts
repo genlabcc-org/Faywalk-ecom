@@ -162,12 +162,19 @@ export class RazorpayService {
 
         if ((targetCatId || targetSubId) && resolvedItems && resolvedItems.length > 0) {
           const matching = resolvedItems.filter((item: any) => {
-            if (targetSubId && String(item.subcategory_id || "") === targetSubId) return true;
-            if (targetCatId && String(item.category_id || "") === targetCatId) return true;
+            if (targetSubId) {
+              return String(item.subcategory_id || "") === targetSubId;
+            }
+            if (targetCatId) {
+              return String(item.category_id || "") === targetCatId;
+            }
             return false;
           });
           if (matching.length > 0) {
             applicableSubtotal = matching.reduce((sum: number, it: any) => sum + (Number(it.price || 0) * Number(it.quantity || 1)), 0);
+          } else {
+            console.warn(`[computeDiscount] No eligible items in order for coupon ${code} (targetSub: ${targetSubId}, targetCat: ${targetCatId})`);
+            return { discountAmount: 0, discountCode: null };
           }
         }
 
@@ -222,7 +229,7 @@ export class RazorpayService {
     const productIds = items.map(item => item.productId).filter(Boolean);
     const { data: rawProducts, error: dbError } = await this.supabaseAdmin
       .from("products")
-      .select("product_id, name, price, discount_price, image_url, images, sku, product_variants(*)")
+      .select("product_id, name, price, discount_price, image_url, images, sku, category_id, subcategory_id, product_variants(*)")
       .in("product_id", productIds);
     const products = (rawProducts || []) as unknown as any[];
 
@@ -234,6 +241,8 @@ export class RazorpayService {
     let subtotal = 0;
     const resolvedItemDetails: Array<{
       productId: any;
+      category_id?: any;
+      subcategory_id?: any;
       name: string;
       price: number;
       quantity: number;
@@ -285,6 +294,8 @@ export class RazorpayService {
 
       resolvedItemDetails.push({
         productId: product.product_id,
+        category_id: product.category_id,
+        subcategory_id: product.subcategory_id,
         name: product.name || "Unknown Product",
         price: itemPrice,
         quantity: qty,
@@ -413,7 +424,7 @@ export class RazorpayService {
     const productIds = input.items.map(item => item.productId).filter(Boolean);
     const { data: rawProducts, error: dbError } = await this.supabaseAdmin
       .from("products")
-      .select("product_id, name, price, discount_price, image_url, images, sku, product_variants(*)")
+      .select("product_id, name, price, discount_price, image_url, images, sku, category_id, subcategory_id, product_variants(*)")
       .in("product_id", productIds);
     const products = (rawProducts || []) as unknown as any[];
 
@@ -424,6 +435,8 @@ export class RazorpayService {
     let subtotal = 0;
     const resolvedItemDetails: Array<{
       productId: any;
+      category_id?: any;
+      subcategory_id?: any;
       name: string;
       price: number;
       quantity: number;
@@ -475,6 +488,8 @@ export class RazorpayService {
 
       resolvedItemDetails.push({
         productId: product.product_id,
+        category_id: product.category_id,
+        subcategory_id: product.subcategory_id,
         name: product.name || "Unknown Product",
         price: itemPrice,
         quantity: qty,
