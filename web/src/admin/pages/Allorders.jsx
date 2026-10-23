@@ -497,6 +497,7 @@ const AllOrders = ({ orders = [], products = [], categories: categoriesProp = []
   const [previewOrder, setPreviewOrder] = useState(null);
   const [previewAddress, setPreviewAddress] = useState(null);
   const [previewLoadingAddress, setPreviewLoadingAddress] = useState(false);
+  const [printAddresses, setPrintAddresses] = useState({});
   const [isSyncingAll, setIsSyncingAll] = useState(false);
   const [retryingOrderId, setRetryingOrderId] = useState(null);
 
@@ -767,13 +768,36 @@ const AllOrders = ({ orders = [], products = [], categories: categoriesProp = []
       if (previewOrder && previewAddress) {
         addrMap[previewOrder.id] = previewAddress;
       }
-      const missingAddrOrders = ordersToPrint.filter((ord) => !addrMap[ord.id] && ord.user_id);
+      // Populate directly from existing order object if available
+      ordersToPrint.forEach((ord) => {
+        if (!addrMap[ord.id]) {
+          const direct = ord.shipping_address || ord.address || ord.addresses;
+          if (direct && typeof direct === "object") {
+            addrMap[ord.id] = direct;
+          }
+        }
+      });
+
+      const missingAddrOrders = ordersToPrint.filter((ord) => !addrMap[ord.id]);
       if (missingAddrOrders.length > 0) {
         await Promise.all(
           missingAddrOrders.map(async (ord) => {
             try {
-              const addrs = await orderService.getAddresses(ord.user_id);
-              addrMap[ord.id] = addrs.find((a) => a.is_default) || addrs[0] || null;
+              if (ord.address_id) {
+                const { data: directAddr } = await supabase
+                  .from("addresses")
+                  .select("*")
+                  .eq("address_id", ord.address_id)
+                  .maybeSingle();
+                if (directAddr) {
+                  addrMap[ord.id] = directAddr;
+                  return;
+                }
+              }
+              if (ord.user_id) {
+                const addrs = await orderService.getAddresses(ord.user_id);
+                addrMap[ord.id] = addrs.find((a) => a.is_default) || addrs[0] || null;
+              }
             } catch (e) {
               console.debug("Could not fetch address for print:", e);
             }
