@@ -83,17 +83,75 @@
   background: #f8f8f8;
 }
 
-/* ── 3-Column Grid Layout (As in reference image) ── */
-.best-sellers-grid {
-  display: grid !important;
-  grid-template-columns: repeat(3, minmax(0, 340px)) !important;
-  justify-content: flex-start !important;
-  gap: 24px 20px !important;
+/* ── Slider Wrapper (Enables left/right navigation controls) ── */
+.best-sellers-slider-wrap {
+  position: relative !important;
   width: 100% !important;
   box-sizing: border-box !important;
 }
 
-/* ── Product Card: Compact Size ── */
+/* ── 1-Line Horizontal Slider Rail ── */
+.best-sellers-grid {
+  display: flex !important;
+  flex-direction: row !important;
+  flex-wrap: nowrap !important;
+  justify-content: flex-start !important;
+  align-items: stretch !important;
+  gap: 20px !important;
+  width: 100% !important;
+  overflow-x: auto !important;
+  overflow-y: hidden !important;
+  scroll-behavior: smooth !important;
+  scroll-snap-type: x mandatory !important;
+  -webkit-overflow-scrolling: touch !important;
+  scrollbar-width: none !important;
+  -ms-overflow-style: none !important;
+  padding: 6px 2px 16px !important;
+  box-sizing: border-box !important;
+}
+
+.best-sellers-grid::-webkit-scrollbar {
+  display: none !important;
+}
+
+/* ── Navigation Arrows ── */
+.best-sellers-nav-btn {
+  position: absolute !important;
+  top: 42% !important;
+  transform: translateY(-50%) !important;
+  width: 44px !important;
+  height: 44px !important;
+  border-radius: 50% !important;
+  background: rgba(255, 255, 255, 0.96) !important;
+  backdrop-filter: blur(8px) !important;
+  border: 1px solid rgba(0, 0, 0, 0.08) !important;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.14) !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  color: #111827 !important;
+  cursor: pointer !important;
+  z-index: 10 !important;
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1) !important;
+  padding: 0 !important;
+}
+
+.best-sellers-nav-btn:hover {
+  background: #ffffff !important;
+  color: var(--blue-primary, #002277) !important;
+  box-shadow: 0 6px 22px rgba(0, 0, 0, 0.22) !important;
+  transform: translateY(-50%) !important;
+}
+
+.best-sellers-nav-prev {
+  left: -14px !important;
+}
+
+.best-sellers-nav-next {
+  right: -14px !important;
+}
+
+/* ── Product Card: Full Size (340px) ── */
 .best-seller-card {
   display: flex !important;
   flex-direction: column !important;
@@ -103,10 +161,19 @@
   box-shadow: none !important;
   cursor: pointer !important;
   position: relative !important;
-  width: 100% !important;
+  flex: 0 0 340px !important;
+  width: 340px !important;
   max-width: 340px !important;
+  scroll-snap-align: start !important;
   margin: 0 !important;
   padding: 0 !important;
+}
+
+.best-seller-skeleton-item {
+  flex: 0 0 340px !important;
+  width: 340px !important;
+  max-width: 340px !important;
+  scroll-snap-align: start !important;
 }
 
 /* ── Compact Portrait Image Box (Sharp Rectangular Edges) ── */
@@ -277,8 +344,14 @@
   }
 
   .best-sellers-grid {
-    grid-template-columns: repeat(3, 1fr) !important;
-    gap: 20px 16px !important;
+    gap: 20px !important;
+  }
+
+  .best-seller-card,
+  .best-seller-skeleton-item {
+    flex: 0 0 340px !important;
+    width: 340px !important;
+    max-width: 340px !important;
   }
 
   .best-seller-name {
@@ -333,8 +406,24 @@
   }
 
   .best-sellers-grid {
+    display: grid !important;
     grid-template-columns: repeat(2, 1fr) !important;
     gap: 16px 12px !important;
+    overflow-x: visible !important;
+    overflow-y: visible !important;
+    scroll-snap-type: none !important;
+    padding: 0 !important;
+  }
+
+  .best-seller-card,
+  .best-seller-skeleton-item {
+    flex: none !important;
+    width: 100% !important;
+    max-width: 100% !important;
+  }
+
+  .best-sellers-nav-btn {
+    display: none !important;
   }
 
   .best-seller-card,
@@ -423,6 +512,13 @@
     gap: 14px 10px !important;
   }
 
+  .best-seller-card,
+  .best-seller-skeleton-item {
+    flex: none !important;
+    width: 100% !important;
+    max-width: 100% !important;
+  }
+
   .best-seller-add-cart-btn {
     bottom: 6px !important;
     right: 6px !important;
@@ -487,6 +583,13 @@
 
   .best-sellers-grid {
     gap: 12px 8px !important;
+  }
+
+  .best-seller-card,
+  .best-seller-skeleton-item {
+    flex: none !important;
+    width: 100% !important;
+    max-width: 100% !important;
   }
 
   .best-seller-add-cart-btn {
