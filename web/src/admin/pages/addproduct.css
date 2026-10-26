@@ -1000,6 +1000,12 @@
   background: #eff6ff;
 }
 
+.cmp-table-upload-btn.cmp-upload--error {
+  border-color: #ef4444;
+  color: #dc2626;
+  background: #fef2f2;
+}
+
 /* Table inputs */
 .cmp-table-input {
   width: 100%;

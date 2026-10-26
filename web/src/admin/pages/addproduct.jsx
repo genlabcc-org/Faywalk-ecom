@@ -352,6 +352,7 @@ const AddProduct = ({
 
         if (product.compare_price) setGlobalOriginalPrice(String(product.compare_price));
         if (product.price) setGlobalOfferPrice(String(product.price));
+        if (product.stock != null) setGlobalStock(String(product.stock));
 
       } catch (err) {
         if (!isCurrent) return;
@@ -400,6 +401,21 @@ const AddProduct = ({
           : s.defaultVariant,
       }))
     );
+    if (val !== "") {
+      setErrors((prev) => {
+        const next = { ...prev };
+        delete next.globalStock;
+        Object.keys(next).forEach((key) => {
+          if (next[key]?.quantity) {
+            const rowErr = { ...next[key] };
+            delete rowErr.quantity;
+            if (Object.keys(rowErr).length === 0) delete next[key];
+            else next[key] = rowErr;
+          }
+        });
+        return next;
+      });
+    }
   };
 
   const handleUpdateGlobalOffer = (val) => {
@@ -464,7 +480,7 @@ const AddProduct = ({
             const newCv = {
               id: `cv-${Date.now()}-${variantSeq++}`,
               color: colorHex,
-              quantity: s.defaultVariant?.quantity || globalStock || "0",
+              quantity: s.defaultVariant?.quantity || globalStock || "",
               originalPrice: s.defaultVariant?.originalPrice || globalOriginalPrice || "",
               offerPrice: s.defaultVariant?.offerPrice || globalOfferPrice || "",
               sku: `${sku}-${s.size}-${shortCode}`,
@@ -500,7 +516,7 @@ const AddProduct = ({
           return {
             id: `cv-${Date.now()}-${variantSeq++}`,
             color: colorHex,
-            quantity: s.defaultVariant?.quantity || globalStock || "0",
+            quantity: s.defaultVariant?.quantity || globalStock || "",
             originalPrice: s.defaultVariant?.originalPrice || globalOriginalPrice || "",
             offerPrice: s.defaultVariant?.offerPrice || globalOfferPrice || "",
             sku: `${sku}-${s.size}-${shortCode}`,
@@ -534,6 +550,20 @@ const AddProduct = ({
     return { images: [], media: [] };
   };
 
+  // ── Helper: find existing images for default variant across any sizes ──
+  const findExistingDefaultImages = (currentRows = sizeRows) => {
+    for (const s of currentRows) {
+      const def = s.defaultVariant;
+      if (def && ((def.images && def.images.length > 0) || (def.media && def.media.length > 0))) {
+        return {
+          images: def.images ? [...def.images] : [],
+          media: def.media ? [...def.media] : [],
+        };
+      }
+    }
+    return { images: [], media: [] };
+  };
+
   // ── Size row management ──
   const handleAddSize = (specificSize) => {
     const trimmed = (typeof specificSize === "string" ? specificSize : sizeInput).trim();
@@ -553,7 +583,7 @@ const AddProduct = ({
       return {
         id: `cv-${Date.now()}-${variantSeq++}`,
         color: colorHex,
-        quantity: globalStock || "0",
+        quantity: globalStock || "",
         originalPrice: globalOriginalPrice || "",
         offerPrice: globalOfferPrice || "",
         sku: `${sku}-${trimmed}-${shortCode}`,
@@ -562,6 +592,8 @@ const AddProduct = ({
       };
     });
 
+    const existingDefImgs = findExistingDefaultImages(sizeRows);
+
     const newSize = {
       id: `size-${Date.now()}-${variantSeq++}`,
       size: trimmed,
@@ -569,12 +601,12 @@ const AddProduct = ({
       defaultVariant: {
         id: `def-${Date.now()}-${variantSeq++}`,
         color: null,
-        quantity: globalStock || "0",
+        quantity: globalStock || "",
         originalPrice: globalOriginalPrice || "",
         offerPrice: globalOfferPrice || "",
         sku: `${sku}-${trimmed}`,
-        images: [],
-        media: [],
+        images: existingDefImgs.images,
+        media: existingDefImgs.media,
       },
     };
 
@@ -612,7 +644,7 @@ const AddProduct = ({
           // Add color - auto-inherit any images already uploaded for this color in other sizes!
           const cName = getColorName(colorHex) || "Color";
           const shortCode = cName.replace(/[^A-Za-z0-9]/g, "").slice(0, 3).toUpperCase();
-          const baseQty = s.defaultVariant?.quantity || globalStock || "0";
+          const baseQty = s.defaultVariant?.quantity || globalStock || "";
           const baseOffer = s.defaultVariant?.offerPrice || globalOfferPrice || "";
           const baseOriginal = s.defaultVariant?.originalPrice || globalOriginalPrice || "";
           const existingImgs = findExistingImagesForColor(colorHex, prev);
@@ -686,6 +718,26 @@ const AddProduct = ({
         }),
       }))
     );
+
+    // Clear image errors for matching color variants
+    setErrors((prev) => {
+      const next = { ...prev };
+      delete next.images;
+      sizeRows.forEach((s) => {
+        (s.colors || []).forEach((cv) => {
+          const isMatch = targetColor
+            ? (cv.color || "").toLowerCase().trim() === targetColor.toLowerCase().trim()
+            : cv.id === colorVariantId;
+          if (isMatch && next[cv.id]) {
+            const varErr = { ...next[cv.id] };
+            delete varErr.images;
+            if (Object.keys(varErr).length === 0) delete next[cv.id];
+            else next[cv.id] = varErr;
+          }
+        });
+      });
+      return next;
+    });
   };
 
   // Remove image from a color variant (auto-syncs removal across all sizes sharing this color)
@@ -746,7 +798,7 @@ const AddProduct = ({
     });
   };
 
-  // Image & field updates for default variant (when no color is chosen, max 2 images)
+  // Image & field updates for default variant (when no color is chosen, max 2 images, auto-syncs across sizes)
   const handleDefaultVariantImagesUpload = (sizeId, fileList) => {
     if (!fileList || fileList.length === 0) return;
     const currentSize = sizeRows.find((s) => s.id === sizeId);
@@ -771,7 +823,7 @@ const AddProduct = ({
 
     setSizeRows((prev) =>
       prev.map((s) => {
-        if (s.id !== sizeId) return s;
+        if (s.colors && s.colors.length > 0) return s;
         return {
           ...s,
           defaultVariant: {
@@ -784,12 +836,28 @@ const AddProduct = ({
         };
       })
     );
+
+    // Clear image error for default variants
+    setErrors((prev) => {
+      const next = { ...prev };
+      delete next.images;
+      sizeRows.forEach((r) => {
+        const defId = r.defaultVariant?.id || r.id;
+        if (next[defId]) {
+          const varErr = { ...next[defId] };
+          delete varErr.images;
+          if (Object.keys(varErr).length === 0) delete next[defId];
+          else next[defId] = varErr;
+        }
+      });
+      return next;
+    });
   };
 
   const handleRemoveDefaultVariantImage = (sizeId, imageIndex, isExistingUrl = false) => {
     setSizeRows((prev) =>
       prev.map((s) => {
-        if (s.id !== sizeId) return s;
+        if (s.colors && s.colors.length > 0) return s;
         const def = s.defaultVariant || {};
         if (isExistingUrl) {
           return {
@@ -812,6 +880,8 @@ const AddProduct = ({
   };
 
   const updateDefaultVariantField = (sizeId, field, value) => {
+    const currentSize = sizeRows.find((s) => s.id === sizeId);
+    const defId = currentSize?.defaultVariant?.id || sizeId;
     setSizeRows((prev) =>
       prev.map((s) => {
         if (s.id !== sizeId) return s;
@@ -824,6 +894,14 @@ const AddProduct = ({
         };
       })
     );
+    // Clear field error
+    setErrors((prev) => {
+      const rowErr = prev[defId];
+      if (!rowErr || !rowErr[field]) return prev;
+      const next = { ...rowErr };
+      delete next[field];
+      return { ...prev, [defId]: next };
+    });
   };
 
   const requestRemoveSize = (id) => {
@@ -910,7 +988,7 @@ const AddProduct = ({
           id: `def-single-${Date.now()}`,
           sizeDimension: "Free Size",
           color: commonColors.length === 1 ? commonColors[0] : null,
-          stockQuantity: globalStock || "0",
+          stockQuantity: globalStock !== "" && globalStock != null ? globalStock : "",
           minStockAlert: "0",
           price: globalOriginalPrice || "",
           sellingPrice: globalOfferPrice || "",
@@ -929,7 +1007,7 @@ const AddProduct = ({
             variant_id: cv.variant_id || undefined,
             sizeDimension: s.size,
             color: cv.color || null,
-            stockQuantity: cv.quantity || globalStock || "0",
+            stockQuantity: cv.quantity !== undefined && cv.quantity !== null ? cv.quantity : (globalStock || ""),
             minStockAlert: "0",
             price: cv.originalPrice || globalOriginalPrice || "",
             sellingPrice: cv.offerPrice || globalOfferPrice || "",
@@ -945,7 +1023,7 @@ const AddProduct = ({
           variant_id: def.variant_id || undefined,
           sizeDimension: s.size,
           color: null,
-          stockQuantity: def.quantity || globalStock || "0",
+          stockQuantity: def.quantity !== undefined && def.quantity !== null ? def.quantity : (globalStock || ""),
           minStockAlert: "0",
           price: def.originalPrice || globalOriginalPrice || "",
           sellingPrice: def.offerPrice || globalOfferPrice || "",
@@ -963,12 +1041,14 @@ const AddProduct = ({
     const topErrors = {};
     if (!title.trim()) topErrors.title = ["Title Cannot Be Empty"];
     if (!description.trim()) topErrors.description = ["Description Cannot Be Empty"];
-    if (sizeRows.length === 0 && !globalOfferPrice) {
-      topErrors.sizes = ["At least one size or a Common Offer Price is required"];
+    if (!globalStock.trim()) topErrors.globalStock = ["Stock Cannot Be Empty"];
+    if (sizeRows.length === 0) {
+      topErrors.sizes = ["At least one size with a product image is required"];
     }
 
     const rowErrors = {};
     const flatVariants = buildFlatVariants();
+    let hasAnyImage = false;
 
     flatVariants.forEach((v) => {
       const fieldErrors = {};
@@ -985,10 +1065,26 @@ const AddProduct = ({
         }
       }
 
+      const hasStock = v.stockQuantity !== "" && v.stockQuantity !== null && v.stockQuantity !== undefined && !isNaN(parseInt(v.stockQuantity, 10)) && parseInt(v.stockQuantity, 10) >= 0;
+      if (!hasStock) {
+        fieldErrors.quantity = ["Stock required"];
+      }
+
+      const imgCount = (v.images?.length || 0) + (v.media?.length || 0);
+      if (imgCount === 0) {
+        fieldErrors.images = ["Image is required"];
+      } else {
+        hasAnyImage = true;
+      }
+
       if (Object.keys(fieldErrors).length) {
         rowErrors[v.id] = fieldErrors;
       }
     });
+
+    if (!hasAnyImage && sizeRows.length > 0) {
+      topErrors.images = ["At least one product image is required"];
+    }
 
     setErrors({ ...topErrors, ...rowErrors });
     return Object.keys(topErrors).length === 0 && Object.keys(rowErrors).length === 0;
@@ -996,7 +1092,15 @@ const AddProduct = ({
 
   // ── Save ──
   const handleSave = async () => {
-    if (!validate()) return;
+    if (!validate()) {
+      setTimeout(() => {
+        const firstErrorEl = document.querySelector(".cmp-error, .cmp-input--error, .cmp-upload--error");
+        if (firstErrorEl) {
+          firstErrorEl.scrollIntoView({ behavior: "smooth", block: "center" });
+        }
+      }, 50);
+      return;
+    }
 
     const variants = buildFlatVariants();
 
@@ -1284,16 +1388,24 @@ const AddProduct = ({
           {/* ── Common Stock & Price Fields ── */}
           <div className="cmp-row" style={{ paddingTop: "14px", borderTop: "1px dashed #e5e7eb" }}>
             <label className="cmp-field">
-              <span className="cmp-label">Common Stock</span>
+              <span className="cmp-label">
+                Common Stock <span style={{ color: "#EF4444" }}>*</span>
+              </span>
               <input
                 type="text"
                 inputMode="numeric"
                 pattern="[0-9]*"
-                className="cmp-input"
+                className={`cmp-input${errors.globalStock ? " cmp-input--error" : ""}`}
                 placeholder="0"
                 value={globalStock}
-                onChange={(e) => handleUpdateGlobalStock(e.target.value.replace(/[^0-9]/g, ""))}
+                onChange={(e) => {
+                  handleUpdateGlobalStock(e.target.value.replace(/[^0-9]/g, ""));
+                  clearTopError("globalStock");
+                }}
               />
+              {errors.globalStock?.map((msg) => (
+                <FieldError key={msg}>{msg}</FieldError>
+              ))}
             </label>
             <label className="cmp-field">
               <span className="cmp-label">Common Offer Price (₹)</span>
@@ -1380,6 +1492,9 @@ const AddProduct = ({
           {errors.sizes?.map((msg) => (
             <FieldError key={msg}>{msg}</FieldError>
           ))}
+          {errors.images?.map((msg) => (
+            <FieldError key={msg}>{msg}</FieldError>
+          ))}
 
           {/* Minimal Size Groups */}
           {sizeRows.length > 0 && (
@@ -1451,9 +1566,12 @@ const AddProduct = ({
                         <tr>
                           <th style={{ width: "160px" }}>Color</th>
                           <th style={{ minWidth: "160px" }}>
-                            Images (Max 2) <span className="cmp-sync-badge">Shared by color</span>
+                            Images (Max 2) <span style={{ color: "#EF4444" }}>*</span>{" "}
+                            <span className="cmp-sync-badge">Shared by color</span>
                           </th>
-                          <th style={{ width: "90px" }}>Stock</th>
+                          <th style={{ width: "95px" }}>
+                            Stock <span style={{ color: "#EF4444" }}>*</span>
+                          </th>
                           <th style={{ width: "130px" }}>Offer (₹)</th>
                           <th style={{ width: "160px" }}>Original (₹)</th>
                           <th style={{ width: "36px" }}></th>
@@ -1526,7 +1644,7 @@ const AddProduct = ({
                                         />
                                         <label
                                           htmlFor={`file-input-${sizeRow.id}-${cv.id}`}
-                                          className="cmp-table-upload-btn"
+                                          className={`cmp-table-upload-btn${cvErrors.images ? " cmp-upload--error" : ""}`}
                                           title="Upload images for this color (Max 2)"
                                         >
                                           <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -1539,6 +1657,9 @@ const AddProduct = ({
                                       </>
                                     )}
                                   </div>
+                                  {cvErrors.images?.map((msg) => (
+                                    <FieldError key={msg}>{msg}</FieldError>
+                                  ))}
                                 </td>
 
                                 <td>
@@ -1546,12 +1667,15 @@ const AddProduct = ({
                                     type="text"
                                     inputMode="numeric"
                                     pattern="[0-9]*"
-                                    className="cmp-table-input"
+                                    className={`cmp-table-input${cvErrors.quantity ? " cmp-input--error" : ""}`}
                                     style={{ textAlign: "center" }}
                                     placeholder="0"
                                     value={cv.quantity}
                                     onChange={(e) => updateColorVariantField(sizeRow.id, cv.id, "quantity", e.target.value.replace(/[^0-9]/g, ""))}
                                   />
+                                  {cvErrors.quantity?.map((msg) => (
+                                    <FieldError key={msg}>{msg}</FieldError>
+                                  ))}
                                 </td>
 
                                 <td>
@@ -1603,125 +1727,137 @@ const AddProduct = ({
                           })
                         ) : (
                           /* Default row when no colors chosen yet */
-                          <tr>
-                            <td>
-                              <div className="cmp-table-color">
-                                <div>
-                                  <span className="cmp-table-color-name" style={{ color: "#64748b" }}>Standard</span>
-                                  <span className="cmp-table-color-sku">No color</span>
-                                </div>
-                              </div>
-                            </td>
-
-                            <td>
-                              <div className="cmp-table-images">
-                                {sizeRow.defaultVariant?.images?.map((url, imgIdx) => (
-                                  <div key={`existing-def-${imgIdx}`} className="cmp-table-thumb">
-                                    <img src={url} alt={`Default ${imgIdx}`} />
-                                    <button
-                                      type="button"
-                                      className="cmp-table-thumb-del"
-                                      onClick={() => handleRemoveDefaultVariantImage(sizeRow.id, imgIdx, true)}
-                                      title="Remove image"
-                                    >
-                                      ×
-                                    </button>
+                          (() => {
+                            const defId = sizeRow.defaultVariant?.id || sizeRow.id;
+                            const defErrors = errors[defId] || {};
+                            return (
+                              <tr key={defId}>
+                                <td>
+                                  <div className="cmp-table-color">
+                                    <div>
+                                      <span className="cmp-table-color-name" style={{ color: "#64748b" }}>Standard</span>
+                                      <span className="cmp-table-color-sku">No color</span>
+                                    </div>
                                   </div>
-                                ))}
+                                </td>
 
-                                {sizeRow.defaultVariant?.media?.map((m, mIdx) => (
-                                  <div key={m.id} className="cmp-table-thumb">
-                                    <img src={m.preview} alt={`Default new ${mIdx}`} />
-                                    <button
-                                      type="button"
-                                      className="cmp-table-thumb-del"
-                                      onClick={() => handleRemoveDefaultVariantImage(sizeRow.id, mIdx, false)}
-                                      title="Remove image"
-                                    >
-                                      ×
-                                    </button>
+                                <td>
+                                  <div className="cmp-table-images">
+                                    {sizeRow.defaultVariant?.images?.map((url, imgIdx) => (
+                                      <div key={`existing-def-${imgIdx}`} className="cmp-table-thumb">
+                                        <img src={url} alt={`Default ${imgIdx}`} />
+                                        <button
+                                          type="button"
+                                          className="cmp-table-thumb-del"
+                                          onClick={() => handleRemoveDefaultVariantImage(sizeRow.id, imgIdx, true)}
+                                          title="Remove image"
+                                        >
+                                          ×
+                                        </button>
+                                      </div>
+                                    ))}
+
+                                    {sizeRow.defaultVariant?.media?.map((m, mIdx) => (
+                                      <div key={m.id} className="cmp-table-thumb">
+                                        <img src={m.preview} alt={`Default new ${mIdx}`} />
+                                        <button
+                                          type="button"
+                                          className="cmp-table-thumb-del"
+                                          onClick={() => handleRemoveDefaultVariantImage(sizeRow.id, mIdx, false)}
+                                          title="Remove image"
+                                        >
+                                          ×
+                                        </button>
+                                      </div>
+                                    ))}
+
+                                    {((sizeRow.defaultVariant?.images?.length || 0) + (sizeRow.defaultVariant?.media?.length || 0)) < 2 && (
+                                      <>
+                                        <input
+                                          id={`file-input-def-${sizeRow.id}`}
+                                          type="file"
+                                          multiple
+                                          accept="image/*"
+                                          style={{ display: "none" }}
+                                          onChange={(e) => {
+                                            handleDefaultVariantImagesUpload(sizeRow.id, e.target.files);
+                                            e.target.value = "";
+                                          }}
+                                        />
+                                        <label
+                                          htmlFor={`file-input-def-${sizeRow.id}`}
+                                          className={`cmp-table-upload-btn${defErrors.images ? " cmp-upload--error" : ""}`}
+                                          title="Upload images for this size (Max 2)"
+                                        >
+                                          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+                                            <polyline points="17 8 12 3 7 8" />
+                                            <line x1="12" y1="3" x2="12" y2="15" />
+                                          </svg>
+                                          <span>+ Image</span>
+                                        </label>
+                                      </>
+                                    )}
                                   </div>
-                                ))}
+                                  {defErrors.images?.map((msg) => (
+                                    <FieldError key={msg}>{msg}</FieldError>
+                                  ))}
+                                </td>
 
-                                {((sizeRow.defaultVariant?.images?.length || 0) + (sizeRow.defaultVariant?.media?.length || 0)) < 2 && (
-                                  <>
+                                <td>
+                                  <input
+                                    type="text"
+                                    inputMode="numeric"
+                                    pattern="[0-9]*"
+                                    className={`cmp-table-input${defErrors.quantity ? " cmp-input--error" : ""}`}
+                                    style={{ textAlign: "center" }}
+                                    placeholder="0"
+                                    value={sizeRow.defaultVariant?.quantity ?? ""}
+                                    onChange={(e) => updateDefaultVariantField(sizeRow.id, "quantity", e.target.value.replace(/[^0-9]/g, ""))}
+                                  />
+                                  {defErrors.quantity?.map((msg) => (
+                                    <FieldError key={msg}>{msg}</FieldError>
+                                  ))}
+                                </td>
+
+                                <td>
+                                  <input
+                                    type="text"
+                                    inputMode="numeric"
+                                    pattern="[0-9]*"
+                                    className={`cmp-table-input${defErrors.offerPrice ? " cmp-input--error" : ""}`}
+                                    placeholder="0"
+                                    value={sizeRow.defaultVariant?.offerPrice ?? ""}
+                                    onChange={(e) => updateDefaultVariantField(sizeRow.id, "offerPrice", e.target.value.replace(/[^0-9.]/g, ""))}
+                                  />
+                                  {defErrors.offerPrice?.map((msg) => (
+                                    <FieldError key={msg}>{msg}</FieldError>
+                                  ))}
+                                </td>
+
+                                <td>
+                                  <div style={{ display: "flex", alignItems: "center", gap: 5 }}>
                                     <input
-                                      id={`file-input-def-${sizeRow.id}`}
-                                      type="file"
-                                      multiple
-                                      accept="image/*"
-                                      style={{ display: "none" }}
-                                      onChange={(e) => {
-                                        handleDefaultVariantImagesUpload(sizeRow.id, e.target.files);
-                                        e.target.value = "";
-                                      }}
+                                      type="text"
+                                      inputMode="numeric"
+                                      pattern="[0-9]*"
+                                      className="cmp-table-input"
+                                      placeholder="0"
+                                      value={sizeRow.defaultVariant?.originalPrice ?? ""}
+                                      onChange={(e) => updateDefaultVariantField(sizeRow.id, "originalPrice", e.target.value.replace(/[^0-9.]/g, ""))}
                                     />
-                                    <label
-                                      htmlFor={`file-input-def-${sizeRow.id}`}
-                                      className="cmp-table-upload-btn"
-                                      title="Upload images for this size (Max 2)"
-                                    >
-                                      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                                        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
-                                        <polyline points="17 8 12 3 7 8" />
-                                        <line x1="12" y1="3" x2="12" y2="15" />
-                                      </svg>
-                                      <span>+ Image</span>
-                                    </label>
-                                  </>
-                                )}
-                              </div>
-                            </td>
+                                    {calcDiscount(sizeRow.defaultVariant?.originalPrice || globalOriginalPrice, sizeRow.defaultVariant?.offerPrice || globalOfferPrice) > 0 && (
+                                      <span className="ap-discount-badge ap-discount-badge--small" style={{ whiteSpace: "nowrap" }}>
+                                        {calcDiscount(sizeRow.defaultVariant?.originalPrice || globalOriginalPrice, sizeRow.defaultVariant?.offerPrice || globalOfferPrice)}%
+                                      </span>
+                                    )}
+                                  </div>
+                                </td>
 
-                            <td>
-                              <input
-                                type="text"
-                                inputMode="numeric"
-                                pattern="[0-9]*"
-                                className="cmp-table-input"
-                                style={{ textAlign: "center" }}
-                                placeholder="0"
-                                value={sizeRow.defaultVariant?.quantity ?? ""}
-                                onChange={(e) => updateDefaultVariantField(sizeRow.id, "quantity", e.target.value.replace(/[^0-9]/g, ""))}
-                              />
-                            </td>
-
-                            <td>
-                              <input
-                                type="text"
-                                inputMode="numeric"
-                                pattern="[0-9]*"
-                                className={`cmp-table-input${errors[sizeRow.defaultVariant?.id]?.offerPrice ? " cmp-input--error" : ""}`}
-                                placeholder="0"
-                                value={sizeRow.defaultVariant?.offerPrice ?? ""}
-                                onChange={(e) => updateDefaultVariantField(sizeRow.id, "offerPrice", e.target.value.replace(/[^0-9.]/g, ""))}
-                              />
-                              {errors[sizeRow.defaultVariant?.id]?.offerPrice?.map((msg) => (
-                                <FieldError key={msg}>{msg}</FieldError>
-                              ))}
-                            </td>
-
-                            <td>
-                              <div style={{ display: "flex", alignItems: "center", gap: 5 }}>
-                                <input
-                                  type="text"
-                                  inputMode="numeric"
-                                  pattern="[0-9]*"
-                                  className="cmp-table-input"
-                                  placeholder="0"
-                                  value={sizeRow.defaultVariant?.originalPrice ?? ""}
-                                  onChange={(e) => updateDefaultVariantField(sizeRow.id, "originalPrice", e.target.value.replace(/[^0-9.]/g, ""))}
-                                />
-                                {calcDiscount(sizeRow.defaultVariant?.originalPrice || globalOriginalPrice, sizeRow.defaultVariant?.offerPrice || globalOfferPrice) > 0 && (
-                                  <span className="ap-discount-badge ap-discount-badge--small" style={{ whiteSpace: "nowrap" }}>
-                                    {calcDiscount(sizeRow.defaultVariant?.originalPrice || globalOriginalPrice, sizeRow.defaultVariant?.offerPrice || globalOfferPrice)}%
-                                  </span>
-                                )}
-                              </div>
-                            </td>
-
-                            <td></td>
-                          </tr>
+                                <td></td>
+                              </tr>
+                            );
+                          })()
                         )}
                       </tbody>
                     </table>
