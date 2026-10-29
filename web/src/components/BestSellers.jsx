@@ -10,15 +10,17 @@ export default function BestSellers({ onProductClick }) {
   const sliderRef = useRef(null);
   const [canScrollLeft, setCanScrollLeft] = useState(false);
   const [canScrollRight, setCanScrollRight] = useState(false);
+  const [hasOverflow, setHasOverflow] = useState(false);
   const [isPaused, setIsPaused] = useState(false);
 
   const checkScroll = () => {
     const el = sliderRef.current;
     if (!el) return;
     const { scrollWidth, clientWidth } = el;
-    const hasOverflow = scrollWidth > clientWidth + 4;
-    setCanScrollLeft(hasOverflow);
-    setCanScrollRight(hasOverflow);
+    const overflow = scrollWidth > clientWidth + 4;
+    setHasOverflow(overflow);
+    setCanScrollLeft(overflow);
+    setCanScrollRight(overflow);
   };
 
   useEffect(() => {
@@ -58,7 +60,7 @@ export default function BestSellers({ onProductClick }) {
 
   // Auto-slide on desktop (width > 768px)
   useEffect(() => {
-    if (loading || products.length <= 1 || isPaused) return;
+    if (loading || !hasOverflow || isPaused) return;
 
     const interval = setInterval(() => {
       if (typeof window !== 'undefined' && window.innerWidth <= 768) return;
@@ -66,7 +68,7 @@ export default function BestSellers({ onProductClick }) {
     }, 3500);
 
     return () => clearInterval(interval);
-  }, [loading, products, isPaused]);
+  }, [loading, hasOverflow, isPaused]);
 
   useEffect(() => {
     let isMounted = true;
@@ -237,7 +239,7 @@ export default function BestSellers({ onProductClick }) {
           onMouseEnter={() => setIsPaused(true)}
           onMouseLeave={() => setIsPaused(false)}
         >
-          {canScrollLeft && (
+          {canScrollLeft && hasOverflow && (
             <button
               type="button"
               className="best-sellers-nav-btn best-sellers-nav-prev"
@@ -250,7 +252,10 @@ export default function BestSellers({ onProductClick }) {
             </button>
           )}
 
-          <div className="best-sellers-grid best-sellers-slider" ref={sliderRef}>
+          <div
+            className={`best-sellers-grid best-sellers-slider ${hasOverflow ? 'has-overflow' : 'is-centered'} ${products.length === 1 ? 'single-item' : ''}`}
+            ref={sliderRef}
+          >
             {products.map((product) => (
               <article
                 key={product.id}
@@ -291,7 +296,7 @@ export default function BestSellers({ onProductClick }) {
             ))}
           </div>
 
-          {canScrollRight && (
+          {canScrollRight && hasOverflow && (
             <button
               type="button"
               className="best-sellers-nav-btn best-sellers-nav-next"

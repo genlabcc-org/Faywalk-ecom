@@ -47,7 +47,8 @@
   }
 
   .hero-image-wrapper {
-    height: auto !important;
+    height: 50vh !important;
+    min-height: 50vh !important;
     width: 100% !important;
     margin: 0 !important;
     padding: 0 !important;
@@ -66,8 +67,8 @@
 
   .hero-image {
     width: 100% !important;
-    height: auto !important;
-    min-height: 320px;
+    height: 100% !important;
+    min-height: 100% !important;
     object-fit: cover !important;
     object-position: center top !important;
     border-radius: 20px !important;
@@ -96,7 +97,7 @@
 }
 
 .hero-swiper .swiper-pagination-bullet-active {
-  background: #8b0030;
+  background: var(--blue-primary, #002277);
   opacity: 1;
 }
 
@@ -122,13 +123,14 @@
 
 @media (max-width: 768px) {
   .hero-skeleton-wrapper {
-    height: 400px !important;
-    min-height: 320px;
+    height: 50vh !important;
+    min-height: 50vh !important;
     border-radius: 20px !important;
     box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
   }
 
   .hero-skeleton {
+    height: 100% !important;
     border-radius: 20px !important;
   }
 }

@@ -95,7 +95,8 @@
   display: flex !important;
   flex-direction: row !important;
   flex-wrap: nowrap !important;
-  justify-content: flex-start !important;
+  justify-content: center !important;
+  justify-content: safe center !important;
   align-items: stretch !important;
   gap: 20px !important;
   width: 100% !important;
@@ -109,6 +110,7 @@
   padding: 6px 2px 16px !important;
   box-sizing: border-box !important;
 }
+
 
 .best-sellers-grid::-webkit-scrollbar {
   display: none !important;
@@ -272,6 +274,7 @@
 .best-seller-price-row {
   display: flex !important;
   align-items: center !important;
+  justify-content: flex-start !important;
   gap: 8px !important;
   flex-wrap: wrap !important;
   margin-top: 2px !important;
@@ -413,6 +416,22 @@
     overflow-y: visible !important;
     scroll-snap-type: none !important;
     padding: 0 !important;
+    justify-content: center !important;
+    justify-items: center !important;
+  }
+
+  .best-sellers-grid:has(> .best-seller-card:only-child),
+  .best-sellers-grid.single-item {
+    display: flex !important;
+    justify-content: center !important;
+    align-items: center !important;
+  }
+
+  .best-sellers-grid:has(> .best-seller-card:only-child) .best-seller-card,
+  .best-sellers-grid.single-item .best-seller-card {
+    max-width: 320px !important;
+    width: 100% !important;
+    margin: 0 auto !important;
   }
 
   .best-seller-card,
@@ -450,6 +469,8 @@
 
   .best-seller-info {
     padding: 6px 0 0 0 !important;
+    align-items: flex-start !important;
+    text-align: left !important;
   }
 
   .best-seller-name {
@@ -457,6 +478,11 @@
     line-height: 1.25 !important;
     margin: 0 0 2px 0 !important;
     min-height: unset !important;
+    text-align: left !important;
+  }
+
+  .best-seller-price-row {
+    justify-content: flex-start !important;
   }
 
   .best-seller-price {
@@ -464,6 +490,7 @@
     font-weight: 700 !important;
     line-height: 1.2 !important;
     margin: 0 !important;
+    text-align: left !important;
   }
 
   .best-seller-mrp-cut {

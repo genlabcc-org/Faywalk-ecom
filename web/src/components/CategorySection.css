@@ -133,12 +133,14 @@
   margin: 0 0 16px 0 !important;
 }
 
-/* ── Grid Layout for Category Cards ── */
+/* ── Layout for Category Cards (Centered Flexbox) ── */
 .category-grid,
 .category-wrapper {
-  display: grid !important;
-  grid-template-columns: repeat(auto-fill, 240px) !important;
+  display: flex !important;
+  flex-direction: row !important;
+  flex-wrap: wrap !important;
   justify-content: center !important;
+  align-items: flex-start !important;
   gap: 20px !important;
   width: 100% !important;
   box-sizing: border-box !important;
@@ -149,7 +151,7 @@
 .category-item {
   display: flex !important;
   flex-direction: column !important;
-  align-items: center !important;
+  align-items: flex-start !important;
   cursor: pointer !important;
   text-decoration: none !important;
   width: 240px !important;
@@ -211,7 +213,7 @@
   filter: none !important;
 }
 
-/* ── Category Name Below Image (Centered, Bold Sans-Serif) ── */
+/* ── Category Name Below Image (Left-Aligned, Bold Sans-Serif) ── */
 .category-name,
 .category-card h3,
 .category-item p {
@@ -219,7 +221,8 @@
   font-size: 17px !important;
   font-weight: 700 !important;
   color: #000000 !important;
-  text-align: center !important;
+  text-align: left !important;
+  width: 100% !important;
   margin: 12px 0 0 0 !important;
   padding: 0 !important;
   letter-spacing: -0.01em !important;
@@ -279,16 +282,29 @@
 
   .category-grid,
   .category-wrapper {
-    display: grid !important;
-    grid-template-columns: repeat(2, 1fr) !important;
+    display: flex !important;
+    flex-direction: row !important;
+    flex-wrap: wrap !important;
+    justify-content: center !important;
+    align-items: flex-start !important;
     gap: 14px 10px !important;
     overflow-x: visible !important;
     padding: 0 !important;
+    width: 100% !important;
   }
 
   .category-card,
   .category-item {
+    width: calc(50% - 6px) !important;
+    max-width: 240px !important;
+    align-items: flex-start !important;
+  }
+
+  .category-grid:has(> .category-card:only-child) .category-card,
+  .category-grid.single-item .category-card {
+    max-width: 240px !important;
     width: 100% !important;
+    margin: 0 auto !important;
   }
 
   .category-img-container,
@@ -318,6 +334,8 @@
     font-size: 14px !important;
     font-weight: 700 !important;
     margin-top: 8px !important;
+    text-align: left !important;
+    width: 100% !important;
   }
 
   .category-tabs {

@@ -602,7 +602,7 @@
 }
 
 .ab__hero-dot--active {
-  background: #8b0030;
+  background: var(--blue-primary, #002277);
   opacity: 1;
 }
 

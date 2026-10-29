@@ -58,6 +58,7 @@
   width: 200px;
   height: auto;
 }
+
 /* Title */
 .jewelry-title {
   font-family: "Agraham", serif;
@@ -249,7 +250,7 @@
     top: 25px;
   }
 
-  .jewelry-logo img{
+  .jewelry-logo img {
     width: 160px;
   }
 }

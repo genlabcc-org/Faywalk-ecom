@@ -10,15 +10,17 @@ export default function NewArrivals({ onProductClick }) {
   const sliderRef = useRef(null);
   const [canScrollLeft, setCanScrollLeft] = useState(false);
   const [canScrollRight, setCanScrollRight] = useState(false);
+  const [hasOverflow, setHasOverflow] = useState(false);
   const [isPaused, setIsPaused] = useState(false);
 
   const checkScroll = () => {
     const el = sliderRef.current;
     if (!el) return;
     const { scrollWidth, clientWidth } = el;
-    const hasOverflow = scrollWidth > clientWidth + 4;
-    setCanScrollLeft(hasOverflow);
-    setCanScrollRight(hasOverflow);
+    const overflow = scrollWidth > clientWidth + 4;
+    setHasOverflow(overflow);
+    setCanScrollLeft(overflow);
+    setCanScrollRight(overflow);
   };
 
   useEffect(() => {
@@ -58,7 +60,7 @@ export default function NewArrivals({ onProductClick }) {
 
   // Auto-slide on desktop (width > 768px)
   useEffect(() => {
-    if (loading || products.length <= 1 || isPaused) return;
+    if (loading || !hasOverflow || isPaused) return;
 
     const interval = setInterval(() => {
       if (typeof window !== 'undefined' && window.innerWidth <= 768) return;
@@ -66,7 +68,7 @@ export default function NewArrivals({ onProductClick }) {
     }, 3500);
 
     return () => clearInterval(interval);
-  }, [loading, products, isPaused]);
+  }, [loading, hasOverflow, isPaused]);
 
   useEffect(() => {
     let isMounted = true;
@@ -200,7 +202,7 @@ export default function NewArrivals({ onProductClick }) {
           onMouseEnter={() => setIsPaused(true)}
           onMouseLeave={() => setIsPaused(false)}
         >
-          {canScrollLeft && (
+          {canScrollLeft && hasOverflow && (
             <button
               type="button"
               className="new-arrivals-nav-btn new-arrivals-nav-prev"
@@ -213,7 +215,10 @@ export default function NewArrivals({ onProductClick }) {
             </button>
           )}
 
-          <div className="new-arrivals-grid new-arrivals-slider" ref={sliderRef}>
+          <div
+            className={`new-arrivals-grid new-arrivals-slider ${hasOverflow ? 'has-overflow' : 'is-centered'} ${products.length === 1 ? 'single-item' : ''}`}
+            ref={sliderRef}
+          >
             {products.map((product) => (
               <article
                 key={product.id}
@@ -254,7 +259,7 @@ export default function NewArrivals({ onProductClick }) {
             ))}
           </div>
 
-          {canScrollRight && (
+          {canScrollRight && hasOverflow && (
             <button
               type="button"
               className="new-arrivals-nav-btn new-arrivals-nav-next"

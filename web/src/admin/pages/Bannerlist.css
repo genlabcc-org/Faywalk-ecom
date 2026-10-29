@@ -425,7 +425,7 @@
 }
 
 .bl__hero-dot--active {
-  background: #8b0030;
+  background: var(--blue-primary, #002277);
   opacity: 1;
 }
 
@@ -452,7 +452,7 @@
 
 .bl__carousel-arrow:hover {
   background: #ffffff;
-  color: #8b0030;
+  color: var(--blue-primary, #002277);
   transform: translateY(-50%) scale(1.08);
 }
 
