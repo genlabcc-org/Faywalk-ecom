@@ -76,6 +76,21 @@ const indianStates = [
   "Chandigarh", "Ladakh", "Andaman & Nicobar Islands", "Lakshadweep",
 ];
 
+// Indian mobile number validation (exactly 10 digits starting with 6, 7, 8, or 9; no spaces, symbols, +91, or leading 0)
+const isValidIndianMobile = (phone) => /^[6-9]\d{9}$/.test(String(phone || '').trim());
+
+// Helper to normalize phone number by stripping common prefixes like +91, 91, or leading 0 if followed by 10 digits
+const cleanIndianMobile = (raw) => {
+  const digits = String(raw || '').replace(/\D/g, '');
+  if (digits.length === 12 && digits.startsWith('91') && /^[6-9]/.test(digits.slice(2))) {
+    return digits.slice(2);
+  }
+  if (digits.length === 11 && digits.startsWith('0') && /^[6-9]/.test(digits.slice(1))) {
+    return digits.slice(1);
+  }
+  return digits.slice(0, 10);
+};
+
 // Fallback pincode validation regex helper
 const isValidPincodeRegex = (pin) => /^\d{6}$/.test(String(pin || '').trim());
 
@@ -201,10 +216,19 @@ export default function CheckoutPage() {
 
     const hasSelectedAddress = selectedId && !isAddingNewAddress && addresses.some(a => a.address_id === selectedId);
 
-    if (!hasSelectedAddress) {
+    if (hasSelectedAddress) {
+      // Also verify that the selected saved address has a valid 10-digit Indian mobile number
+      const selectedAddr = addresses.find(a => a.address_id === selectedId);
+      const phoneToCheck = selectedAddr?.phone_number || selectedAddr?.phone || selectedAddr?.mobile || form.mobile;
+      if (!isValidIndianMobile(phoneToCheck)) {
+        e.mobile = "Mobile number must be 10 digits starting with 9, 8, 7, or 6 (without +91, 0, or spaces)";
+      }
+    } else {
       if (!form.firstName.trim()) e.firstName = "First name is required";
-      if (!form.mobile.trim() || !/^\d{10}$/.test(form.mobile.replace(/\D/g, ""))) {
-        e.mobile = "Valid 10-digit phone is required";
+      if (!form.mobile.trim()) {
+        e.mobile = "Mobile number is required";
+      } else if (!isValidIndianMobile(form.mobile)) {
+        e.mobile = "Mobile number must be 10 digits starting with 9, 8, 7, or 6 (without +91, 0, or spaces)";
       }
       if (!form.flat.trim()) e.flat = "Address is required";
       if (!form.pinCode.trim() || !isValidPincodeRegex(form.pinCode)) {
@@ -225,7 +249,11 @@ export default function CheckoutPage() {
 
   const handleChange = (e) => {
     const { name, value, type, checked } = e.target;
-    setForm((f) => ({ ...f, [name]: type === "checkbox" ? checked : value }));
+    let finalVal = type === "checkbox" ? checked : value;
+    if (name === "mobile") {
+      finalVal = cleanIndianMobile(value);
+    }
+    setForm((f) => ({ ...f, [name]: finalVal }));
     setErrors((err) => ({ ...err, [name]: undefined }));
   };
 
@@ -512,8 +540,8 @@ export default function CheckoutPage() {
       try {
         const { data: prods } = await supabase
           .from('products')
-          .select('id, stock, product_variants(id, color, size, stock)')
-          .in('id', pIds);
+          .select('id:product_id, stock, product_variants(id:variant_id, color, size, stock)')
+          .in('product_id', pIds);
 
         if (prods && prods.length > 0) {
           const map = {};
@@ -531,8 +559,8 @@ export default function CheckoutPage() {
                   const c = String(v.color || '').trim().toLowerCase();
                   return (itemSize ? s === itemSize : true) && (itemColor ? c === itemColor : true);
                 }) || vars.find(v => itemSize ? String(v.size || '').trim().toLowerCase() === itemSize : true)
-                   || vars.find(v => itemColor ? String(v.color || '').trim().toLowerCase() === itemColor : true)
-                   || vars[0];
+                  || vars.find(v => itemColor ? String(v.color || '').trim().toLowerCase() === itemColor : true)
+                  || vars[0];
               }
               const stockVal = matched
                 ? Math.max(0, parseInt(matched.stock, 10) || 0)
@@ -554,8 +582,8 @@ export default function CheckoutPage() {
     const rawStock = stockOverrides[key] !== undefined
       ? stockOverrides[key]
       : (item.stock !== undefined && item.stock !== null
-          ? item.stock
-          : (item.stockCount !== undefined && item.stockCount !== null ? item.stockCount : null));
+        ? item.stock
+        : (item.stockCount !== undefined && item.stockCount !== null ? item.stockCount : null));
     const stockLimit = rawStock != null && !isNaN(parseInt(rawStock, 10)) ? parseInt(rawStock, 10) : null;
     const rawQty = Math.max(1, parseInt(item.qty, 10) || 1);
     const realQty = stockLimit != null && stockLimit > 0 ? Math.min(rawQty, stockLimit) : rawQty;
@@ -902,7 +930,7 @@ export default function CheckoutPage() {
           .eq("id", userId)
           .single();
 
-        const razorpayKey = orderData?.keyId || import.meta.env.VITE_RAZORPAY_KEY_ID || "rzp_test_ToppPFJoyBrgOR";
+        const razorpayKey = orderData?.keyId || import.meta.env.VITE_RAZORPAY_KEY_ID || "rzp_live_TvB9CJgIVtWfIC";
 
         const options = {
           key: razorpayKey,
@@ -1129,11 +1157,16 @@ export default function CheckoutPage() {
                               {(contactPhone || contactEmail) && (
                                 <div className="checkout-address-card-contact">
                                   {contactPhone && (
-                                    <span className="checkout-address-contact-item">
+                                    <span className={`checkout-address-contact-item ${!isValidIndianMobile(contactPhone) ? 'is-phone-invalid' : ''}`}>
                                       <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                                         <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z" />
                                       </svg>
                                       <span><strong>Mobile:</strong> {contactPhone}</span>
+                                      {!isValidIndianMobile(contactPhone) && (
+                                        <span style={{ color: "#dc2626", fontSize: 11, fontWeight: 600, marginLeft: 6 }}>
+                                          (Invalid 10-digit mobile)
+                                        </span>
+                                      )}
                                     </span>
                                   )}
                                   {contactEmail && (
@@ -1270,8 +1303,10 @@ export default function CheckoutPage() {
                       <div className="checkout-input-wrap">
                         <input
                           type="tel"
+                          inputMode="numeric"
+                          maxLength={10}
                           name="mobile"
-                          placeholder="Phone number"
+                          placeholder="10-digit Mobile number (e.g. 9876543210)"
                           value={form.mobile}
                           onChange={handleChange}
                           className={`checkout-styled-input ${errors.mobile ? "error" : ""}`}

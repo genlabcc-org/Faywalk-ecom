@@ -22,13 +22,13 @@ async function sendNotificationEmail(order: any, orderItems: any[], address: any
 
     const formattedAddress = address
       ? [
-          address.flat,
-          address.area,
-          address.city,
-          address.state ? `${address.state} - ${address.pincode || address.pin_code}` : address.pincode,
-        ]
-          .filter(Boolean)
-          .join(", ")
+        address.flat,
+        address.area,
+        address.city,
+        address.state ? `${address.state} - ${address.pincode || address.pin_code}` : address.pincode,
+      ]
+        .filter(Boolean)
+        .join(", ")
       : "N/A";
 
     const itemsListFormatted = (orderItems || [])
@@ -340,7 +340,7 @@ Deno.serve(async (req: Request) => {
     if (notes.items_json) {
       try {
         rawItems = JSON.parse(notes.items_json);
-      } catch {}
+      } catch { }
     }
     if (rawItems.length === 0) {
       for (let i = 1; i <= 10; i++) {
@@ -362,7 +362,7 @@ Deno.serve(async (req: Request) => {
             });
             rawItems.push({ name, sku, size, color, quantity: qty, price });
           }
-        } catch {}
+        } catch { }
       }
     }
 
@@ -374,17 +374,40 @@ Deno.serve(async (req: Request) => {
       });
     }
 
-    const orderItemsToInsert = rawItems.map((item: any) => ({
-      order_id: newOrder.id,
-      product_id: item.productId || item.product_id || item.p || null,
-      product_name: item.name || item.product_name || item.n || itemName,
-      quantity: item.quantity || item.qty || item.q || 1,
-      price: item.price || item.pr || 0,
-      size: item.size || item.s || null,
-      color: item.color || item.c || null,
-      sku: item.sku || null,
-      image_url: item.image || item.image_url || null,
-    }));
+    // Razorpay notes can't carry image URLs (255-char limit), so resolve them from the DB.
+    const imageByProductId: Record<string, string> = {};
+    const imageBySku: Record<string, string> = {};
+    const productIds = [...new Set(rawItems.map((it: any) => it.productId || it.product_id || it.p).filter(Boolean))];
+    if (productIds.length > 0) {
+      const { data: prods } = await supabaseAdmin
+        .from("products")
+        .select("product_id, image_url, images, product_variants(sku, images)")
+        .in("product_id", productIds);
+      (prods || []).forEach((p: any) => {
+        const img = p.image_url || p.images?.[0];
+        if (img) imageByProductId[String(p.product_id)] = img;
+        (p.product_variants || []).forEach((v: any) => {
+          if (v.sku && v.images?.[0]) imageBySku[v.sku] = v.images[0];
+        });
+      });
+    }
+
+    const orderItemsToInsert = rawItems.map((item: any) => {
+      const pid = item.productId || item.product_id || item.p || null;
+      const sku = item.sku || null;
+      return {
+        order_id: newOrder.id,
+        product_id: pid,
+        product_name: item.name || item.product_name || item.n || itemName,
+        quantity: item.quantity || item.qty || item.q || 1,
+        price: item.price || item.pr || 0,
+        size: item.size || item.s || null,
+        color: item.color || item.c || null,
+        sku,
+        image_url: item.image || item.image_url ||
+          (sku && imageBySku[sku]) || (pid && imageByProductId[String(pid)]) || null,
+      };
+    });
 
     if (orderItemsToInsert.length > 0) {
       const { error: itemsErr } = await supabaseAdmin

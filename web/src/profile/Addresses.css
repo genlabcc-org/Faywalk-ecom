@@ -124,14 +124,49 @@
 .addr-saved-info {
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: 6px;
+  flex: 1;
+}
+
+.addr-saved-header-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.addr-saved-badges {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.addr-badge {
+  font-size: 10.5px;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+  padding: 2px 7px;
+  border-radius: 4px;
+  text-transform: uppercase;
+}
+
+.addr-badge--type {
+  background-color: #e2e8f0;
+  color: #334155;
+}
+
+.addr-badge--default {
+  background-color: #dbeafe;
+  color: #1d4ed8;
+  border: none;
 }
 
 .addr-saved-name {
   font-family: var(--font-body);
-  font-size: 14.5px;
+  font-size: 15px;
   font-weight: 700;
-  color: #111827;
+  color: #0f172a;
   line-height: 1.3;
 }
 
@@ -139,9 +174,49 @@
   font-family: 'Outfit', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
   font-size: 13px;
   font-weight: 400;
-  color: #555e6d;
+  color: #475569;
   line-height: 1.55;
   word-break: break-word;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  margin-top: 2px;
+}
+
+.addr-line {
+  color: #334155;
+}
+
+.addr-line--sub {
+  color: #64748b;
+}
+
+.addr-line--city-state {
+  color: #1e293b;
+  font-weight: 500;
+}
+
+.addr-line--country {
+  color: #64748b;
+  font-size: 12px;
+}
+
+.addr-saved-phone {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12.5px;
+  color: #0f172a;
+  background-color: transparent;
+  border: none;
+  padding: 0;
+  width: fit-content;
+  margin-top: 4px;
+}
+
+.addr-saved-phone svg {
+  color: #2563eb;
+  flex-shrink: 0;
 }
 
 /* Card action buttons */
@@ -397,6 +472,87 @@
 .addr-cancel-btn:hover {
   background-color: #f3f4f6;
   color: #111827;
+}
+
+/* ── ERROR STYLES ─────────────────────────────────────────── */
+.addr-input--error {
+  border-color: #ef4444 !important;
+  background-color: #fef2f2 !important;
+}
+
+.addr-input--error:focus {
+  border-color: #dc2626 !important;
+  box-shadow: 0 0 0 2px rgba(239, 68, 68, 0.15) !important;
+}
+
+.addr-error-msg {
+  display: block;
+  font-family: 'Outfit', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  font-size: 12px;
+  color: #dc2626;
+  font-weight: 500;
+  margin-top: 5px;
+  margin-left: 2px;
+}
+
+/* ── TOAST NOTIFICATION ───────────────────────────────────── */
+.addr-toast {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 12px 18px;
+  border-radius: 10px;
+  margin-bottom: 20px;
+  font-family: 'Outfit', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  font-size: 13.5px;
+  font-weight: 500;
+  animation: addrToastSlide 0.2s ease-out;
+}
+
+@keyframes addrToastSlide {
+  from {
+    opacity: 0;
+    transform: translateY(-6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.addr-toast--success {
+  background-color: #ecfdf5;
+  color: #065f46;
+  border: 1px solid #a7f3d0;
+}
+
+.addr-toast--error {
+  background-color: #fef2f2;
+  color: #991b1b;
+  border: 1px solid #fecaca;
+}
+
+.addr-toast--info {
+  background-color: #eff6ff;
+  color: #1e40af;
+  border: 1px solid #bfdbfe;
+}
+
+.addr-toast-close {
+  background: transparent;
+  border: none;
+  font-size: 14px;
+  cursor: pointer;
+  color: currentColor;
+  opacity: 0.7;
+  padding: 0;
+  display: flex;
+  align-items: center;
+}
+
+.addr-toast-close:hover {
+  opacity: 1;
 }
 
 /* ── RESPONSIVE ───────────────────────────────────────────── */

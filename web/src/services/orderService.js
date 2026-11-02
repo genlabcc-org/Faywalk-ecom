@@ -208,6 +208,31 @@ export const orderService = {
       } catch (e) {
         console.warn('Error joining order_items in getAllOrders:', e);
       }
+
+      // Batch join shipping addresses for all orders
+      try {
+        const addressIds = [...new Set(data.map((o) => o.address_id).filter(Boolean))];
+        if (addressIds.length > 0) {
+          const { data: addrs } = await supabase
+            .from('addresses')
+            .select('*')
+            .in('address_id', addressIds);
+          if (addrs && addrs.length > 0) {
+            const addrMap = {};
+            addrs.forEach((a) => {
+              addrMap[String(a.address_id)] = a;
+            });
+            data.forEach((o) => {
+              if (o.address_id && addrMap[String(o.address_id)]) {
+                o.shipping_address = addrMap[String(o.address_id)];
+                o.customer_phone = o.customer_phone || addrMap[String(o.address_id)].phone_number;
+              }
+            });
+          }
+        }
+      } catch (e) {
+        console.warn('Error joining addresses in getAllOrders:', e);
+      }
     }
     return data || [];
   },

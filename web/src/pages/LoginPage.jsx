@@ -7,28 +7,20 @@ import Toast from "../components/Toast";
 import loginImg from "../assets/sign/welcome.png";
 
 export default function LoginPage() {
-  const [loginType, setLoginType] = useState("email"); // 'email' | 'phone'
   const [email, setEmail] = useState("");
   const [loading, setLoading] = useState(false);
   const [googleLoading, setGoogleLoading] = useState(false);
-
-  // Phone auth states
-  const [phoneNumber, setPhoneNumber] = useState("");
-  const [phoneStep, setPhoneStep] = useState("input"); // 'input' | 'otp'
-  const [phoneOtp, setPhoneOtp] = useState("");
-  const [phoneLoading, setPhoneLoading] = useState(false);
-  const [confirmationResult, setConfirmationResult] = useState(null);
 
   const [toast, setToast] = useState({ message: "", type: "" });
   const navigate = useNavigate();
 
   const showToast = (message, type = "info") => {
-    setToast({ message: "", type: ""});
-    setTimeout(() => setToast({ message, type}), 10);
+    setToast({ message: "", type: "" });
+    setTimeout(() => setToast({ message, type }), 10);
   };
 
   const handleGoogleLogin = async () => {
-    if (loading || googleLoading || phoneLoading) return;
+    if (loading || googleLoading) return;
     setGoogleLoading(true);
     try {
       await authService.signInWithGoogleFirebase();
@@ -46,7 +38,7 @@ export default function LoginPage() {
   };
 
   const handleSendOTP = async () => {
-    if (loading || googleLoading || phoneLoading) return;
+    if (loading || googleLoading) return;
     if (!email) {
       showToast("Please enter your email.", "error");
       return;
@@ -66,62 +58,9 @@ export default function LoginPage() {
     } catch (error) {
       // Step 2 — user doesn't exist → redirect to signup
       showToast("Email not found! Please sign up first.", "error");
-      setTimeout(() => navigate("/account/signup"),  1500);
+      setTimeout(() => navigate("/account/signup"), 1500);
       setLoading(false);
       return;
-    }
-  };
-
-  // ── PHONE AUTH HANDLERS (FIREBASE) ──
-  const handleSendPhoneOTP = async () => {
-    if (loading || googleLoading || phoneLoading) return;
-    const cleanDigits = phoneNumber.replace(/\D/g, "");
-    if (!cleanDigits || cleanDigits.length < 10) {
-      showToast("Please enter a valid 10-digit phone number.", "error");
-      return;
-    }
-
-    const fullPhone = phoneNumber.startsWith("+")
-      ? phoneNumber.trim()
-      : `+91${cleanDigits.slice(-10)}`;
-
-    setPhoneLoading(true);
-
-    try {
-      const confirmation = await authService.sendPhoneOtpFirebase(fullPhone, "recaptcha-container");
-      setConfirmationResult(confirmation);
-      setPhoneStep("otp");
-      showToast(`SMS OTP sent to ${fullPhone}`, "success");
-    } catch (err) {
-      console.error("Phone OTP send error:", err);
-      showToast(err.message || "Failed to send SMS OTP. Please try again.", "error");
-    } finally {
-      setPhoneLoading(false);
-    }
-  };
-
-  const handleVerifyPhoneOTP = async () => {
-    if (loading || googleLoading || phoneLoading) return;
-    if (!phoneOtp || phoneOtp.length < 6) {
-      showToast("Please enter the 6-digit OTP code.", "error");
-      return;
-    }
-    if (!confirmationResult) {
-      showToast("Verification session expired. Please request OTP again.", "error");
-      setPhoneStep("input");
-      return;
-    }
-
-    setPhoneLoading(true);
-
-    try {
-      await authService.verifyPhoneOtpFirebase(confirmationResult, phoneOtp);
-      showToast("Phone login successful!", "success");
-      setTimeout(() => navigate("/"), 1000);
-    } catch (err) {
-      console.error("Phone OTP verify error:", err);
-      showToast(err.message || "Invalid OTP code. Please check and retry.", "error");
-      setPhoneLoading(false);
     }
   };
 
@@ -134,9 +73,6 @@ export default function LoginPage() {
         />
       </div>
 
-      {/* Invisible reCAPTCHA container for Firebase Phone Auth */}
-      <div id="recaptcha-container"></div>
-
       {/* RIGHT — login form */}
       <div className="jewelry-right">
         <Link to="/">
@@ -148,186 +84,41 @@ export default function LoginPage() {
 
           <h2 className="jewelry-title">Login</h2>
 
-          {/* Login Type Tabs */}
-          <div className="jewelry-tabs">
-            <button
-              type="button"
-              className={`jewelry-tab-btn ${loginType === "email" ? "active" : ""}`}
-              onClick={() => {
-                setLoginType("email");
-                setPhoneStep("input");
-              }}
-              disabled={loading || phoneLoading || googleLoading}
-            >
-              Email
-            </button>
-            <button
-              type="button"
-              className={`jewelry-tab-btn ${loginType === "phone" ? "active" : ""}`}
-              onClick={() => {
-                setLoginType("phone");
-              }}
-              disabled={loading || phoneLoading || googleLoading}
-            >
-              Phone Number
-            </button>
-          </div>
-
           {/* ── EMAIL LOGIN FORM ── */}
-          {loginType === "email" && (
-            <>
-              <label className="jewelry-label" htmlFor="email">
-                Enter Email
-              </label>
-              <input
-                id="email"
-                type="email"
-                className="jewelry-input"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                onKeyDown={(e) => {
-                  if (e.key === "Enter" && !loading) {
-                    handleSendOTP();
-                  }
-                }}
-                placeholder=""
-                maxLength={32}
-                disabled={loading || googleLoading}
-              />
+          <label className="jewelry-label" htmlFor="email">
+            Enter Email
+          </label>
+          <input
+            id="email"
+            type="email"
+            className="jewelry-input"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === "Enter" && !loading) {
+                handleSendOTP();
+              }
+            }}
+            placeholder="Enter your email"
+            maxLength={64}
+            disabled={loading || googleLoading}
+          />
 
-              <button
-                type="button"
-                className="jewelry-btn-otp"
-                onClick={handleSendOTP}
-                disabled={loading || googleLoading}
-              >
-                {loading ? (
-                  <span className="jewelry-btn-loading">
-                    <span className="jewelry-spinner" />
-                    Sending OTP...
-                  </span>
-                ) : (
-                  "Send OTP"
-                )}
-              </button>
-            </>
-          )}
-
-          {/* ── PHONE LOGIN FORM (FIREBASE) ── */}
-          {loginType === "phone" && phoneStep === "input" && (
-            <>
-              <label className="jewelry-label" htmlFor="phone">
-                Enter Mobile Number
-              </label>
-              <div className="jewelry-phone-group">
-                <span className="jewelry-phone-prefix">+91</span>
-                <input
-                  id="phone"
-                  type="tel"
-                  className="jewelry-input jewelry-phone-input"
-                  value={phoneNumber}
-                  onChange={(e) => {
-                    const val = e.target.value.replace(/\D/g, "").slice(0, 10);
-                    setPhoneNumber(val);
-                  }}
-                  onKeyDown={(e) => {
-                    if (e.key === "Enter" && !phoneLoading) {
-                      handleSendPhoneOTP();
-                    }
-                  }}
-                  placeholder="98765 43210"
-                  maxLength={10}
-                  disabled={phoneLoading || googleLoading}
-                />
-              </div>
-
-              <button
-                type="button"
-                className="jewelry-btn-otp"
-                onClick={handleSendPhoneOTP}
-                disabled={phoneLoading || googleLoading}
-              >
-                {phoneLoading ? (
-                  <span className="jewelry-btn-loading">
-                    <span className="jewelry-spinner" />
-                    Sending SMS OTP...
-                  </span>
-                ) : (
-                  "Send OTP"
-                )}
-              </button>
-            </>
-          )}
-
-          {/* ── PHONE OTP VERIFICATION STEP ── */}
-          {loginType === "phone" && phoneStep === "otp" && (
-            <>
-              <label className="jewelry-label" htmlFor="phone-otp">
-                Enter 6-Digit SMS Code
-              </label>
-              <p className="jewelry-phone-subtext">
-                Sent to +91 {phoneNumber}
-              </p>
-              <input
-                id="phone-otp"
-                type="text"
-                inputMode="numeric"
-                className="jewelry-input"
-                value={phoneOtp}
-                onChange={(e) => {
-                  const val = e.target.value.replace(/\D/g, "").slice(0, 6);
-                  setPhoneOtp(val);
-                }}
-                onKeyDown={(e) => {
-                  if (e.key === "Enter" && !phoneLoading) {
-                    handleVerifyPhoneOTP();
-                  }
-                }}
-                placeholder="123456"
-                maxLength={6}
-                disabled={phoneLoading || googleLoading}
-                autoFocus
-              />
-
-              <div className="jewelry-phone-actions">
-                <button
-                  type="button"
-                  className="jewelry-link-btn"
-                  onClick={() => {
-                    setPhoneStep("input");
-                    setPhoneOtp("");
-                  }}
-                  disabled={phoneLoading}
-                >
-                  Change Number
-                </button>
-                <button
-                  type="button"
-                  className="jewelry-link-btn"
-                  onClick={handleSendPhoneOTP}
-                  disabled={phoneLoading}
-                >
-                  Resend SMS
-                </button>
-              </div>
-
-              <button
-                type="button"
-                className="jewelry-btn-otp"
-                onClick={handleVerifyPhoneOTP}
-                disabled={phoneLoading || googleLoading}
-              >
-                {phoneLoading ? (
-                  <span className="jewelry-btn-loading">
-                    <span className="jewelry-spinner" />
-                    Verifying...
-                  </span>
-                ) : (
-                  "Verify & Login"
-                )}
-              </button>
-            </>
-          )}
+          <button
+            type="button"
+            className="jewelry-btn-otp"
+            onClick={handleSendOTP}
+            disabled={loading || googleLoading}
+          >
+            {loading ? (
+              <span className="jewelry-btn-loading">
+                <span className="jewelry-spinner" />
+                Sending OTP...
+              </span>
+            ) : (
+              "Send OTP"
+            )}
+          </button>
 
           {/* Divider */}
           <div className="jewelry-divider">

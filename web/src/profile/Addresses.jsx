@@ -6,21 +6,7 @@ import ProfileLayout from "./ProfileLayout";
 import "./Addresses.css";
 
 
-const STATES = [
-  "Gujarat",
-  "Tamil Nadu",
-  "Maharashtra",
-  "Delhi",
-  "Karnataka",
-  "Telangana",
-  "West Bengal",
-  "Rajasthan",
-  "Uttar Pradesh",
-  "Kerala",
-  "Andhra Pradesh",
-  "Punjab",
-  "Haryana",
-];
+import { INDIAN_STATES } from "../services/shippingService";
 
 export default function Addresses() {
   const navigate = useNavigate();
@@ -40,18 +26,29 @@ export default function Addresses() {
     area: "",
     city: "",
     pinCode: "",
-    state: "Gujarat",
+    state: "",
     isDefault: false,
   });
 
   const [editingAddressId, setEditingAddressId] = useState(null);
   const [showForm, setShowForm] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [errors, setErrors] = useState({});
+  const [toast, setToast] = useState({ message: "", type: "" });
   const formRef = useRef(null);
   const nameInputRef = useRef(null);
 
+  const showToast = (message, type = "success") => {
+    setToast({ message: "", type: "" });
+    setTimeout(() => setToast({ message, type }), 10);
+    setTimeout(() => setToast({ message: "", type: "" }), 4000);
+  };
+
   const handleFormChange = (field, value) => {
     setForm((prev) => ({ ...prev, [field]: value }));
+    if (errors[field]) {
+      setErrors((prev) => ({ ...prev, [field]: undefined }));
+    }
   };
 
   // ── Load user + addresses on mount ──
@@ -78,6 +75,7 @@ export default function Addresses() {
 
   const handleOpenAddForm = () => {
     setEditingAddressId(null);
+    setErrors({});
     setForm({
       name: user?.user_metadata?.name || "",
       email: user?.email || "",
@@ -86,7 +84,7 @@ export default function Addresses() {
       area: "",
       city: "",
       pinCode: "",
-      state: "Gujarat",
+      state: "",
       isDefault: addresses.length === 0,
     });
     setShowForm(true);
@@ -98,6 +96,7 @@ export default function Addresses() {
 
   const handleEditClick = (addr) => {
     setEditingAddressId(addr.address_id);
+    setErrors({});
     setForm({
       name: addr.full_name || "",
       email: user?.email || "",
@@ -106,7 +105,7 @@ export default function Addresses() {
       area: addr.address_line2 || "",
       city: addr.city || "",
       pinCode: addr.postal_code || "",
-      state: addr.state || "Gujarat",
+      state: addr.state || "",
       isDefault: Boolean(addr.is_default),
     });
     setShowForm(true);
@@ -119,6 +118,7 @@ export default function Addresses() {
   const handleCancelForm = () => {
     setShowForm(false);
     setEditingAddressId(null);
+    setErrors({});
     setForm({
       name: user?.user_metadata?.name || "",
       email: user?.email || "",
@@ -127,19 +127,56 @@ export default function Addresses() {
       area: "",
       city: "",
       pinCode: "",
-      state: "Gujarat",
+      state: "",
       isDefault: false,
     });
   };
 
+  const validateForm = () => {
+    const errs = {};
+    if (!form.name.trim()) {
+      errs.name = "Full name is required";
+    }
+
+    if (form.email && !/\S+@\S+\.\S+/.test(form.email)) {
+      errs.email = "Please enter a valid email address";
+    }
+
+    const cleanPhone = String(form.mobile || "").trim();
+    if (!cleanPhone) {
+      errs.mobile = "Mobile number is required";
+    } else if (!/^[6-9]\d{9}$/.test(cleanPhone)) {
+      errs.mobile = "Must be a 10-digit Indian mobile starting with 9, 8, 7, or 6";
+    }
+
+    if (!form.flat.trim()) {
+      errs.flat = "House / Flat number and street are required";
+    }
+
+    if (!form.city.trim()) {
+      errs.city = "City is required";
+    }
+
+    const cleanPin = String(form.pinCode || "").trim();
+    if (!cleanPin) {
+      errs.pinCode = "PIN code is required";
+    } else if (!/^\d{6}$/.test(cleanPin)) {
+      errs.pinCode = "PIN code must be exactly 6 digits";
+    }
+
+    if (!form.state || !form.state.trim()) {
+      errs.state = "Please select a state";
+    }
+
+    return errs;
+  };
+
   const handleSubmit = async (e) => {
     e?.preventDefault();
-    if (!form.name.trim()) {
-      alert("Please enter a name.");
-      return;
-    }
-    if (!form.flat.trim() || !form.city.trim() || !form.pinCode.trim()) {
-      alert("Please fill in address, city and pin code.");
+    const newErrors = validateForm();
+    if (Object.keys(newErrors).length > 0) {
+      setErrors(newErrors);
+      showToast("Please fix the errors below", "error");
       return;
     }
 
@@ -151,32 +188,35 @@ export default function Addresses() {
 
       if (editingAddressId) {
         await orderService.updateAddress(editingAddressId, {
-          full_name: form.name,
-          phone_number: form.mobile,
-          address_line1: form.flat,
-          address_line2: form.area,
-          city: form.city,
-          state: form.state,
-          postal_code: form.pinCode,
+          full_name: form.name.trim(),
+          phone_number: form.mobile.trim(),
+          address_line1: form.flat.trim(),
+          address_line2: form.area.trim(),
+          city: form.city.trim(),
+          state: form.state.trim(),
+          postal_code: form.pinCode.trim(),
           is_default: form.isDefault,
         });
+        showToast("Address updated successfully!", "success");
       } else {
         await orderService.createAddress({
           user_id: user.id,
-          full_name: form.name,
-          phone_number: form.mobile,
-          address_line1: form.flat,
-          address_line2: form.area,
-          city: form.city,
-          state: form.state,
-          postal_code: form.pinCode,
+          full_name: form.name.trim(),
+          phone_number: form.mobile.trim(),
+          address_line1: form.flat.trim(),
+          address_line2: form.area.trim(),
+          city: form.city.trim(),
+          state: form.state.trim(),
+          postal_code: form.pinCode.trim(),
           is_default: form.isDefault,
         });
+        showToast("New address added successfully!", "success");
       }
 
       await fetchAddresses(user.id, { force: true });
       setShowForm(false);
       setEditingAddressId(null);
+      setErrors({});
       setForm({
         name: "",
         email: user?.email || "",
@@ -185,11 +225,11 @@ export default function Addresses() {
         area: "",
         city: "",
         pinCode: "",
-        state: "Gujarat",
+        state: "",
         isDefault: false,
       });
     } catch (err) {
-      alert("Failed to save address: " + err.message);
+      showToast("Failed to save address: " + err.message, "error");
     } finally {
       setIsSubmitting(false);
     }
@@ -200,11 +240,12 @@ export default function Addresses() {
     try {
       await orderService.deleteAddress(id, user.id);
       await fetchAddresses(user.id, { force: true });
+      showToast("Address deleted successfully", "info");
       if (editingAddressId === id) {
         handleCancelForm();
       }
     } catch (err) {
-      alert("Failed to delete address: " + err.message);
+      showToast("Failed to delete address: " + err.message, "error");
     }
   };
 
@@ -212,13 +253,28 @@ export default function Addresses() {
     try {
       await orderService.setAddressDefault(id, user.id);
       await fetchAddresses(user.id, { force: true });
+      showToast("Default address updated", "success");
     } catch (err) {
-      alert("Failed to update default address: " + err.message);
+      showToast("Failed to update default address: " + err.message, "error");
     }
   };
 
   return (
     <ProfileLayout>
+      {/* ── TOAST NOTIFICATION ── */}
+      {toast.message && (
+        <div className={`addr-toast addr-toast--${toast.type}`}>
+          <span>{toast.message}</span>
+          <button
+            type="button"
+            className="addr-toast-close"
+            onClick={() => setToast({ message: "", type: "" })}
+          >
+            ✕
+          </button>
+        </div>
+      )}
+
       {/* ── SAVED ADDRESSES HEADER ── */}
       <div className="addr-header-row">
         <h2 className="addr-section-title">Saved Addresses</h2>
@@ -284,13 +340,53 @@ export default function Addresses() {
                   )}
                 </button>
                 <div className="addr-saved-info">
-                  <span className="addr-saved-name">{addr.full_name}</span>
-                  <span className="addr-saved-addr">
-                    {addr.address_line1}
-                    {addr.address_line2 ? `, ${addr.address_line2}` : ""}
-                    <br />
-                    {addr.city}, {addr.state} - {addr.postal_code}
-                  </span>
+                  <div className="addr-saved-header-row">
+                    <span className="addr-saved-name">{addr.full_name}</span>
+                    <div className="addr-saved-badges">
+                      {addr.address_type && (
+                        <span className="addr-badge addr-badge--type">
+                          {addr.address_type.toUpperCase()}
+                        </span>
+                      )}
+                      {addr.is_default && (
+                        <span className="addr-badge addr-badge--default">
+                          DEFAULT
+                        </span>
+                      )}
+                    </div>
+                  </div>
+
+                  <div className="addr-saved-addr">
+                    <div className="addr-line">{addr.address_line1}</div>
+                    {addr.address_line2 && (
+                      <div className="addr-line addr-line--sub">{addr.address_line2}</div>
+                    )}
+                    <div className="addr-line addr-line--city-state">
+                      {[addr.city, addr.state].filter(Boolean).join(", ")}
+                      {addr.postal_code ? ` - ${addr.postal_code}` : ""}
+                    </div>
+                    {addr.country && (
+                      <div className="addr-line addr-line--country">{addr.country}</div>
+                    )}
+                  </div>
+
+                  {addr.phone_number && (
+                    <div className="addr-saved-phone">
+                      <svg
+                        width="13"
+                        height="13"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        strokeWidth="2"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                      >
+                        <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z" />
+                      </svg>
+                      <span><strong>Mobile:</strong> {addr.phone_number}</span>
+                    </div>
+                  )}
                 </div>
               </div>
               <div className="addr-saved-actions">
@@ -361,91 +457,111 @@ export default function Addresses() {
 
           <form onSubmit={handleSubmit}>
             <div className="addr-field">
-              <label className="addr-label">Name</label>
+              <label className="addr-label">Name *</label>
               <input
                 ref={nameInputRef}
-                className="addr-input"
-                placeholder="Krishnil Bhojani"
+                className={`addr-input ${errors.name ? "addr-input--error" : ""}`}
+                placeholder="Enter full name"
                 value={form.name}
                 onChange={(e) => handleFormChange("name", e.target.value)}
               />
+              {errors.name && <span className="addr-error-msg">{errors.name}</span>}
             </div>
 
             <div className="addr-field">
               <label className="addr-label">Email Address</label>
               <input
-                className="addr-input"
+                className={`addr-input ${errors.email ? "addr-input--error" : ""}`}
                 type="email"
-                placeholder="krishnil@omegaorion.com"
+                placeholder="name@example.com"
                 value={form.email}
                 onChange={(e) => handleFormChange("email", e.target.value)}
               />
+              {errors.email && <span className="addr-error-msg">{errors.email}</span>}
             </div>
 
             <div className="addr-field">
-              <label className="addr-label">Mobile Number</label>
+              <label className="addr-label">Mobile Number *</label>
               <input
-                className="addr-input"
+                className={`addr-input ${errors.mobile ? "addr-input--error" : ""}`}
                 type="tel"
-                placeholder="(+91) 8758211686"
+                inputMode="numeric"
+                maxLength={10}
+                placeholder="10-digit mobile number (e.g. 9876543210)"
                 value={form.mobile}
-                onChange={(e) => handleFormChange("mobile", e.target.value)}
+                onChange={(e) => {
+                  const cleaned = e.target.value.replace(/\D/g, "").slice(0, 10);
+                  handleFormChange("mobile", cleaned);
+                }}
               />
+              {errors.mobile && <span className="addr-error-msg">{errors.mobile}</span>}
             </div>
 
             <div className="addr-field">
               <label className="addr-label">
-                Flat, House no., Building, Company, Apartment
+                Flat, House no., Building, Company, Apartment *
               </label>
               <input
-                className="addr-input"
-                placeholder="A-01 Sun Pharma Road, Ahmedabad, Gujarat-390023"
+                className={`addr-input ${errors.flat ? "addr-input--error" : ""}`}
+                placeholder="House / Flat no., building name, street"
                 value={form.flat}
                 onChange={(e) => handleFormChange("flat", e.target.value)}
               />
+              {errors.flat && <span className="addr-error-msg">{errors.flat}</span>}
             </div>
 
             <div className="addr-field">
               <label className="addr-label">
-                Area, Colony, Street, Sector, Village
+                Area, Colony, Street, Sector, Village (Optional)
               </label>
               <input
                 className="addr-input"
-                placeholder="Sun Pharma Road"
+                placeholder="Area, landmark, colony"
                 value={form.area}
                 onChange={(e) => handleFormChange("area", e.target.value)}
               />
             </div>
 
             <div className="addr-field">
-              <label className="addr-label">City</label>
+              <label className="addr-label">City *</label>
               <input
-                className="addr-input"
-                placeholder="Ahmedabad"
+                className={`addr-input ${errors.city ? "addr-input--error" : ""}`}
+                placeholder="City / District"
                 value={form.city}
                 onChange={(e) => handleFormChange("city", e.target.value)}
               />
+              {errors.city && <span className="addr-error-msg">{errors.city}</span>}
             </div>
 
             <div className="addr-field">
-              <label className="addr-label">Pin Code</label>
+              <label className="addr-label">Pin Code *</label>
               <input
-                className="addr-input"
-                placeholder="390021"
+                className={`addr-input ${errors.pinCode ? "addr-input--error" : ""}`}
+                type="text"
+                inputMode="numeric"
+                maxLength={6}
+                placeholder="6-digit PIN code"
                 value={form.pinCode}
-                onChange={(e) => handleFormChange("pinCode", e.target.value)}
+                onChange={(e) => {
+                  const cleaned = e.target.value.replace(/\D/g, "").slice(0, 6);
+                  handleFormChange("pinCode", cleaned);
+                }}
               />
+              {errors.pinCode && <span className="addr-error-msg">{errors.pinCode}</span>}
             </div>
 
             <div className="addr-field">
-              <label className="addr-label">State</label>
+              <label className="addr-label">State *</label>
               <div className="addr-select-wrap">
                 <select
-                  className="addr-select"
+                  className={`addr-select ${errors.state ? "addr-input--error" : ""}`}
                   value={form.state}
                   onChange={(e) => handleFormChange("state", e.target.value)}
                 >
-                  {STATES.map((s) => (
+                  <option value="" disabled>
+                    Select state
+                  </option>
+                  {INDIAN_STATES.map((s) => (
                     <option key={s} value={s}>
                       {s}
                     </option>
@@ -465,6 +581,7 @@ export default function Addresses() {
                   <polyline points="6 9 12 15 18 9" />
                 </svg>
               </div>
+              {errors.state && <span className="addr-error-msg">{errors.state}</span>}
             </div>
 
             <div

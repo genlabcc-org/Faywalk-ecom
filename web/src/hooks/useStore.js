@@ -659,8 +659,8 @@ export const useStore = create((set, get) => ({
         try {
           const { data: prods } = await supabase
             .from('products')
-            .select('id, stock, product_variants(id, color, size, stock)')
-            .in('id', pIds);
+            .select('id:product_id, stock, product_variants(id:variant_id, color, size, stock)')
+            .in('product_id', pIds);
           if (prods && prods.length > 0) {
             const updated = currentItems.map(it => {
               const p = prods.find(prod => String(prod.id) === String(it.productId || it.id));

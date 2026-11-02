@@ -103,7 +103,10 @@ export class RazorpayService {
       .from("shipping_rates")
       .select("state, fee, free_above")
       .eq("is_active", true);
-    if (rateErr || !rates?.length) throw new Error("Shipping rates unavailable");
+    if (rateErr) throw new Error("Shipping rates unavailable");
+
+    // No active shipping rates (all disabled in admin) → free delivery everywhere.
+    if (!rates?.length) return 0;
 
     return calcFee(rates as any, addr.state, amountAfterDiscount);
   }

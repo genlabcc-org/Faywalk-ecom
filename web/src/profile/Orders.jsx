@@ -8,6 +8,13 @@ import "./Orders.css";
 
 const PAGE_SIZE = 5;
 
+// Neutral bag icon shown when an order item has no product image.
+const PLACEHOLDER_IMG =
+  "data:image/svg+xml," +
+  encodeURIComponent(
+    '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64"><rect width="64" height="64" fill="#f3f4f6"/><g fill="none" stroke="#9ca3af" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M22 24h20l2 22H20z"/><path d="M27 24v-3a5 5 0 0 1 10 0v3"/></g></svg>'
+  );
+
 export default function Orders() {
 
   const [visibleCount, setVisibleCount] = useState(PAGE_SIZE);
@@ -32,19 +39,26 @@ export default function Orders() {
 
     productService.getProductsByIds([...productIds]).then((data) => {
       const map = {};
-      (data || []).forEach((p) => { map[p.name] = p; });
+      (data || []).forEach((p) => {
+        map[`id:${p.product_id}`] = p;
+        if (p.name) map[`name:${p.name.trim().toLowerCase()}`] = p;
+      });
       setProductsMap(map);
     }).catch((err) => console.error("Error fetching Product:", err));
   }, [rawOrders]);
 
+  const findProduct = (item) =>
+    (item.product_id && productsMap[`id:${item.product_id}`]) ||
+    productsMap[`name:${String(item.product_name || '').trim().toLowerCase()}`];
+
   const handleItemClick = (item) => {
-    const product = productsMap[item.product_name];
+    const product = findProduct(item);
     if (product) {
       const formattedProduct = {
         ...product,
         id: product.product_id || product.id,
         productId: product.product_id || product.id,
-        img: product.image_url || (product.images && product.images[0]) || '/src/assets/cart/bangle1.webp',
+        img: product.image_url || (product.images && product.images[0]) || PLACEHOLDER_IMG,
         name: product.name,
         desc: product.description,
         price: product.price,
@@ -206,8 +220,8 @@ export default function Orders() {
                   <div className="ao-order-items-row">
                     <div className="ao-order-thumbs">
                       {orderItems.slice(0, 3).map((item, imgIdx) => {
-                        const product = productsMap[item.product_name];
-                        const image = item.image_url || product?.image_url || (product?.images && product.images[0]) || '/src/assets/cart/bangle1.webp';
+                        const product = findProduct(item);
+                        const image = item.image_url || product?.image_url || (product?.images && product.images[0]) || PLACEHOLDER_IMG;
                         return (
                           <div
                             key={imgIdx}
@@ -219,7 +233,7 @@ export default function Orders() {
                               className="ao-order-thumb-img"
                               onError={(e) => {
                                 e.currentTarget.onerror = null;
-                                e.currentTarget.src = '/src/assets/cart/bangle1.webp';
+                                e.currentTarget.src = PLACEHOLDER_IMG;
                               }}
                             />
                           </div>

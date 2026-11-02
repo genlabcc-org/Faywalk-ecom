@@ -432,6 +432,31 @@ const getCustomerDisplayName = (order) => {
   return trimmed;
 };
 
+/* ── Customer / Address Phone Helper ── */
+const getCustomerDisplayPhone = (order) => {
+  const raw =
+    order?.shipping_address?.phone_number ||
+    order?.shipping_address?.phone ||
+    order?.shipping_address?.mobile ||
+    order?.customer_phone ||
+    order?.phone ||
+    order?.customer?.phone ||
+    order?.phone_number;
+  if (!raw) return "";
+  const cleaned = String(raw).trim();
+  const lower = cleaned.toLowerCase();
+  if (
+    !cleaned ||
+    lower === "n/a" ||
+    lower === "no phone set" ||
+    lower === "null" ||
+    lower === "undefined"
+  ) {
+    return "";
+  }
+  return cleaned;
+};
+
 /* ── Audio Chime for Live Orders ── */
 const playOrderChime = () => {
   try {
@@ -554,6 +579,22 @@ const AllOrders = ({ orders = [], products = [], categories: categoriesProp = []
             } catch (e) {
               console.debug("Could not enrich profile for new order:", e);
             }
+          }
+
+          if (newOrder.address_id) {
+            try {
+              const { data: addr } = await supabase
+                .from("addresses")
+                .select("*")
+                .eq("address_id", newOrder.address_id)
+                .maybeSingle();
+              if (addr) {
+                enrichedOrder.shipping_address = addr;
+                if (addr.phone_number) {
+                  enrichedOrder.customer.phone = addr.phone_number;
+                }
+              }
+            } catch (_) {}
           }
 
           setLocalOrders((prev) => {
@@ -1089,7 +1130,7 @@ const AllOrders = ({ orders = [], products = [], categories: categoriesProp = []
         const orderIdStr = o.id ? String(o.id).toLowerCase() : "";
         const custName = getCustomerDisplayName(o).toLowerCase();
         const custEmail = (o.customer?.email || "").toLowerCase();
-        const custPhone = (o.customer?.phone || o.phone || "").toLowerCase();
+        const custPhone = getCustomerDisplayPhone(o).toLowerCase();
         const itemName = (o.item_name || "").toLowerCase();
 
         const match =
@@ -1164,6 +1205,21 @@ const AllOrders = ({ orders = [], products = [], categories: categoriesProp = []
                 };
               }
             } catch (_) { }
+          }
+          if (order.address_id) {
+            try {
+              const { data: addr } = await supabase
+                .from("addresses")
+                .select("*")
+                .eq("address_id", order.address_id)
+                .maybeSingle();
+              if (addr) {
+                en.shipping_address = addr;
+                if (addr.phone_number) {
+                  en.customer.phone = addr.phone_number;
+                }
+              }
+            } catch (_) {}
           }
           return en;
         })
@@ -1333,9 +1389,9 @@ const AllOrders = ({ orders = [], products = [], categories: categoriesProp = []
 
           <td className="ao__cell-customer">
             <span className="ao__customer-name">{getCustomerDisplayName(order)}</span>
-            {order.customer?.phone && (
+            {getCustomerDisplayPhone(order) && (
               <span style={{ fontSize: 12, color: "#64748B", display: "block" }}>
-                {order.customer.phone}
+                {getCustomerDisplayPhone(order)}
               </span>
             )}
           </td>
@@ -1597,6 +1653,11 @@ const AllOrders = ({ orders = [], products = [], categories: categoriesProp = []
                   <span className="ao__card-customer-name">
                     {getCustomerDisplayName(order)}
                   </span>
+                  {getCustomerDisplayPhone(order) && (
+                    <span style={{ fontSize: 12, color: "#64748B", display: "block", marginTop: 2 }}>
+                      {getCustomerDisplayPhone(order)}
+                    </span>
+                  )}
                 </div>
                 <div className="ao__card-items">
                   <span className="ao__card-items-text">

@@ -101,8 +101,8 @@ export default function SignupPage() {
                 handleSendOTP();
               }
             }}
-            placeholder=""
-            maxLength={32}
+            placeholder="Enter your email"
+            maxLength={64}
             disabled={loading}
           />
 

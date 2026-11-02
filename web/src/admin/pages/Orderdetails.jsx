@@ -1189,9 +1189,14 @@ const OrderDetails = ({ order, onBack, onInvoicePrinted }) => {
           <div className="od__card-title">Customer Details</div>
           <div className="od__info-grid">
             <span className="od__info-label">Customer Name</span>
-            <span className="od__info-value">{o.customer?.name || "Unknown Customer"}</span>
+            <span className="od__info-value">{displayFullName || o.customer?.name || "Unknown Customer"}</span>
             <span className="od__info-label">Phone</span>
-            <span className="od__info-value">{o.customer?.phone || "N/A"}</span>
+            <span className="od__info-value">
+              {displayPhone ||
+                (o.customer?.phone && !o.customer.phone.toLowerCase().includes("no phone")
+                  ? o.customer.phone
+                  : "N/A")}
+            </span>
             <span className="od__info-label">Email</span>
             <span className="od__info-value od__info-value--wrap">{o.customer?.email || "N/A"}</span>
             <span className="od__info-label">Customer Since</span>
