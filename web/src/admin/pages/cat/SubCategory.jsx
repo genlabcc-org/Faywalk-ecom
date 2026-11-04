@@ -67,11 +67,14 @@ const SubcategoryCard = ({
   const hasAttrs = sub.waistband || sub.material || sub.description;
 
   return (
-    <div className="cat-card">
+    <div
+      className="cat-card"
+      onClick={() => onOpen(sub)}
+      style={{ cursor: "pointer" }}
+    >
       {/* ── Image ── */}
       <div
         className="cat-card-img-wrap"
-        onClick={() => onOpen(sub)}
         title={`Open ${sub.name}`}
       >
         {thumbnail ? (
@@ -92,14 +95,18 @@ const SubcategoryCard = ({
       <div className="cat-card-body">
         {/* Top Info + 3-dots menu */}
         <div className="cat-card-head-row">
-          <div className="cat-card-info" onClick={() => onOpen(sub)}>
+          <div className="cat-card-info">
             <h3 className="cat-card-title" title={sub.name}>
               {sub.name}
             </h3>
             <div className="cat-card-qty">Quantity : {productCount}</div>
           </div>
 
-          <div style={{ position: "relative" }} ref={dropdownRef}>
+          <div
+            style={{ position: "relative" }}
+            ref={dropdownRef}
+            onClick={(e) => e.stopPropagation()}
+          >
             <button
               type="button"
               className="cat-card-more-btn"
@@ -231,17 +238,46 @@ const SubcategoryCards = ({
 
   const productCountBySubcategory = React.useMemo(() => {
     const counts = {};
+    const nameToId = new Map();
+    (list || []).forEach((s) => {
+      const sId = s.subcategory_id ?? s.id;
+      const sName = String(s.name || "").trim().toLowerCase();
+      if (sId != null && sName) {
+        nameToId.set(sName, String(sId));
+      }
+    });
+    const parentCatNameLow = String(parentCategory?.name || "").trim().toLowerCase();
+
     (products || []).forEach((p) => {
-      if (p.subcategory_id != null) {
+      if (p.subcategory_id != null && String(p.subcategory_id) !== "") {
         const idStr = String(p.subcategory_id);
         counts[idStr] = (counts[idStr] || 0) + 1;
+      } else if (p.subcategory) {
+        const pCatLow = String(p.category || "").trim().toLowerCase();
+        const catMatches =
+          !parentId ||
+          String(p.category_id) === String(parentId) ||
+          (parentCatNameLow && pCatLow === parentCatNameLow);
+        if (catMatches) {
+          const matchedSubId = nameToId.get(String(p.subcategory).trim().toLowerCase());
+          if (matchedSubId) {
+            counts[matchedSubId] = (counts[matchedSubId] || 0) + 1;
+          }
+        }
       }
     });
     return counts;
-  }, [products]);
+  }, [products, list, parentId, parentCategory]);
 
   const handleOpen = (sub) => {
-    navigate(`/admin/products?subcategory=${sub.subcategory_id ?? sub.id}`);
+    const sId = sub.subcategory_id ?? sub.id;
+    const cId = parentId ?? sub.parent_id ?? sub.category_id;
+    const params = new URLSearchParams();
+    if (cId != null) params.set("categoryId", String(cId));
+    if (parentCategory?.name) params.set("category", parentCategory.name);
+    if (sId != null) params.set("subcategoryId", String(sId));
+    if (sub.name) params.set("subcategory", sub.name);
+    navigate(`/admin/products?${params.toString()}`);
   };
 
   const handleEdit = (sub) => {
@@ -306,9 +342,9 @@ const SubcategoryCards = ({
         <div className="cat-grid">
           {list.map((sub) => (
             <SubcategoryCard
-              key={sub.subcategory_id}
+              key={sub.subcategory_id ?? sub.id}
               sub={sub}
-              productCount={productCountBySubcategory[sub.subcategory_id] || 0}
+              productCount={productCountBySubcategory[String(sub.subcategory_id ?? sub.id)] || 0}
               openDropdownId={openDropdownId}
               setOpenDropdownId={setOpenDropdownId}
               onOpen={handleOpen}

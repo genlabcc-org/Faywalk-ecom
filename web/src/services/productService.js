@@ -39,6 +39,7 @@ export const productService = {
       });
     };
 
+    let cats = null;
     try {
       const { data, error } = await supabase
         .from('categories')
@@ -46,24 +47,20 @@ export const productService = {
         .order('sort_order', { ascending: true })
         .order('category_id', { ascending: true });
       if (!error && data) {
-        return sortByOrder(
-          data.map(c => ({
-            ...c,
-            productCount: c.products?.[0]?.count ?? 0,
-            subcategories: c.subcategories || []
-          }))
-        );
+        cats = data;
       }
     } catch (e) {
       console.warn('Foreign key subcategories join fallback:', e);
     }
 
-    const { data: cats, error: catErr } = await supabase
-      .from('categories')
-      .select('*, products(count)')
-      .order('sort_order', { ascending: true })
-      .order('category_id', { ascending: true });
-    if (catErr) throw catErr;
+    if (!cats) {
+      const { data, error: catErr } = await supabase
+        .from('categories')
+        .select('*, products(count)')
+        .order('category_id', { ascending: true });
+      if (catErr) throw catErr;
+      cats = data || [];
+    }
 
     const { data: subs } = await supabase
       .from('subcategories')
@@ -72,18 +69,31 @@ export const productService = {
 
     const subsByParent = {};
     (subs || []).forEach(s => {
-      if (s.parent_id) {
-        if (!subsByParent[s.parent_id]) subsByParent[s.parent_id] = [];
-        subsByParent[s.parent_id].push(s);
+      const pId = s.parent_id ?? s.category_id;
+      if (pId != null) {
+        const key = String(pId);
+        if (!subsByParent[key]) subsByParent[key] = [];
+        subsByParent[key].push(s);
       }
     });
 
     return sortByOrder(
-      (cats || []).map(c => ({
-        ...c,
-        productCount: c.products?.[0]?.count ?? 0,
-        subcategories: subsByParent[c.category_id] || subsByParent[c.id] || []
-      }))
+      (cats || []).map(c => {
+        const catKey = String(c.category_id ?? c.id);
+        const fromTable = subsByParent[catKey] || [];
+        const fromJoin = Array.isArray(c.subcategories) ? c.subcategories : [];
+        const mergedMap = new Map();
+        [...fromTable, ...fromJoin].forEach(s => {
+          if (!s) return;
+          const sId = String(s.subcategory_id ?? s.id ?? s.name);
+          if (!mergedMap.has(sId)) mergedMap.set(sId, s);
+        });
+        return {
+          ...c,
+          productCount: c.products?.[0]?.count ?? 0,
+          subcategories: Array.from(mergedMap.values())
+        };
+      })
     );
   },
 

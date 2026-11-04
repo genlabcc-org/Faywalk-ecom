@@ -2360,10 +2360,23 @@ const Dashboard = () => {
 
   const handleSaveProductUnified = ({ product, variants }) => {
     const matchedCategory = categories.find(c => String(c.id || c.category_id) === String(product.category_id));
+    let matchedSubName = product.subcategories?.name || product.subcategory || null;
+    if (!matchedSubName && product.subcategory_id != null) {
+      const subIdStr = String(product.subcategory_id);
+      const allCachedSubs = [
+        ...(matchedCategory?.subcategories || []),
+        ...Object.values(subcategoriesCache || {}).flat(),
+      ];
+      const foundSub = allCachedSubs.find(
+        (s) => s && String(s.subcategory_id ?? s.id) === subIdStr
+      );
+      if (foundSub?.name) matchedSubName = foundSub.name;
+    }
     const firstWithImages = variants?.find(v => v.images?.length > 0);
     const normalized = normalizeProductRow({
       ...product,
       category: matchedCategory?.name || product.category || "",
+      subcategory: matchedSubName,
       images: (product.images && product.images.length > 0) ? product.images : (firstWithImages?.images || []),
       image_url: product.image_url || firstWithImages?.images?.[0] || null,
       product_variants: variants || [],
@@ -2462,6 +2475,7 @@ const Dashboard = () => {
             currentPath.startsWith("/admin/orders/detail") ||
             currentPath.startsWith("/admin/products/add") ||
             currentPath.startsWith("/admin/products/edit-multiple") ||
+            (currentPath === "/admin/products" && location.search) ||
             currentPath.startsWith("/admin/categories/add") ||
             currentPath.startsWith("/admin/subcategories") ||
             currentPath.startsWith("/admin/banners/add")) && (
@@ -2476,6 +2490,14 @@ const Dashboard = () => {
                   } else if (currentPath === "/admin/products/add-multiple" || currentPath.startsWith("/admin/products/add") || currentPath.startsWith("/admin/products/edit-multiple")) {
                     setEditingProduct(null);
                     navigate("/admin/products");
+                  } else if (currentPath === "/admin/products" && location.search) {
+                    const params = new URLSearchParams(location.search);
+                    const catId = params.get("categoryId");
+                    if (catId) {
+                      navigate(`/admin/subcategories?parentId=${catId}`);
+                    } else {
+                      navigate("/admin/categories");
+                    }
                   } else if (currentPath.startsWith("/admin/categories/add")) {
                     setEditingCategory(null);
                     navigate("/admin/categories");
@@ -2793,6 +2815,7 @@ const Dashboard = () => {
               <ProductList
                 products={products}
                 categories={categories}
+                subcategoriesCache={subcategoriesCache}
                 onAddProduct={goToAddProduct}
                 onEditProduct={handleEditProduct}
                 onDeleteProduct={handleDeleteProduct}

@@ -159,9 +159,11 @@ const MobileProductCard = ({ product, onEdit, onDelete, expandedRows, toggleExpa
   );
 };
 
-const ProductList = ({ onAddProduct, onEditProduct, onDeleteProduct, products = [], categories = [], loading = false, onBack }) => {
+const ProductList = ({ onAddProduct, onEditProduct, onDeleteProduct, products = [], categories = [], subcategoriesCache = {}, loading = false, onBack }) => {
   const [searchParams, setSearchParams] = useSearchParams();
+  const urlSubIdParam = searchParams.get("subcategoryId") || "";
   const urlSubParam = searchParams.get("subcategory") || searchParams.get("sub") || "";
+  const urlCatIdParam = searchParams.get("categoryId") || "";
   const urlCatParam = searchParams.get("category") || "";
 
   const [visibleCount, setVisibleCount] = useState(10);
@@ -169,12 +171,14 @@ const ProductList = ({ onAddProduct, onEditProduct, onDeleteProduct, products = 
   const [searchQuery, setSearchQuery] = useState("");
   const observerTarget = useRef(null);
 
-  const [selectedCategory, setSelectedCategory] = useState("All");
+  const [selectedCategory, setSelectedCategory] = useState(() => urlCatParam.trim() || "All");
+  const [selectedCategoryId, setSelectedCategoryId] = useState(() => urlCatIdParam.trim() || "");
   const [selectedStatus, setSelectedStatus] = useState("All");
   const [selectedStock, setSelectedStock] = useState("All");
   const [categoryOpen, setCategoryOpen] = useState(false);
 
-  const [selectedSubcategory, setSelectedSubcategory] = useState("All");
+  const [selectedSubcategory, setSelectedSubcategory] = useState(() => urlSubParam.trim() || "All");
+  const [selectedSubcategoryId, setSelectedSubcategoryId] = useState(() => urlSubIdParam.trim() || "");
   const [subcategoryOpen, setSubcategoryOpen] = useState(false);
 
   const [statusOpen, setStatusOpen] = useState(false);
@@ -188,65 +192,122 @@ const ProductList = ({ onAddProduct, onEditProduct, onDeleteProduct, products = 
   const [isDeleting, setIsDeleting] = useState(false);
   const [expandedRows, setExpandedRows] = useState([]);
 
-  // Map subcategory IDs <-> names from categories & products
+  // Map subcategory IDs <-> names from categories, subcategoriesCache & products
   const subcategoryLookup = useMemo(() => {
     const idToName = new Map();
     const nameToIds = new Map();
+    const catAndNameToIds = new Map();
     const idToParentName = new Map();
+    const idToParentId = new Map();
+
+    const registerSub = (sIdRaw, sNameRaw, catNameRaw, catIdRaw) => {
+      if (sIdRaw == null || !sNameRaw) return;
+      const sId = String(sIdRaw).trim();
+      const sName = String(sNameRaw).trim();
+      if (!sId || !sName) return;
+
+      idToName.set(sId, sName);
+      if (catNameRaw) idToParentName.set(sId, String(catNameRaw).trim());
+      if (catIdRaw != null && String(catIdRaw) !== "") idToParentId.set(sId, String(catIdRaw).trim());
+
+      const low = sName.toLowerCase();
+      if (!nameToIds.has(low)) nameToIds.set(low, []);
+      if (!nameToIds.get(low).includes(sId)) nameToIds.get(low).push(sId);
+
+      if (catNameRaw) {
+        const key = `${String(catNameRaw).trim().toLowerCase()}::${low}`;
+        if (!catAndNameToIds.has(key)) catAndNameToIds.set(key, []);
+        if (!catAndNameToIds.get(key).includes(sId)) catAndNameToIds.get(key).push(sId);
+      }
+    };
 
     (categories || []).forEach((c) => {
       const catName = typeof c === "string" ? c : c?.name || c?.title || "";
+      const catId = typeof c === "object" ? (c?.category_id ?? c?.id) : null;
       (c?.subcategories || []).forEach((s) => {
-        const sId = s.subcategory_id ?? s.id;
-        const sName = (s.name || "").trim();
-        if (sId != null && sName) {
-          idToName.set(String(sId), sName);
-          if (catName) idToParentName.set(String(sId), catName);
-          const low = sName.toLowerCase();
-          if (!nameToIds.has(low)) nameToIds.set(low, []);
-          nameToIds.get(low).push(String(sId));
-        }
+        registerSub(s?.subcategory_id ?? s?.id, s?.name, catName, catId ?? s?.parent_id ?? s?.category_id);
+      });
+    });
+
+    Object.entries(subcategoriesCache || {}).forEach(([parentIdKey, subList]) => {
+      const parentCat = (categories || []).find(
+        (c) => String(c?.category_id ?? c?.id) === String(parentIdKey)
+      );
+      const catName = parentCat?.name || parentCat?.title || "";
+      (subList || []).forEach((s) => {
+        registerSub(s?.subcategory_id ?? s?.id, s?.name, catName, parentIdKey);
       });
     });
 
     (products || []).forEach((p) => {
-      if (p.subcategory_id != null && p.subcategory) {
-        const sId = String(p.subcategory_id);
-        const sName = String(p.subcategory).trim();
-        if (!idToName.has(sId)) idToName.set(sId, sName);
-        if (p.category && !idToParentName.has(sId)) idToParentName.set(sId, p.category);
-        const low = sName.toLowerCase();
-        if (!nameToIds.has(low)) nameToIds.set(low, []);
-        if (!nameToIds.get(low).includes(sId)) nameToIds.get(low).push(sId);
+      if (p.subcategory_id != null && (p.subcategory || p.subcategories?.name)) {
+        registerSub(
+          p.subcategory_id,
+          p.subcategory || p.subcategories?.name,
+          p.category || p.categories?.name,
+          p.category_id
+        );
       }
     });
 
-    return { idToName, nameToIds, idToParentName };
-  }, [categories, products]);
+    return { idToName, nameToIds, catAndNameToIds, idToParentName, idToParentId };
+  }, [categories, subcategoriesCache, products]);
 
-  // Sync URL ?subcategory= / ?category= parameters into filter state
+  // Sync URL ?subcategoryId= / ?subcategory= / ?categoryId= / ?category= parameters into filter state
   useEffect(() => {
-    if (urlCatParam.trim()) {
+    const rawCatId = urlCatIdParam.trim();
+    const rawCat = urlCatParam.trim();
+    const rawSubId = urlSubIdParam.trim();
+    const rawSub = urlSubParam.trim();
+
+    if (!rawCatId && !rawCat && !rawSubId && !rawSub) {
+      setSelectedCategory("All");
+      setSelectedCategoryId("");
+      setSelectedSubcategory("All");
+      setSelectedSubcategoryId("");
+      return;
+    }
+
+    if (rawCatId || rawCat) {
       const matchedCat = (categories || []).find(
         (c) =>
-          String(c.category_id ?? c.id) === urlCatParam.trim() ||
-          String(c.name || "").toLowerCase() === urlCatParam.trim().toLowerCase()
+          (rawCatId && String(c.category_id ?? c.id) === rawCatId) ||
+          (rawCat && String(c.category_id ?? c.id) === rawCat) ||
+          (rawCat && String(c.name || "").trim().toLowerCase() === rawCat.toLowerCase())
       );
       if (matchedCat?.name) {
         setSelectedCategory(matchedCat.name);
+        setSelectedCategoryId(String(matchedCat.category_id ?? matchedCat.id ?? rawCatId));
+      } else if (rawCat) {
+        setSelectedCategory(rawCat);
+        if (rawCatId) setSelectedCategoryId(rawCatId);
+      } else if (rawCatId) {
+        setSelectedCategoryId(rawCatId);
       }
     }
 
-    if (urlSubParam.trim()) {
-      const raw = urlSubParam.trim();
-      const resolvedName = subcategoryLookup.idToName.get(raw) || raw;
-      const parentCatName = subcategoryLookup.idToParentName.get(raw);
-      if (parentCatName && !urlCatParam.trim()) {
-        setSelectedCategory(parentCatName);
-      }
+    if (rawSubId || rawSub) {
+      const candidateId = rawSubId || (subcategoryLookup.idToName.has(rawSub) ? rawSub : "");
+      const resolvedName =
+        (candidateId && subcategoryLookup.idToName.get(candidateId)) ||
+        subcategoryLookup.idToName.get(rawSub) ||
+        rawSub ||
+        rawSubId;
+
       setSelectedSubcategory(resolvedName);
+      setSelectedSubcategoryId(candidateId);
+
+      if (!rawCat && !rawCatId && candidateId) {
+        const parentCatName = subcategoryLookup.idToParentName.get(candidateId);
+        const parentCatId = subcategoryLookup.idToParentId.get(candidateId);
+        if (parentCatName) setSelectedCategory(parentCatName);
+        if (parentCatId) setSelectedCategoryId(parentCatId);
+      }
+    } else {
+      setSelectedSubcategory("All");
+      setSelectedSubcategoryId("");
     }
-  }, [urlSubParam, urlCatParam, subcategoryLookup, categories]);
+  }, [urlCatIdParam, urlCatParam, urlSubIdParam, urlSubParam, subcategoryLookup, categories]);
 
   const SORTS = [
     { label: "Default Sort", value: "default" },
@@ -269,16 +330,33 @@ const ProductList = ({ onAddProduct, onEditProduct, onDeleteProduct, products = 
   const STOCKS = ["All", "In Stock", "Low Stock", "Out of Stock"];
 
   const SUBCATEGORIES = useMemo(() => {
-    const relevantProducts = selectedCategory === "All" ? products : products.filter((p) => p.category === selectedCategory);
+    const selCatLow = String(selectedCategory || "").trim().toLowerCase();
+    const relevantProducts =
+      selectedCategory === "All"
+        ? products
+        : products.filter((p) => String(p.category || "").trim().toLowerCase() === selCatLow);
     const fromProds = relevantProducts
-      .map((p) => p.subcategory || (p.subcategory_id != null ? subcategoryLookup.idToName.get(String(p.subcategory_id)) : null))
+      .map(
+        (p) =>
+          p.subcategory ||
+          p.subcategories?.name ||
+          (p.subcategory_id != null ? subcategoryLookup.idToName.get(String(p.subcategory_id)) : null)
+      )
       .filter(Boolean);
     const fromCats = (categories || [])
-      .filter((c) => selectedCategory === "All" || (c?.name || c?.title) === selectedCategory)
-      .flatMap((c) => (c?.subcategories || []).map((s) => s?.name))
+      .filter(
+        (c) =>
+          selectedCategory === "All" ||
+          String(c?.name || c?.title || "").trim().toLowerCase() === selCatLow
+      )
+      .flatMap((c) => {
+        const catId = String(c?.category_id ?? c?.id ?? "");
+        const cachedSubs = catId && subcategoriesCache?.[catId] ? subcategoriesCache[catId] : [];
+        return [...(c?.subcategories || []), ...cachedSubs].map((s) => s?.name);
+      })
       .filter(Boolean);
     return ["All", ...Array.from(new Set([...fromCats, ...fromProds]))];
-  }, [products, categories, selectedCategory, subcategoryLookup]);
+  }, [products, categories, subcategoriesCache, selectedCategory, subcategoryLookup]);
 
   const toggleExpand = (id) => {
     setExpandedRows((prev) => prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id]);
@@ -328,20 +406,64 @@ const ProductList = ({ onAddProduct, onEditProduct, onDeleteProduct, products = 
         pProductId.includes(q) ||
         matchVariant;
 
-      const matchCategory = selectedCategory === "All" || p.category === selectedCategory;
+      const isCatFiltered = selectedCategory !== "All" || Boolean(selectedCategoryId);
+      const pCatNameLow = String(p.category || p.categories?.name || "").trim().toLowerCase();
+      const selCatLow = String(selectedCategory || "").trim().toLowerCase();
+      const matchedCatObj = (categories || []).find(
+        (c) =>
+          (selectedCategoryId && String(c.category_id ?? c.id) === String(selectedCategoryId)) ||
+          (selectedCategory !== "All" && String(c.name || "").trim().toLowerCase() === selCatLow)
+      );
+      const targetCatId =
+        selectedCategoryId ||
+        (matchedCatObj ? String(matchedCatObj.category_id ?? matchedCatObj.id) : "");
+
+      const matchCategory =
+        !isCatFiltered ||
+        (selectedCategory !== "All" && pCatNameLow && pCatNameLow === selCatLow) ||
+        Boolean(targetCatId && p.category_id != null && String(p.category_id) === String(targetCatId));
+
+      const isSubFiltered = selectedSubcategory !== "All" || Boolean(selectedSubcategoryId);
       const resolvedProdSubName = String(
         p.subcategory ||
+        p.subcategories?.name ||
         (p.subcategory_id != null ? subcategoryLookup.idToName.get(String(p.subcategory_id)) : "") ||
         ""
       ).trim();
-      const targetSubLow = String(selectedSubcategory || "").trim().toLowerCase();
-      const targetSubIds = subcategoryLookup.nameToIds.get(targetSubLow) || [];
-      const matchSubcategory =
-        selectedSubcategory === "All" ||
-        resolvedProdSubName.toLowerCase() === targetSubLow ||
-        (p.subcategory_id != null &&
-          (String(p.subcategory_id) === String(selectedSubcategory).trim() ||
-            targetSubIds.includes(String(p.subcategory_id))));
+      const pSubNameLow = resolvedProdSubName.toLowerCase();
+      const targetSubLow =
+        selectedSubcategory !== "All" ? String(selectedSubcategory || "").trim().toLowerCase() : "";
+      const scopedSubIds =
+        selectedCategory !== "All" && targetSubLow
+          ? subcategoryLookup.catAndNameToIds.get(`${selCatLow}::${targetSubLow}`) ||
+            subcategoryLookup.nameToIds.get(targetSubLow) ||
+            []
+          : targetSubLow
+          ? subcategoryLookup.nameToIds.get(targetSubLow) || []
+          : [];
+      const pSubIdStr =
+        p.subcategory_id != null && String(p.subcategory_id) !== ""
+          ? String(p.subcategory_id)
+          : "";
+
+      let matchSubcategory = true;
+      if (isSubFiltered) {
+        if (selectedSubcategoryId) {
+          if (pSubIdStr) {
+            matchSubcategory = pSubIdStr === String(selectedSubcategoryId);
+          } else {
+            matchSubcategory = Boolean(targetSubLow && pSubNameLow && pSubNameLow === targetSubLow);
+          }
+        } else {
+          matchSubcategory =
+            Boolean(targetSubLow && pSubNameLow && pSubNameLow === targetSubLow) ||
+            Boolean(
+              pSubIdStr &&
+                (pSubIdStr === String(selectedSubcategory).trim() || scopedSubIds.includes(pSubIdStr))
+            );
+        }
+      }
+
       const matchStatus = selectedStatus === "All" || p.status === selectedStatus;
       const matchStock = selectedStock === "All" ||
         (selectedStock === "In Stock" && p.stock > 5) ||
@@ -363,7 +485,21 @@ const ProductList = ({ onAddProduct, onEditProduct, onDeleteProduct, products = 
     if (selectedSort === "stock-desc") result.sort((a, b) => (Number(b.stock) || 0) - (Number(a.stock) || 0));
 
     return result;
-  }, [products, searchQuery, selectedCategory, selectedSubcategory, selectedStatus, selectedStock, priceFrom, priceTo, selectedSort, subcategoryLookup]);
+  }, [
+    products,
+    categories,
+    searchQuery,
+    selectedCategory,
+    selectedCategoryId,
+    selectedSubcategory,
+    selectedSubcategoryId,
+    selectedStatus,
+    selectedStock,
+    priceFrom,
+    priceTo,
+    selectedSort,
+    subcategoryLookup,
+  ]);
 
   // Auto-expand variant rows when search matches a variant SKU / ID
   useEffect(() => {
@@ -510,8 +646,34 @@ const ProductList = ({ onAddProduct, onEditProduct, onDeleteProduct, products = 
       {/* Header */}
       <div className="pl-header">
         <div className="pl-title">
-          <h1>All products</h1>
-          <span className="pl-count">{products.length} Items</span>
+          <h1>
+            {selectedSubcategory !== "All" && selectedCategory !== "All"
+              ? `${selectedCategory} — ${selectedSubcategory}`
+              : selectedSubcategory !== "All"
+              ? selectedSubcategory
+              : selectedCategory !== "All"
+              ? selectedCategory
+              : "All products"}
+          </h1>
+          <span className="pl-count">
+            {filteredProducts.length} {filteredProducts.length === 1 ? "Item" : "Items"}
+          </span>
+          {(selectedCategory !== "All" || selectedSubcategory !== "All") && (
+            <button
+              type="button"
+              className="pl-clear-filter-btn"
+              onClick={() => {
+                setSelectedCategory("All");
+                setSelectedCategoryId("");
+                setSelectedSubcategory("All");
+                setSelectedSubcategoryId("");
+                setVisibleCount(10);
+                setSearchParams({}, { replace: true });
+              }}
+            >
+              Show All ({products.length})
+            </button>
+          )}
         </div>
 
       </div>
@@ -532,15 +694,28 @@ const ProductList = ({ onAddProduct, onEditProduct, onDeleteProduct, products = 
                   <div key={c} className={`pl-dropdown-item ${selectedCategory === c ? 'active' : ''}`}
                     onClick={() => {
                       setSelectedCategory(c);
+                      const matchedCat = (categories || []).find(
+                        (cat) => String(cat?.name || cat?.title || "").trim().toLowerCase() === String(c).trim().toLowerCase()
+                      );
+                      setSelectedCategoryId(c === "All" ? "" : String(matchedCat?.category_id ?? matchedCat?.id ?? ""));
                       setCategoryOpen(false);
                       setVisibleCount(10);
                       setSelectedSubcategory("All");
-                      if (searchParams.has("subcategory") || searchParams.has("sub")) {
-                        const next = new URLSearchParams(searchParams);
-                        next.delete("subcategory");
-                        next.delete("sub");
-                        setSearchParams(next, { replace: true });
+                      setSelectedSubcategoryId("");
+                      const next = new URLSearchParams(searchParams);
+                      next.delete("subcategory");
+                      next.delete("subcategoryId");
+                      next.delete("sub");
+                      if (c === "All") {
+                        next.delete("category");
+                        next.delete("categoryId");
+                      } else {
+                        next.set("category", c);
+                        if (matchedCat?.category_id ?? matchedCat?.id) {
+                          next.set("categoryId", String(matchedCat.category_id ?? matchedCat.id));
+                        }
                       }
+                      setSearchParams(next, { replace: true });
                     }}>
                     {c}
                   </div>
@@ -564,14 +739,18 @@ const ProductList = ({ onAddProduct, onEditProduct, onDeleteProduct, products = 
                   <div key={s} className={`pl-dropdown-item ${selectedSubcategory === s ? 'active' : ''}`}
                     onClick={() => {
                       setSelectedSubcategory(s);
+                      setSelectedSubcategoryId("");
                       setSubcategoryOpen(false);
                       setVisibleCount(10);
-                      if (s === "All" && (searchParams.has("subcategory") || searchParams.has("sub"))) {
-                        const next = new URLSearchParams(searchParams);
+                      const next = new URLSearchParams(searchParams);
+                      next.delete("subcategoryId");
+                      next.delete("sub");
+                      if (s === "All") {
                         next.delete("subcategory");
-                        next.delete("sub");
-                        setSearchParams(next, { replace: true });
+                      } else {
+                        next.set("subcategory", s);
                       }
+                      setSearchParams(next, { replace: true });
                     }}>
                     {s}
                   </div>
@@ -813,8 +992,10 @@ const ProductList = ({ onAddProduct, onEditProduct, onDeleteProduct, products = 
                         </span>
                       </td>
                       <td className="pl-subcategory-col">
-                        {product.subcategory ? (
-                          <span className="pl-subcategory-badge">{product.subcategory}</span>
+                        {(product.subcategory || (product.subcategory_id != null ? subcategoryLookup.idToName.get(String(product.subcategory_id)) : null)) ? (
+                          <span className="pl-subcategory-badge">
+                            {product.subcategory || subcategoryLookup.idToName.get(String(product.subcategory_id))}
+                          </span>
                         ) : (
                           <span className="pl-subcategory-none">—</span>
                         )}
