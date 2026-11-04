@@ -120,11 +120,48 @@ export const productService = {
   async deleteProduct(productId) {
     const allUrls = await this.getProductImageUrls(productId).catch(() => []);
 
+    // Find any duplicate/orphan products sharing the same SKU (e.g. from prior interrupted saves)
+    let idsToDelete = [productId];
+    try {
+      const { data: targetProd } = await supabase
+        .from('products')
+        .select('sku')
+        .eq('product_id', productId)
+        .maybeSingle();
+
+      if (targetProd?.sku) {
+        const { data: sameSkuProds } = await supabase
+          .from('products')
+          .select('product_id')
+          .eq('sku', targetProd.sku);
+        if (sameSkuProds?.length) {
+          idsToDelete = [...new Set([...idsToDelete, ...sameSkuProds.map(p => p.product_id)])];
+        }
+      }
+    } catch (e) {
+      console.warn('Could not check same-SKU products prior to delete:', e);
+    }
+
+    try {
+      await supabase.from('cart_items').delete().in('product_id', idsToDelete);
+    } catch (e) {
+      console.warn('Could not delete cart items prior to product:', e);
+    }
+
+    try {
+      await supabase
+        .from('order_items')
+        .update({ product_id: null, variant_id: null })
+        .in('product_id', idsToDelete);
+    } catch (e) {
+      console.warn('Could not unlink order items prior to product:', e);
+    }
+
     try {
       await supabase
         .from('product_variants')
         .delete()
-        .eq('product_id', productId);
+        .in('product_id', idsToDelete);
     } catch (e) {
       console.warn('Could not delete product variants prior to product:', e);
     }
@@ -132,7 +169,7 @@ export const productService = {
     const { error } = await supabase
       .from('products')
       .delete()
-      .eq('product_id', productId);
+      .in('product_id', idsToDelete);
     if (error) throw error;
 
     await this.deleteR2Images(allUrls);

@@ -47,11 +47,76 @@ export const variantService = {
     const fallbackComparePrice = validComparePrices.length > 0 ? Math.max(...validComparePrices) : null;
     const totalStock = (variants || []).reduce((sum, v) => sum + (parseInt(v.stockQuantity ?? v.stock) || 0), 0);
 
+    const baseSku = productData.sku?.trim() || generateBaseSku(productData.name);
+
+    // 1. Upload all variant images FIRST before creating any database rows
+    // so failed/interrupted uploads never leave ghost products in the DB.
+    const preparedVariants = [];
+    const usedSkus = new Set();
+    const seenSizeColor = new Set();
+    const colorUploadCache = new Map();
+
+    for (let i = 0; i < (variants || []).length; i++) {
+      const v = variants[i];
+      const sizeKey = (v.sizeDimension || '').trim().toLowerCase();
+      const colorKey = (v.color || '').trim().toLowerCase();
+      const comboKey = `${sizeKey}::${colorKey}`;
+      if (seenSizeColor.has(comboKey)) continue;
+      seenSizeColor.add(comboKey);
+
+      let uploadedUrls = [];
+      const cacheKey = v.color ? v.color.toLowerCase() : null;
+      if (cacheKey && colorUploadCache.has(cacheKey)) {
+        uploadedUrls = colorUploadCache.get(cacheKey);
+      } else if (v.media?.length) {
+        uploadedUrls = await this._uploadVariantImages(v.media, productData.name);
+        if (cacheKey) colorUploadCache.set(cacheKey, uploadedUrls);
+      }
+      const imageUrls = [...(v.images || []), ...uploadedUrls];
+
+      preparedVariants.push({
+        sku: makeUniqueSku(v.sku, baseSku, i, usedSkus),
+        size: v.sizeDimension || null,
+        color: v.color || null,
+        price: parseFloat(v.sellingPrice) || 0,
+        compare_price: parseFloat(v.price) || null,
+        stock: parseInt(v.stockQuantity) || 0,
+        stock_alert: parseInt(v.minStockAlert) || null,
+        images: imageUrls,
+        is_active: true,
+      });
+    }
+
+    // Clean up any prior orphan products with the same SKU that have 0 variants (from earlier failed saves)
+    if (baseSku) {
+      try {
+        const { data: sameSkuProducts } = await supabase
+          .from('products')
+          .select('product_id, product_variants(variant_id)')
+          .eq('sku', baseSku);
+        const orphanIds = (sameSkuProducts || [])
+          .filter(p => !p.product_variants || p.product_variants.length === 0)
+          .map(p => p.product_id);
+        if (orphanIds.length > 0) {
+          await supabase.from('products').delete().in('product_id', orphanIds);
+        }
+      } catch (e) {
+        console.warn('Could not clean up orphan products:', e);
+      }
+    }
+
+    const firstWithImages = preparedVariants.find(v => v.images?.length > 0);
+    const coverImages = firstWithImages ? firstWithImages.images : (productData.images || []);
+    const coverImageUrl = coverImages[0] || productData.image_url || null;
+
     const payload = {
       ...productData,
+      sku: baseSku,
       price: productData.price != null && !isNaN(parseFloat(productData.price)) ? parseFloat(productData.price) : fallbackPrice,
       compare_price: productData.compare_price != null && !isNaN(parseFloat(productData.compare_price)) ? parseFloat(productData.compare_price) : fallbackComparePrice,
       stock: productData.stock != null && !isNaN(parseInt(productData.stock)) ? parseInt(productData.stock) : totalStock,
+      images: coverImages,
+      image_url: coverImageUrl,
       has_variants: true,
     };
 
@@ -62,67 +127,33 @@ export const variantService = {
       .single();
     if (productError) throw productError;
 
-    const baseSku = product.sku?.trim() || generateBaseSku(product.name);
-
     try {
-      const variantRows = [];
-      const usedSkus = new Set();
-      const seenSizeColor = new Set();
-      const colorUploadCache = new Map();
+      const variantRows = preparedVariants.map((row) => ({
+        ...row,
+        product_id: product.product_id,
+      }));
 
-      for (let i = 0; i < variants.length; i++) {
-        const v = variants[i];
-        const sizeKey = (v.sizeDimension || '').trim().toLowerCase();
-        const colorKey = (v.color || '').trim().toLowerCase();
-        const comboKey = `${sizeKey}::${colorKey}`;
-        if (seenSizeColor.has(comboKey)) continue;
-        seenSizeColor.add(comboKey);
-
-        let uploadedUrls = [];
-        const cacheKey = v.color ? v.color.toLowerCase() : null;
-        if (cacheKey && colorUploadCache.has(cacheKey)) {
-          uploadedUrls = colorUploadCache.get(cacheKey);
-        } else if (v.media?.length) {
-          uploadedUrls = await this._uploadVariantImages(v.media, product.name);
-          if (cacheKey) colorUploadCache.set(cacheKey, uploadedUrls);
-        }
-        const imageUrls = [...(v.images || []), ...uploadedUrls];
-
-        variantRows.push({
-          product_id: product.product_id,
-          sku: makeUniqueSku(v.sku, baseSku, i, usedSkus),
-          size: v.sizeDimension || null,
-          color: v.color || null,
-          price: parseFloat(v.sellingPrice) || 0,
-          compare_price: parseFloat(v.price) || null,
-          stock: parseInt(v.stockQuantity) || 0,
-          stock_alert: parseInt(v.minStockAlert) || null,
-          images: imageUrls,
-          is_active: true,
-        });
-      }
-
-      const { data: insertedVariants, error: variantError } = await supabase
+      let { data: insertedVariants, error: variantError } = await supabase
         .from('product_variants')
         .insert(variantRows)
         .select();
 
-      if (variantError) {
-        throw variantError;
+      // If a 409 / unique SKU collision happens with another product's SKU, suffix SKUs and retry once
+      if (variantError && (variantError.code === '23505' || String(variantError.message || '').includes('sku'))) {
+        const retryRows = variantRows.map((r) => ({
+          ...r,
+          sku: `${r.sku}-${Math.floor(100 + Math.random() * 900)}`,
+        }));
+        const retryRes = await supabase
+          .from('product_variants')
+          .insert(retryRows)
+          .select();
+        insertedVariants = retryRes.data;
+        variantError = retryRes.error;
       }
 
-      // ── Sync base product images from the first variant that has any ──
-      const firstWithImages = insertedVariants.find(v => v.images?.length > 0);
-      if (firstWithImages) {
-        const { data: updatedProduct, error: syncError } = await supabase
-          .from('products')
-          .update({ images: firstWithImages.images, image_url: firstWithImages.images[0] })
-          .eq('product_id', product.product_id)
-          .select()
-          .single();
-        if (!syncError && updatedProduct) {
-          return { product: updatedProduct, variants: insertedVariants };
-        }
+      if (variantError) {
+        throw variantError;
       }
 
       return { product, variants: insertedVariants };

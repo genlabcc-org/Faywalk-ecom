@@ -23,12 +23,15 @@ const COLOR_SWATCHES = [
   "#05C3DD", // Aqua Blue
   "#2DD4BF", // Teal
   "#008000", // Green
+  "#556B2F", // Olive Green
   "#50C878", // Emerald Green
   "#98FF98", // Mint Green
   "#FFFF00", // Yellow
   "#FFA500", // Orange
   "#78350F", // Brown
+  "#3E2723", // Dark Brown
   "#9CA3AF", // Gray
+  "#36454F", // Charcoal Grey
   "#FFD700", // Gold
   "#C0C0C0", // Silver
 ];
@@ -69,6 +72,73 @@ const Toggle = ({ checked, onChange }) => (
 
 let variantSeq = 0;
 const generateVariantSKU = () => `FAY-${Math.floor(100000 + Math.random() * 900000)}`;
+
+// ── IndexedDB helpers to persist uploaded File objects across page refresh ──
+const DRAFT_IDB_NAME = "faywalk_product_draft_db";
+const DRAFT_IDB_STORE = "draft_media";
+let unmountClearTimers = {};
+
+const openDraftMediaDB = () =>
+  new Promise((resolve, reject) => {
+    if (typeof window === "undefined" || !window.indexedDB) {
+      reject(new Error("IndexedDB not supported"));
+      return;
+    }
+    const req = window.indexedDB.open(DRAFT_IDB_NAME, 1);
+    req.onupgradeneeded = () => {
+      const db = req.result;
+      if (!db.objectStoreNames.contains(DRAFT_IDB_STORE)) {
+        db.createObjectStore(DRAFT_IDB_STORE);
+      }
+    };
+    req.onsuccess = () => resolve(req.result);
+    req.onerror = () => reject(req.error);
+  });
+
+const saveDraftMediaToIDB = async (key, mediaMap) => {
+  try {
+    const db = await openDraftMediaDB();
+    await new Promise((resolve, reject) => {
+      const tx = db.transaction(DRAFT_IDB_STORE, "readwrite");
+      tx.objectStore(DRAFT_IDB_STORE).put(mediaMap, key);
+      tx.oncomplete = () => resolve();
+      tx.onerror = () => reject(tx.error);
+    });
+    db.close();
+  } catch (e) {
+    console.warn("Could not save draft media to IndexedDB:", e);
+  }
+};
+
+const loadDraftMediaFromIDB = async (key) => {
+  try {
+    const db = await openDraftMediaDB();
+    const result = await new Promise((resolve, reject) => {
+      const tx = db.transaction(DRAFT_IDB_STORE, "readonly");
+      const req = tx.objectStore(DRAFT_IDB_STORE).get(key);
+      req.onsuccess = () => resolve(req.result || null);
+      req.onerror = () => reject(req.error);
+    });
+    db.close();
+    return result;
+  } catch (e) {
+    console.warn("Could not load draft media from IndexedDB:", e);
+    return null;
+  }
+};
+
+const clearDraftMediaFromIDB = async (key) => {
+  try {
+    const db = await openDraftMediaDB();
+    await new Promise((resolve, reject) => {
+      const tx = db.transaction(DRAFT_IDB_STORE, "readwrite");
+      tx.objectStore(DRAFT_IDB_STORE).delete(key);
+      tx.oncomplete = () => resolve();
+      tx.onerror = () => reject(tx.error);
+    });
+    db.close();
+  } catch {}
+};
 
 const calcDiscount = (mrp, sellingPrice) => {
   const m = parseFloat(mrp);
@@ -180,21 +250,91 @@ const AddProduct = ({
 
   const [errors, setErrors] = useState({});
   const [saving, setSaving] = useState(false);
+  const savedSuccessRef = React.useRef(false);
+  const mediaHydratedRef = React.useRef(isEditing);
   const [deletedVariantIds, setDeletedVariantIds] = useState([]);
   const [sizeToDelete, setSizeToDelete] = useState(null);
 
-  // Persist draft in sessionStorage across page refreshes (strips File objects)
+  // Rehydrate uploaded File objects & preview URLs from IndexedDB on page refresh
   useEffect(() => {
-    if (saving || loading) return;
+    if (isEditing) {
+      mediaHydratedRef.current = true;
+      return;
+    }
+    let cancelled = false;
+    loadDraftMediaFromIDB(draftKey)
+      .then((mediaMap) => {
+        if (cancelled) return;
+        if (mediaMap && Object.keys(mediaMap).length > 0) {
+          const rehydrateMediaList = (mediaArr) =>
+            (mediaArr || [])
+              .map((m) => {
+                if (!m || !m.id) return null;
+                if (m.file && m.preview) return m;
+                const restoredFile = mediaMap[m.id];
+                if (!restoredFile) return null;
+                return {
+                  id: m.id,
+                  file: restoredFile,
+                  preview: URL.createObjectURL(restoredFile),
+                };
+              })
+              .filter(Boolean);
+
+          setSizeRows((prev) =>
+            prev.map((s) => ({
+              ...s,
+              colors: (s.colors || []).map((cv) => ({
+                ...cv,
+                media: rehydrateMediaList(cv.media),
+              })),
+              defaultVariant: s.defaultVariant
+                ? { ...s.defaultVariant, media: rehydrateMediaList(s.defaultVariant.media) }
+                : s.defaultVariant,
+            }))
+          );
+        }
+        mediaHydratedRef.current = true;
+      })
+      .catch(() => {
+        mediaHydratedRef.current = true;
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [draftKey, isEditing]);
+
+  // Persist draft in sessionStorage & File blobs in IndexedDB across page refreshes
+  useEffect(() => {
+    if (saving || loading || savedSuccessRef.current) return;
     try {
+      const mediaFileMap = {};
+      let hasUnrehydratedPlaceholder = false;
+      const serializeMediaList = (mediaArr) =>
+        (mediaArr || [])
+          .map((m) => {
+            if (!m || !m.id) return null;
+            if (m.file) {
+              mediaFileMap[m.id] = m.file;
+            } else {
+              hasUnrehydratedPlaceholder = true;
+            }
+            return {
+              id: m.id,
+              name: m.file?.name || m.name || "image.webp",
+              type: m.file?.type || m.type || "image/webp",
+            };
+          })
+          .filter(Boolean);
+
       const serializableSizes = sizeRows.map((s) => ({
         ...s,
         colors: (s.colors || []).map((cv) => ({
           ...cv,
-          media: [],
+          media: serializeMediaList(cv.media),
         })),
         defaultVariant: s.defaultVariant
-          ? { ...s.defaultVariant, media: [] }
+          ? { ...s.defaultVariant, media: serializeMediaList(s.defaultVariant.media) }
           : s.defaultVariant,
       }));
 
@@ -216,6 +356,14 @@ const AddProduct = ({
         timestamp: Date.now(),
       };
       sessionStorage.setItem(draftKey, JSON.stringify(draftData));
+
+      if (mediaHydratedRef.current && !hasUnrehydratedPlaceholder) {
+        if (Object.keys(mediaFileMap).length > 0) {
+          saveDraftMediaToIDB(draftKey, mediaFileMap);
+        } else {
+          clearDraftMediaFromIDB(draftKey);
+        }
+      }
     } catch (e) {
       console.warn("Could not save variant draft:", e);
     }
@@ -239,12 +387,26 @@ const AddProduct = ({
     loading,
   ]);
 
-  // Clear draft on unmount so leaving the page clears prefilled data
+  // Clear draft on unmount ONLY when actually navigating away from the add/edit route
+  // (avoids wiping draft during React StrictMode remounts or page refreshes)
   useEffect(() => {
+    if (unmountClearTimers[draftKey]) {
+      clearTimeout(unmountClearTimers[draftKey]);
+      delete unmountClearTimers[draftKey];
+    }
     return () => {
-      try {
-        sessionStorage.removeItem(draftKey);
-      } catch { }
+      unmountClearTimers[draftKey] = setTimeout(() => {
+        const path = window.location.pathname || "";
+        const stillOnProductForm =
+          path.startsWith("/admin/products/add") ||
+          path.startsWith("/admin/products/edit-multiple");
+        if (!stillOnProductForm) {
+          try {
+            sessionStorage.removeItem(draftKey);
+          } catch {}
+          clearDraftMediaFromIDB(draftKey);
+        }
+      }, 150);
     };
   }, [draftKey]);
 
@@ -959,6 +1121,7 @@ const AddProduct = ({
     try {
       sessionStorage.removeItem(draftKey);
     } catch { }
+    clearDraftMediaFromIDB(draftKey);
     setTitle("");
     setDescription("");
     setSku(generateVariantSKU());
@@ -1153,10 +1316,14 @@ const AddProduct = ({
       const result = isEditing
         ? await variantService.updateProductWithVariants(editingProductId, productData, variants, deletedVariantIds)
         : await variantService.createProductWithVariants({ ...productData, has_variants: true }, variants);
+      savedSuccessRef.current = true;
       if (isEditing) useStore.getState().invalidateProductDetails(editingProductId);
       try {
         sessionStorage.removeItem(draftKey);
+        sessionStorage.removeItem("faywalk_variant_draft_new");
       } catch { }
+      clearDraftMediaFromIDB(draftKey);
+      clearDraftMediaFromIDB("faywalk_variant_draft_new");
       onSave?.(result);
     } catch (err) {
       console.error("Failed to save variant product:", err);
@@ -1628,19 +1795,21 @@ const AddProduct = ({
                                       </div>
                                     ))}
 
-                                    {cv.media?.map((m, mIdx) => (
-                                      <div key={m.id} className="cmp-table-thumb">
-                                        <img src={m.preview} alt={`${cName} new ${mIdx}`} />
-                                        <button
-                                          type="button"
-                                          className="cmp-table-thumb-del"
-                                          onClick={() => handleRemoveColorImage(sizeRow.id, cv.id, mIdx, false)}
-                                          title="Remove image"
-                                        >
-                                          ×
-                                        </button>
-                                      </div>
-                                    ))}
+                                    {cv.media?.map((m, mIdx) =>
+                                      m.preview ? (
+                                        <div key={m.id} className="cmp-table-thumb">
+                                          <img src={m.preview} alt={`${cName} new ${mIdx}`} />
+                                          <button
+                                            type="button"
+                                            className="cmp-table-thumb-del"
+                                            onClick={() => handleRemoveColorImage(sizeRow.id, cv.id, mIdx, false)}
+                                            title="Remove image"
+                                          >
+                                            ×
+                                          </button>
+                                        </div>
+                                      ) : null
+                                    )}
 
                                     {((cv.images?.length || 0) + (cv.media?.length || 0)) < 4 && (
                                       <>
@@ -1770,19 +1939,21 @@ const AddProduct = ({
                                       </div>
                                     ))}
 
-                                    {sizeRow.defaultVariant?.media?.map((m, mIdx) => (
-                                      <div key={m.id} className="cmp-table-thumb">
-                                        <img src={m.preview} alt={`Default new ${mIdx}`} />
-                                        <button
-                                          type="button"
-                                          className="cmp-table-thumb-del"
-                                          onClick={() => handleRemoveDefaultVariantImage(sizeRow.id, mIdx, false)}
-                                          title="Remove image"
-                                        >
-                                          ×
-                                        </button>
-                                      </div>
-                                    ))}
+                                    {sizeRow.defaultVariant?.media?.map((m, mIdx) =>
+                                      m.preview ? (
+                                        <div key={m.id} className="cmp-table-thumb">
+                                          <img src={m.preview} alt={`Default new ${mIdx}`} />
+                                          <button
+                                            type="button"
+                                            className="cmp-table-thumb-del"
+                                            onClick={() => handleRemoveDefaultVariantImage(sizeRow.id, mIdx, false)}
+                                            title="Remove image"
+                                          >
+                                            ×
+                                          </button>
+                                        </div>
+                                      ) : null
+                                    )}
 
                                     {((sizeRow.defaultVariant?.images?.length || 0) + (sizeRow.defaultVariant?.media?.length || 0)) < 4 && (
                                       <>

@@ -2052,20 +2052,32 @@ const Dashboard = () => {
   };
 
   // ── Fetch products on mount ─────────────────────
-  useEffect(() => {
-    const fetchProducts = async () => {
-      try {
-        const data = await productService.getProducts();
-        if (data) {
-          setProducts(data.map(normalizeProductRow));
+  const fetchProducts = useCallback(async () => {
+    try {
+      const data = await productService.getProducts();
+      if (data) {
+        // Automatically purge any broken orphan products (has_variants=true with 0 variants from interrupted saves)
+        const brokenOrphans = data.filter(
+          (row) => row.has_variants && (!row.product_variants || row.product_variants.length === 0)
+        );
+        if (brokenOrphans.length > 0) {
+          brokenOrphans.forEach((orphan) => {
+            productService.deleteProduct(orphan.product_id).catch(() => {});
+          });
         }
-      } catch (error) {
-        console.error("Error fetching products:", error);
+        const validRows = data.filter(
+          (row) => !(row.has_variants && (!row.product_variants || row.product_variants.length === 0))
+        );
+        setProducts(validRows.map(normalizeProductRow));
       }
-    };
-    fetchProducts();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    } catch (error) {
+      console.error("Error fetching products:", error);
+    }
   }, []);
+
+  useEffect(() => {
+    fetchProducts();
+  }, [fetchProducts]);
 
   useEffect(() => {
     const handleResize = () => { if (window.innerWidth > 768) setSidebarOpen(false); };
@@ -2242,10 +2254,20 @@ const Dashboard = () => {
 
   const handleDeleteProduct = async (id) => {
     try {
+      const target = products.find((x) => (x.id ?? x.product_id) === id || x.product_id === id);
+      const targetSku = target?.sku;
       await productService.deleteProduct(id);
-      setProducts((p) => p.filter((x) => (x.id ?? x.product_id) !== id && x.product_id !== id));
+      setProducts((p) =>
+        p.filter(
+          (x) =>
+            (x.id ?? x.product_id) !== id &&
+            x.product_id !== id &&
+            (!targetSku || x.sku !== targetSku)
+        )
+      );
     } catch (error) {
       console.error("Error deleting product:", error);
+      alert("Failed to delete product: " + (error.message || JSON.stringify(error)));
       throw error;
     }
   };

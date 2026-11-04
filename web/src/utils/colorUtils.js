@@ -15,6 +15,8 @@ export const COLOR_SWATCH_NAMES = {
   "#429E9D": "Mint Blue",
   "#05C3DD": "Aqua Blue",
   "#008000": "Green",
+  "#556B2F": "Olive Green",
+  "#808000": "Olive Green",
   "#50C878": "Emerald Green",
   "#98FF98": "Mint Green",
   "#FFFF00": "Yellow",
@@ -27,6 +29,7 @@ export const COLOR_SWATCH_NAMES = {
   "#800000": "Maroon",
   "#2563EB": "Blue",
   "#9CA3AF": "Gray",
+  "#36454F": "Charcoal Grey",
   "#2DD4BF": "Teal",
 
   // Extended standard shades
@@ -65,6 +68,8 @@ export const COLOR_SWATCH_NAMES = {
   "#F97316": "Orange",
   "#EA580C": "Dark Orange",
   "#78350F": "Brown",
+  "#3E2723": "Dark Brown",
+  "#4E342E": "Dark Brown",
   "#92400E": "Bronze",
   "#FFD700": "Gold",
   "#C0C0C0": "Silver",
@@ -81,6 +86,7 @@ const ANCHOR_COLORS = [
   { name: "Black", r: 0, g: 0, b: 0 },
   { name: "White", r: 255, g: 255, b: 255 },
   { name: "Gray", r: 128, g: 128, b: 128 },
+  { name: "Charcoal Grey", r: 54, g: 69, b: 79 },
   { name: "Red", r: 239, g: 68, b: 68 },
   { name: "Ruby Red", r: 155, g: 17, b: 30 },
   { name: "Pink", r: 231, g: 84, b: 128 },
@@ -96,6 +102,7 @@ const ANCHOR_COLORS = [
   { name: "Teal", r: 45, g: 212, b: 191 },
   { name: "Aqua Blue", r: 5, g: 195, b: 221 },
   { name: "Green", r: 0, g: 128, b: 0 },
+  { name: "Olive Green", r: 85, g: 107, b: 47 },
   { name: "Emerald Green", r: 80, g: 200, b: 120 },
   { name: "Mint Green", r: 152, g: 255, b: 152 },
   { name: "Yellow", r: 255, g: 255, b: 0 },
@@ -103,6 +110,7 @@ const ANCHOR_COLORS = [
   { name: "Gold", r: 255, g: 215, b: 0 },
   { name: "Silver", r: 192, g: 192, b: 192 },
   { name: "Brown", r: 120, g: 53, b: 15 },
+  { name: "Dark Brown", r: 62, g: 39, b: 35 },
 ];
 
 /**
@@ -173,7 +181,9 @@ export const COLOR_MAP = {
   'light grey': '#D1D5DB',
   'light gray': '#D1D5DB',
   'melange': '#A0A0A0',
-  'charcoal': '#374151',
+  'charcoal': '#36454F',
+  'charcoal grey': '#36454F',
+  'charcoal gray': '#36454F',
   'skin': '#F3C59A',
   'beige': '#F5F5DC',
   'cream': '#FFFDD0',
@@ -193,7 +203,8 @@ export const COLOR_MAP = {
   'orange': '#FFA500',
   'purple': '#8B2FC9',
   'lavender': '#734F96',
-  'brown': '#8B4513'
+  'brown': '#8B4513',
+  'dark brown': '#3E2723'
 };
 
 export const getColorStyle = (c) => {
