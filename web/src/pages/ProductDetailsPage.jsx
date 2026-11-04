@@ -89,8 +89,31 @@ const ProductGallery = memo(({ activeThumb, setActiveThumb, displayImage, displa
   );
 });
 
+const getRelatedProductColors = (product) => {
+  if (!product) return [];
+  const raw = [...parseColors(product.colors)];
+  if (Array.isArray(product.product_variants)) {
+    product.product_variants.forEach((v) => {
+      if (v?.color) raw.push(v.color);
+    });
+  }
+  const seen = new Set();
+  const unique = [];
+  raw.forEach((c) => {
+    const trimmed = typeof c === "string" ? c.trim() : "";
+    if (!trimmed) return;
+    const key = trimmed.toLowerCase();
+    if (!seen.has(key)) {
+      seen.add(key);
+      unique.push(trimmed);
+    }
+  });
+  return unique;
+};
+
 // ── Related Products Component ──
 const RelatedProducts = memo(({ relatedItems, onProductClick }) => {
+  const [selectedRelColors, setSelectedRelColors] = useState({});
   if (!relatedItems || relatedItems.length === 0) return null;
   const visibleRelated = relatedItems.slice(0, 4);
 
@@ -98,26 +121,92 @@ const RelatedProducts = memo(({ relatedItems, onProductClick }) => {
     <section className="dp-related-section">
       <h2 className="dp-related-title">You May Also Like</h2>
       <div className="dp-related-grid">
-        {visibleRelated.map(p => (
-          <div
-            key={p.id}
-            className="dp-rel-card"
-            onClick={() => onProductClick && onProductClick(p)}
-          >
-            <div className="dp-rel-img-wrapper">
-              <img
-                src={productService.getResizedImageUrl(p.img || p.image_url, 'card')}
-                alt={p.name}
-                className="dp-rel-img"
-                loading="lazy"
-              />
+        {visibleRelated.map((p) => {
+          const cardKey = String(p.id || p.productId || p.product_id || p.name);
+          const productColors = getRelatedProductColors(p);
+          const activeColor = selectedRelColors[cardKey] ?? productColors[0] ?? null;
+          const activeColorName = activeColor ? (getColorName(activeColor) || activeColor) : "";
+          const displayTitle =
+            activeColorName &&
+            p.name &&
+            !p.name.toLowerCase().startsWith(`${activeColorName.toLowerCase()} - `)
+              ? `${activeColorName} - ${p.name}`
+              : p.name;
+
+          const colorVariantImg =
+            activeColor && Array.isArray(p.product_variants)
+              ? p.product_variants.find(
+                  (v) =>
+                    String(v.color || "").trim().toLowerCase() === String(activeColor).trim().toLowerCase() &&
+                    Array.isArray(v.images) &&
+                    v.images.length > 0
+                )?.images?.[0]
+              : null;
+          const cardImgUrl = colorVariantImg || p.img || p.image_url;
+
+          return (
+            <div
+              key={cardKey}
+              className="dp-rel-card"
+              onClick={() => onProductClick && onProductClick(p, activeColor, cardImgUrl)}
+            >
+              <div className="dp-rel-img-wrapper">
+                <img
+                  src={productService.getResizedImageUrl(cardImgUrl, 'card')}
+                  alt={displayTitle}
+                  className="dp-rel-img"
+                  loading="lazy"
+                />
+              </div>
+              <div className="dp-rel-details">
+                <div className="dp-rel-details-top-row">
+                  <div className="dp-rel-details-info">
+                    <h4 className="dp-rel-name" title={displayTitle}>{displayTitle}</h4>
+                    <div className="dp-rel-price">₹{p.price}</div>
+                  </div>
+                  {productColors.length > 0 && (
+                    <div className="dp-rel-card-colors" aria-label="Available colors">
+                      {productColors.map((color) => {
+                        const bg = getColorStyle(color);
+                        const cName = getColorName(color) || color;
+                        const isWhite =
+                          bg.toUpperCase() === "#FFFFFF" ||
+                          bg.toLowerCase() === "white" ||
+                          String(color).trim().toLowerCase() === "white" ||
+                          String(color).trim().toUpperCase() === "#FFFFFF";
+                        const isActive =
+                          activeColor &&
+                          String(activeColor).trim().toLowerCase() === String(color).trim().toLowerCase();
+
+                        return (
+                          <button
+                            key={color}
+                            type="button"
+                            className={`dp-rel-color-swatch-btn${isActive ? " active" : ""}`}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setSelectedRelColors((prev) => ({
+                                ...prev,
+                                [cardKey]: color,
+                              }));
+                            }}
+                            title={cName}
+                            aria-label={`Color ${cName}`}
+                          >
+                            <span
+                              className={`dp-rel-color-dot${isWhite ? " dp-rel-color-dot--white" : ""}`}
+                              style={{ backgroundColor: bg }}
+                            />
+                          </button>
+                        );
+                      })}
+                    </div>
+                  )}
+                </div>
+              </div>
             </div>
-            <div className="dp-rel-details">
-              <h4 className="dp-rel-name">{p.name}</h4>
-              <div className="dp-rel-price">₹{p.price}</div>
-            </div>
-          </div>
-        ))}
+          );
+        })}
       </div>
     </section>
   );
@@ -142,6 +231,7 @@ const COLOR_MAP = {
   'light gray': '#D1D5DB',
   'melange': '#A0A0A0',
   'charcoal': '#374151',
+  'charcoal grey': '#36454F',
   'skin': '#F3C59A',
   'beige': '#F5F5DC',
   'cream': '#FFFDD0',
@@ -161,7 +251,8 @@ const COLOR_MAP = {
   'orange': '#FFA500',
   'purple': '#8B2FC9',
   'lavender': '#734F96',
-  'brown': '#8B4513'
+  'brown': '#8B4513',
+  'dark brown': '#3E2723'
 };
 
 export const getColorStyle = (c) => {
@@ -302,6 +393,7 @@ export default function ProductDetailsPage({ onBack = () => window.history.back(
   const [toastMsg, setToastMsg] = useState("");
   const [toastType, setToastType] = useState("success");
   const [selectedSize, setSelectedSize] = useState("");
+  const [sizeGuideOpen, setSizeGuideOpen] = useState(false);
   const [size, setSize] = useState(() => {
     const rawSizes = selectedProduct?.sizes;
     if (rawSizes) {
@@ -779,13 +871,19 @@ export default function ProductDetailsPage({ onBack = () => window.history.back(
   };
 
   const handleRelatedProductClick = useCallback(
-    (product) => {
+    (product, color = null, customImg = null) => {
       setSelectedProduct({
         ...product,
         category: product.category || cat,
+        ...(color ? { selectedColor: color } : {}),
+        ...(customImg ? { img: customImg, image: customImg } : {}),
       });
+      if (color) {
+        setSelectedColor(color);
+      }
       const pid = product.product_id || product.productId || product.id;
-      navigate(pid ? `/product/${pid}` : "/product");
+      const colorQuery = color ? `?color=${encodeURIComponent(color)}` : "";
+      navigate(pid ? `/product/${pid}${colorQuery}` : "/product");
     },
     [cat, setSelectedProduct, navigate]
   );
@@ -1108,42 +1206,43 @@ export default function ProductDetailsPage({ onBack = () => window.history.back(
               </button>
             </div>
 
-            {/* Stock Status Badge */}
-            <div className="dp-stock-status">
-              {stockCount === 0 && selectedSize ? (
-                <span className="dp-stock-out">Out of Stock ({selectedSize})</span>
-              ) : stockCount === 0 ? (
-                <span className="dp-stock-out">Out of Stock</span>
-              ) : selectedSize ? (
-                <span className="dp-stock-in">
-                  In Stock ({stockCount} available)
-                </span>
-              ) : (
-                <span className="dp-stock-in">In Stock</span>
+            {/* Price, MRP & Stock Status */}
+            <div className="dp-price-row">
+              <span className="dp-price-text">Rs. {payPrice.toLocaleString('en-IN')}</span>
+              {strikePrice != null && strikePrice > payPrice && (
+                <>
+                  <span className="dp-price-mrp-cut">
+                    <span className="dp-price-mrp-label">MRP</span> Rs. {strikePrice.toLocaleString('en-IN')}
+                  </span>
+                  {discountPercent > 0 && (
+                    <span className="dp-price-discount-badge">{discountPercent}% OFF</span>
+                  )}
+                </>
               )}
+              <span className="dp-stock-status">
+                {stockCount === 0 && selectedSize ? (
+                  <span className="dp-stock-out">Out of Stock ({selectedSize})</span>
+                ) : stockCount === 0 ? (
+                  <span className="dp-stock-out">Out of Stock</span>
+                ) : selectedSize ? (
+                  <span className="dp-stock-in">
+                    In Stock ({stockCount} available)
+                  </span>
+                ) : (
+                  <span className="dp-stock-in">In Stock</span>
+                )}
+              </span>
             </div>
 
             {/* Short Description */}
             {(selectedProduct?.desc || selectedProduct?.description) && (
-              <p className="dp-short-desc">
-                {selectedProduct.desc || selectedProduct.description}
-              </p>
+              <div className="dp-desc-section">
+                <h4 className="dp-desc-title">Description</h4>
+                <div className="dp-short-desc">
+                  {selectedProduct.desc || selectedProduct.description}
+                </div>
+              </div>
             )}
-
-          {/* Price & MRP */}
-          <div className="dp-price-row">
-            <span className="dp-price-text">Rs. {payPrice.toLocaleString('en-IN')}</span>
-            {strikePrice != null && strikePrice > payPrice && (
-              <>
-                <span className="dp-price-mrp-cut">
-                  <span className="dp-price-mrp-label">MRP</span> Rs. {strikePrice.toLocaleString('en-IN')}
-                </span>
-                {discountPercent > 0 && (
-                  <span className="dp-price-discount-badge">{discountPercent}% OFF</span>
-                )}
-              </>
-            )}
-          </div>
 
           {/* Select Color */}
           {availableColors.length > 0 && (
@@ -1198,6 +1297,61 @@ export default function ProductDetailsPage({ onBack = () => window.history.back(
               </div>
             </div>
           )}
+
+          {/* Size Guide Dropdown */}
+          <div className={`dp-sizeguide-dropdown ${sizeGuideOpen ? "open" : ""}`}>
+            <button
+              type="button"
+              className="dp-sizeguide-toggle"
+              onClick={() => setSizeGuideOpen((prev) => !prev)}
+              aria-expanded={sizeGuideOpen}
+            >
+              <span className="dp-sizeguide-label">
+                <svg
+                  width="17"
+                  height="17"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="1.9"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  aria-hidden="true"
+                >
+                  <path d="M21.3 15.3a2.4 2.4 0 0 1 0 3.4l-2.6 2.6a2.4 2.4 0 0 1-3.4 0L2.7 8.7a2.41 2.41 0 0 1 0-3.4l2.6-2.6a2.41 2.41 0 0 1 3.4 0Z" />
+                  <path d="m14.5 12.5 2-2" />
+                  <path d="m11.5 9.5 2-2" />
+                  <path d="m8.5 6.5 2-2" />
+                  <path d="m17.5 15.5 2-2" />
+                </svg>
+                <span>Size Guide</span>
+              </span>
+              <svg
+                className="dp-sizeguide-chevron"
+                width="18"
+                height="18"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                aria-hidden="true"
+              >
+                <polyline points="6 9 12 15 18 9" />
+              </svg>
+            </button>
+            {sizeGuideOpen && (
+              <div className="dp-sizeguide-body">
+                <img
+                  src="/sizeguide.jpeg"
+                  alt="Faywalk Size Guide"
+                  className="dp-sizeguide-img"
+                  loading="lazy"
+                />
+              </div>
+            )}
+          </div>
 
           {/* Select Quantity */}
           <div className="dp-option-section">
