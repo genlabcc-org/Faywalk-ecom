@@ -21,6 +21,21 @@ const generateBaseSku = (productName) => {
 
 const generateVariantSku = (baseSku, index) => `${baseSku}-V${index + 1}`;
 
+const makeUniqueSku = (desiredSku, baseSku, index, usedSkus) => {
+  let candidate = (desiredSku || '').trim() || generateVariantSku(baseSku, index);
+  if (!usedSkus.has(candidate.toLowerCase())) {
+    usedSkus.add(candidate.toLowerCase());
+    return candidate;
+  }
+  let suffix = 2;
+  while (usedSkus.has(`${candidate}-${suffix}`.toLowerCase())) {
+    suffix++;
+  }
+  const unique = `${candidate}-${suffix}`;
+  usedSkus.add(unique.toLowerCase());
+  return unique;
+};
+
 export const variantService = {
   /**
    * Creates a base product plus all its variants in one flow.
@@ -49,59 +64,72 @@ export const variantService = {
 
     const baseSku = product.sku?.trim() || generateBaseSku(product.name);
 
-    const variantRows = [];
-    const colorUploadCache = new Map();
-    for (let i = 0; i < variants.length; i++) {
-      const v = variants[i];
-      let uploadedUrls = [];
-      const cacheKey = v.color ? v.color.toLowerCase() : null;
-      if (cacheKey && colorUploadCache.has(cacheKey)) {
-        uploadedUrls = colorUploadCache.get(cacheKey);
-      } else if (v.media?.length) {
-        uploadedUrls = await this._uploadVariantImages(v.media, product.name);
-        if (cacheKey) colorUploadCache.set(cacheKey, uploadedUrls);
+    try {
+      const variantRows = [];
+      const usedSkus = new Set();
+      const seenSizeColor = new Set();
+      const colorUploadCache = new Map();
+
+      for (let i = 0; i < variants.length; i++) {
+        const v = variants[i];
+        const sizeKey = (v.sizeDimension || '').trim().toLowerCase();
+        const colorKey = (v.color || '').trim().toLowerCase();
+        const comboKey = `${sizeKey}::${colorKey}`;
+        if (seenSizeColor.has(comboKey)) continue;
+        seenSizeColor.add(comboKey);
+
+        let uploadedUrls = [];
+        const cacheKey = v.color ? v.color.toLowerCase() : null;
+        if (cacheKey && colorUploadCache.has(cacheKey)) {
+          uploadedUrls = colorUploadCache.get(cacheKey);
+        } else if (v.media?.length) {
+          uploadedUrls = await this._uploadVariantImages(v.media, product.name);
+          if (cacheKey) colorUploadCache.set(cacheKey, uploadedUrls);
+        }
+        const imageUrls = [...(v.images || []), ...uploadedUrls];
+
+        variantRows.push({
+          product_id: product.product_id,
+          sku: makeUniqueSku(v.sku, baseSku, i, usedSkus),
+          size: v.sizeDimension || null,
+          color: v.color || null,
+          price: parseFloat(v.sellingPrice) || 0,
+          compare_price: parseFloat(v.price) || null,
+          stock: parseInt(v.stockQuantity) || 0,
+          stock_alert: parseInt(v.minStockAlert) || null,
+          images: imageUrls,
+          is_active: true,
+        });
       }
-      const imageUrls = [...(v.images || []), ...uploadedUrls];
 
-      variantRows.push({
-        product_id: product.product_id,
-        sku: v.sku?.trim() || generateVariantSku(baseSku, i),
-        size: v.sizeDimension || null,
-        color: v.color || null,
-        price: parseFloat(v.sellingPrice) || 0,
-        compare_price: parseFloat(v.price) || null,
-        stock: parseInt(v.stockQuantity) || 0,
-        stock_alert: parseInt(v.minStockAlert) || null,
-        images: imageUrls,
-        is_active: true,
-      });
-    }
+      const { data: insertedVariants, error: variantError } = await supabase
+        .from('product_variants')
+        .insert(variantRows)
+        .select();
 
-    const { data: insertedVariants, error: variantError } = await supabase
-      .from('product_variants')
-      .insert(variantRows)
-      .select();
+      if (variantError) {
+        throw variantError;
+      }
 
-    if (variantError) {
+      // ── Sync base product images from the first variant that has any ──
+      const firstWithImages = insertedVariants.find(v => v.images?.length > 0);
+      if (firstWithImages) {
+        const { data: updatedProduct, error: syncError } = await supabase
+          .from('products')
+          .update({ images: firstWithImages.images, image_url: firstWithImages.images[0] })
+          .eq('product_id', product.product_id)
+          .select()
+          .single();
+        if (!syncError && updatedProduct) {
+          return { product: updatedProduct, variants: insertedVariants };
+        }
+      }
+
+      return { product, variants: insertedVariants };
+    } catch (err) {
       await supabase.from('products').delete().eq('product_id', product.product_id);
-      throw variantError;
+      throw err;
     }
-
-    // ── Sync base product images from the first variant that has any ──
-    const firstWithImages = insertedVariants.find(v => v.images?.length > 0);
-    if (firstWithImages) {
-      const { data: updatedProduct, error: syncError } = await supabase
-        .from('products')
-        .update({ images: firstWithImages.images, image_url: firstWithImages.images[0] })
-        .eq('product_id', product.product_id)
-        .select()
-        .single();
-      if (!syncError && updatedProduct) {
-        return { product: updatedProduct, variants: insertedVariants };
-      }
-    }
-
-    return { product, variants: insertedVariants };
   },
 
   /**
@@ -148,21 +176,36 @@ export const variantService = {
       .single();
     if (productError) throw productError;
 
-    if (deletedVariantIds.length > 0) {
-      const { error: deleteError } = await supabase
-        .from('product_variants')
-        .delete()
-        .in('variant_id', deletedVariantIds);
-      if (deleteError) throw deleteError;
-    }
+    const { data: existingDbVariants } = await supabase
+      .from('product_variants')
+      .select('variant_id, size, color, sku')
+      .eq('product_id', productId);
+
+    const dbVarList = existingDbVariants || [];
+    const dbById = new Map(dbVarList.map((row) => [String(row.variant_id), row]));
+    const dbBySizeColor = new Map(
+      dbVarList.map((row) => [
+        `${(row.size || '').trim().toLowerCase()}::${(row.color || '').trim().toLowerCase()}`,
+        row,
+      ])
+    );
 
     const baseSku = product.sku?.trim() || generateBaseSku(product.name);
     const existingVariantUpdates = [];
     const newVariantRows = [];
+    const keptVariantIds = new Set();
+    const usedSkus = new Set();
+    const seenSizeColor = new Set();
     const colorUploadCache = new Map();
 
     for (let i = 0; i < variants.length; i++) {
       const v = variants[i];
+      const sizeKey = (v.sizeDimension || '').trim().toLowerCase();
+      const colorKey = (v.color || '').trim().toLowerCase();
+      const comboKey = `${sizeKey}::${colorKey}`;
+      if (seenSizeColor.has(comboKey)) continue;
+      seenSizeColor.add(comboKey);
+
       let uploadedUrls = [];
       const cacheKey = v.color ? v.color.toLowerCase() : null;
       if (cacheKey && colorUploadCache.has(cacheKey)) {
@@ -173,8 +216,17 @@ export const variantService = {
       }
       const imageUrls = [...(v.images || []), ...uploadedUrls];
 
+      // Match existing DB row by variant_id or by (size, color) to avoid 409 conflicts
+      let matchedVariantId = v.variant_id && dbById.has(String(v.variant_id)) ? v.variant_id : null;
+      if (!matchedVariantId) {
+        const comboMatch = dbBySizeColor.get(comboKey);
+        if (comboMatch && !keptVariantIds.has(String(comboMatch.variant_id))) {
+          matchedVariantId = comboMatch.variant_id;
+        }
+      }
+
       const rowData = {
-        sku: v.sku?.trim() || generateVariantSku(baseSku, i),
+        sku: makeUniqueSku(v.sku, baseSku, i, usedSkus),
         size: v.sizeDimension || null,
         color: v.color || null,
         price: parseFloat(v.sellingPrice) || 0,
@@ -185,14 +237,29 @@ export const variantService = {
         is_active: true,
       };
 
-      if (v.variant_id) {
-        existingVariantUpdates.push({ variant_id: v.variant_id, data: rowData });
+      if (matchedVariantId) {
+        keptVariantIds.add(String(matchedVariantId));
+        existingVariantUpdates.push({ variant_id: matchedVariantId, data: rowData });
       } else {
         newVariantRows.push({
           product_id: productId,
           ...rowData,
         });
       }
+    }
+
+    // Delete any DB variants for this product that are no longer present (plus explicit deletedVariantIds)
+    const staleDbIds = dbVarList
+      .map((r) => r.variant_id)
+      .filter((id) => !keptVariantIds.has(String(id)));
+    const allIdsToDelete = [...new Set([...deletedVariantIds, ...staleDbIds])].filter(Boolean);
+
+    if (allIdsToDelete.length > 0) {
+      const { error: deleteError } = await supabase
+        .from('product_variants')
+        .delete()
+        .in('variant_id', allIdsToDelete);
+      if (deleteError) throw deleteError;
     }
 
     const savedVariants = [];
@@ -216,10 +283,25 @@ export const variantService = {
 
     // 2. Insert newly added variants (omit variant_id so DB automatically generates it)
     if (newVariantRows.length > 0) {
-      const { data: inserted, error: insertError } = await supabase
+      let { data: inserted, error: insertError } = await supabase
         .from('product_variants')
         .insert(newVariantRows)
         .select();
+
+      // If a 409 / unique SKU collision happens with another product's SKU, suffix SKUs and retry once
+      if (insertError && (insertError.code === '23505' || String(insertError.message || '').includes('sku'))) {
+        const retryRows = newVariantRows.map((r) => ({
+          ...r,
+          sku: `${r.sku}-${Math.floor(100 + Math.random() * 900)}`,
+        }));
+        const retryRes = await supabase
+          .from('product_variants')
+          .insert(retryRows)
+          .select();
+        inserted = retryRes.data;
+        insertError = retryRes.error;
+      }
+
       if (insertError) throw insertError;
       if (inserted) savedVariants.push(...inserted);
     }
@@ -291,33 +373,45 @@ export const variantService = {
   async _uploadVariantImages(mediaItems, productName) {
     if (!mediaItems || mediaItems.length === 0) return [];
     const urls = [];
+    const safeSlug = (productName || 'product')
+      .replace(/[^a-z0-9]+/gi, '-')
+      .replace(/^-+|-+$/g, '')
+      .toLowerCase() || 'product';
+
     for (const item of mediaItems) {
       const rawFile = item.file || item;
       const compressedFile = await compressImage(rawFile, 'variant');
 
       const fileExt = compressedFile.name?.split('.').pop() || 'webp';
-      const fileName = `${(productName || 'product').replace(/\s+/g, '-').toLowerCase()}-variant-${Date.now()}-${Math.random().toString(36).slice(2, 7)}.${fileExt}`;
+      const fileName = `${safeSlug}-variant-${Date.now()}-${Math.random().toString(36).slice(2, 7)}.${fileExt}`;
       const filePath = `products/variants/${fileName}`;
 
-      const formData = new FormData();
-      formData.append('file', compressedFile);
-      formData.append('filePath', filePath);
-      formData.append('cacheControl', '31536000');
+      let lastErr = null;
+      let publicUrl = null;
 
-      const { data, error } = await supabase.functions.invoke('upload-image', {
-        body: formData,
-      });
+      for (let attempt = 0; attempt < 3; attempt++) {
+        const formData = new FormData();
+        formData.append('file', compressedFile, fileName);
+        formData.append('filePath', filePath);
+        formData.append('cacheControl', '31536000');
 
-      if (error) throw error;
-      urls.push(data.publicUrl);
-      // const { error } = await supabase.storage.from('product_img').upload(filePath, item.file, {
-      //   cacheControl: '31536000',
-      //   upsert: false,
-      // });
-      // if (error) throw error;
+        const { data, error } = await supabase.functions.invoke('upload-image', {
+          body: formData,
+        });
 
-      // const { data } = supabase.storage.from('product_img').getPublicUrl(filePath);
-      // urls.push(data.publicUrl);
+        if (!error && data?.publicUrl) {
+          publicUrl = data.publicUrl;
+          lastErr = null;
+          break;
+        }
+        lastErr = error || new Error('Failed to upload variant image');
+        if (attempt < 2) {
+          await new Promise((r) => setTimeout(r, 500 * (attempt + 1)));
+        }
+      }
+
+      if (lastErr) throw lastErr;
+      urls.push(publicUrl);
     }
     return urls;
   },

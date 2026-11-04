@@ -9,16 +9,34 @@ export const COMPRESSION_PRESETS = {
 };
 
 export async function compressImage(file, preset = 'detail') {
-  const options = {
+  if (!file || typeof file !== 'object') return file;
+
+  const baseOptions = {
     ...COMPRESSION_PRESETS[preset],
-    useWebWorker: true,
     fileType: 'image/webp',
   };
 
+  const toNamedFile = (blobOrFile) => {
+    if (blobOrFile instanceof File && blobOrFile.name) return blobOrFile;
+    const baseName = (file.name || 'image').replace(/\.[^/.]+$/, '');
+    const ext = (blobOrFile.type === 'image/webp' || !file.name) ? 'webp' : file.name.split('.').pop();
+    return new File([blobOrFile], `${baseName}.${ext}`, {
+      type: blobOrFile.type || file.type || 'image/webp',
+      lastModified: Date.now(),
+    });
+  };
+
   try {
-    return await imageCompression(file, options);
-  } catch (err) {
-    console.error('Image compression failed, using original file:', err);
-    return file; // fail-safe: don't block upload if compression errors out
+    const compressed = await imageCompression(file, { ...baseOptions, useWebWorker: true });
+    return toNamedFile(compressed);
+  } catch (workerErr) {
+    try {
+      // Fallback to main-thread compression if Web Worker fails (e.g. ProgressEvent)
+      const compressedFallback = await imageCompression(file, { ...baseOptions, useWebWorker: false });
+      return toNamedFile(compressedFallback);
+    } catch (err) {
+      console.error('Image compression failed, using original file:', err);
+      return file; // fail-safe: don't block upload if compression errors out
+    }
   }
 }

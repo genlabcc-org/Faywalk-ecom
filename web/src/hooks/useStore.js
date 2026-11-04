@@ -331,7 +331,18 @@ export const useStore = create((set, get) => ({
             baseColors = p.colors.split(',').map(s => s.trim()).filter(Boolean);
           }
         }
-        const combinedColors = Array.from(new Set([...baseColors, ...variantColors].filter(Boolean)));
+        const rawColors = [...baseColors, ...variantColors]
+          .map(c => (typeof c === 'string' ? c.trim() : ''))
+          .filter(Boolean);
+        const seenColors = new Set();
+        const combinedColors = [];
+        rawColors.forEach(c => {
+          const key = c.toLowerCase();
+          if (!seenColors.has(key)) {
+            seenColors.add(key);
+            combinedColors.push(c);
+          }
+        });
 
         const categoryNameResolved = p.category || p.categories?.name || (categoryName.toLowerCase() !== 'all products' && categoryName.toLowerCase() !== 'all' ? categoryName : '');
         const mat = (p.material || p.fabric || '').trim();
@@ -347,6 +358,7 @@ export const useStore = create((set, get) => ({
           compare_price: mrp,
           sizes: combinedSizes,
           colors: combinedColors,
+          product_variants: variants,
           material: mat,
           fabric: mat,
           category: categoryNameResolved,

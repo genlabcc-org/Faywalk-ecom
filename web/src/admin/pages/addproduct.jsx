@@ -456,7 +456,19 @@ const AddProduct = ({
 
     if (sizeRows.length > 0) {
       if (isSelected) {
-        // Remove this color from all sizes
+        // Remove this color from all sizes and track any existing DB variant_ids for deletion
+        const removedIds = [];
+        sizeRows.forEach((s) => {
+          (s.colors || []).forEach((cv) => {
+            if ((cv.color || "").toLowerCase().trim() === norm && cv.variant_id) {
+              removedIds.push(cv.variant_id);
+            }
+          });
+        });
+        if (removedIds.length > 0) {
+          setDeletedVariantIds((ids) => [...new Set([...ids, ...removedIds])]);
+        }
+
         setSizeRows((prev) =>
           prev.map((s) => ({
             ...s,
@@ -1148,7 +1160,8 @@ const AddProduct = ({
       onSave?.(result);
     } catch (err) {
       console.error("Failed to save variant product:", err);
-      alert("Failed to save product: " + err.message);
+      const errMsg = err?.message || err?.details || err?.error_description || JSON.stringify(err);
+      alert("Failed to save product: " + errMsg);
     } finally {
       setSaving(false);
     }

@@ -326,16 +326,21 @@ export default function ProductDetailsPage({ onBack = () => window.history.back(
   const [variants, setVariants] = useState(() => {
     return selectedProduct?.product_variants || selectedProduct?.variants || [];
   });
+  const colorParam = searchParams.get("color") || "";
   const [selectedColor, setSelectedColor] = useState(() => {
+    if (colorParam) {
+      return colorParam;
+    }
+    if (selectedProduct?.selectedColor) {
+      return selectedProduct.selectedColor;
+    }
     const rawColors = selectedProduct?.colors;
     const parsed = parseColors(rawColors);
     if (parsed.length > 0) {
-      if (!selectedProduct?.has_variants || parsed.length === 1) {
-        return parsed[0];
-      }
+      return parsed[0];
     }
     const varColors = (selectedProduct?.product_variants || selectedProduct?.variants || []).map((v) => v.color).filter(Boolean);
-    if (varColors.length > 0 && (!selectedProduct?.has_variants || varColors.length === 1)) {
+    if (varColors.length > 0) {
       return varColors[0];
     }
     return "";
@@ -441,16 +446,24 @@ export default function ProductDetailsPage({ onBack = () => window.history.back(
           ? parsedColorsList
           : [...new Set(rawVariants.map((v) => v.color).filter(Boolean))];
 
-        if (!data.has_variants || allColors.length === 1) {
-          if (allColors[0]) {
-            setSelectedColor(allColors[0]);
-          }
+        const desiredColor = colorParam || selectedProduct?.selectedColor || "";
+        const matchedDesiredColor = desiredColor
+          ? allColors.find((c) => String(c).trim().toLowerCase() === String(desiredColor).trim().toLowerCase())
+          : null;
+
+        if (matchedDesiredColor) {
+          setSelectedColor(matchedDesiredColor);
+        } else if (allColors[0]) {
+          setSelectedColor((prev) => prev || allColors[0]);
         }
 
         setSize(realSizes);
         setSelectedSize(prev => (prev && realSizes.includes(prev)) ? prev : (realSizes.length === 1 ? realSizes[0] : ""));
 
-        setSelectedProduct(formatted);
+        setSelectedProduct({
+          ...formatted,
+          ...(matchedDesiredColor ? { selectedColor: matchedDesiredColor } : {}),
+        });
         setLoadingProduct(false);
       })
       .catch((err) => {
@@ -606,13 +619,27 @@ export default function ProductDetailsPage({ onBack = () => window.history.back(
     return [];
   }, [hasVariants, variants, selectedSize, productPrices, selectedProduct]);
 
+  const activeColorForTitle = selectedColor || (availableColors.length > 0 ? availableColors[0] : "");
+  const activeColorLabel = activeColorForTitle ? (getColorName(activeColorForTitle) || activeColorForTitle) : "";
+  const displayTitle =
+    activeColorLabel &&
+    displayName &&
+    !displayName.toLowerCase().startsWith(`${activeColorLabel.toLowerCase()} - `)
+      ? `${activeColorLabel} - ${displayName}`
+      : displayName;
+
   // Auto-sync selectedColor when selectedSize changes or availableColors updates
   useEffect(() => {
     if (!hasVariants || !variants || variants.length === 0) return;
 
     if (availableColors.length > 0) {
       setSelectedColor((prev) => {
-        if (prev && availableColors.includes(prev)) return prev;
+        if (prev) {
+          const match = availableColors.find(
+            (c) => String(c).trim().toLowerCase() === String(prev).trim().toLowerCase()
+          );
+          if (match) return match;
+        }
         return availableColors[0];
       });
     } else {
@@ -1048,7 +1075,7 @@ export default function ProductDetailsPage({ onBack = () => window.history.back(
               activeThumb={activeThumb}
               setActiveThumb={handleThumbClick}
               displayImage={displayImage}
-              displayName={displayName}
+              displayName={displayTitle}
               thumbs={dynamicThumbs}
             />
           </div>
@@ -1057,7 +1084,7 @@ export default function ProductDetailsPage({ onBack = () => window.history.back(
           <div className="dp-info-column">
             {/* Title & Share Row */}
             <div className="dp-title-share-row">
-              <h1 className="dp-title">{displayName.toUpperCase()}</h1>
+              <h1 className="dp-title">{displayTitle.toUpperCase()}</h1>
               <button
                 type="button"
                 className={`dp-share-btn ${copied ? 'copied' : ''}`}

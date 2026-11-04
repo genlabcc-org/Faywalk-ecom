@@ -8,12 +8,46 @@ import Toast from "../components/Toast";
 import { SkeletonProductCard } from "../components/ui/Skeleton";
 import { productService } from "../services/productService";
 import { getNavPath } from "../services/categoryRoute";
+import { getColorName, getColorStyle } from "../utils/colorUtils";
 import ProductFilter from "../components/ProductFilter";
 import "./ProductPage.css";
 
 const DESKTOP_ITEMS_PER_PAGE = 9;
 const MOBILE_ITEMS_PER_PAGE = 10;
 const EMPTY_PRODUCTS = [];
+
+const getProductColors = (product) => {
+  if (!product) return [];
+  const raw = [];
+  if (Array.isArray(product.colors)) {
+    raw.push(...product.colors);
+  } else if (typeof product.colors === "string" && product.colors.trim()) {
+    try {
+      const parsed = JSON.parse(product.colors);
+      if (Array.isArray(parsed)) raw.push(...parsed);
+      else raw.push(product.colors);
+    } catch {
+      raw.push(...product.colors.split(","));
+    }
+  }
+  if (Array.isArray(product.product_variants)) {
+    product.product_variants.forEach((v) => {
+      if (v?.color) raw.push(v.color);
+    });
+  }
+  const seen = new Set();
+  const unique = [];
+  raw.forEach((c) => {
+    const trimmed = typeof c === "string" ? c.trim() : "";
+    if (!trimmed) return;
+    const key = trimmed.toLowerCase();
+    if (!seen.has(key)) {
+      seen.add(key);
+      unique.push(trimmed);
+    }
+  });
+  return unique;
+};
 
 // Loading Skeleton
 const ProductSkeleton = () => <SkeletonProductCard />;
@@ -51,6 +85,7 @@ export default function ProductPage({ category = "Trending" }) {
   const [mobileFilterOpen, setMobileFilterOpen] = useState(false);
   const [toastMessage, setToastMessage] = useState("");
   const [toastType, setToastType] = useState("success");
+  const [selectedCardColors, setSelectedCardColors] = useState({});
 
   // Zustand Store Hooks
   const products = useStore(state => state.products[category] || EMPTY_PRODUCTS);
@@ -299,7 +334,8 @@ export default function ProductPage({ category = "Trending" }) {
       // Search query filter
       if (searchQueryParam.trim()) {
         const q = searchQueryParam.trim().toLowerCase();
-        const text = `${product.name || ""} ${product.desc || ""} ${product.subcategory || ""} ${product.category || ""} ${product.sku || ""}`.toLowerCase();
+        const colorNames = getProductColors(product).map(c => getColorName(c) || c).join(" ");
+        const text = `${product.name || ""} ${colorNames} ${product.desc || ""} ${product.subcategory || ""} ${product.category || ""} ${product.sku || ""}`.toLowerCase();
         const variantMatch = Array.isArray(product.product_variants) && product.product_variants.some(v => 
           (v.sku && String(v.sku).toLowerCase().includes(q)) ||
           (v.variant_id && String(v.variant_id).toLowerCase().includes(q))
@@ -355,14 +391,56 @@ export default function ProductPage({ category = "Trending" }) {
       return true;
     });
 
+    // Expand products that have colors so each color is shown as its own card
+    let expanded = result.flatMap((product) => {
+      const pid = product.id || product.product_id;
+      const productColors = getProductColors(product);
+      if (productColors.length === 0) {
+        return [{ ...product, cardKey: String(pid), cardColor: null }];
+      }
+
+      return productColors.map((color) => {
+        const normColor = String(color).trim().toLowerCase();
+        const matchingVariants = Array.isArray(product.product_variants)
+          ? product.product_variants.filter(
+              (v) => String(v.color || "").trim().toLowerCase() === normColor
+            )
+          : [];
+        const variantImg = matchingVariants.find(
+          (v) => Array.isArray(v.images) && v.images.length > 0
+        )?.images?.[0];
+        const validPrices = matchingVariants
+          .map((v) => Number(v.price))
+          .filter((n) => !isNaN(n) && n > 0);
+        const colorPrice =
+          validPrices.length > 0 ? Math.min(...validPrices) : product.price;
+        const validCompares = matchingVariants
+          .map((v) => Number(v.compare_price))
+          .filter((n) => !isNaN(n) && n > 0);
+        const colorComparePrice =
+          validCompares.length > 0
+            ? Math.max(...validCompares)
+            : product.compare_price;
+
+        return {
+          ...product,
+          cardKey: `${pid}__${color}`,
+          cardColor: color,
+          img: variantImg || product.img || product.image_url,
+          price: colorPrice,
+          compare_price: colorComparePrice,
+        };
+      });
+    });
+
     // Sorting
     if (sortBy === "price-low-high") {
-      result = [...result].sort((a, b) => (Number(a.price) || 0) - (Number(b.price) || 0));
+      expanded = [...expanded].sort((a, b) => (Number(a.price) || 0) - (Number(b.price) || 0));
     } else if (sortBy === "price-high-low") {
-      result = [...result].sort((a, b) => (Number(b.price) || 0) - (Number(a.price) || 0));
+      expanded = [...expanded].sort((a, b) => (Number(b.price) || 0) - (Number(a.price) || 0));
     }
 
-    return result;
+    return expanded;
   }, [products, subcategoryParam, searchQueryParam, selectedCategories, selectedSubcategories, selectedFabrics, selectedSizes, sortBy]);
 
   const totalPages = Math.max(1, Math.ceil(filteredProducts.length / itemsPerPage));
@@ -388,31 +466,60 @@ export default function ProductPage({ category = "Trending" }) {
     }
   };
 
-  const handleProductCardClick = (product) => {
+  const handleProductCardClick = (product, activeColor = null, cardImgUrl = null) => {
+    const pid = product?.product_id || product?.productId || product?.id;
+    const resolvedColor = activeColor ?? product?.cardColor ?? null;
     const formattedProduct = {
       ...product,
+      ...(cardImgUrl ? { img: cardImgUrl, image: cardImgUrl } : {}),
+      ...(resolvedColor ? { selectedColor: resolvedColor } : {}),
       price: `₹${product.price}.00`,
       original: `₹${product.compare_price || product.price}.00`,
       category
     };
     setSelectedProduct(formattedProduct);
-    const pid = product?.product_id || product?.productId || product?.id;
-    navigate(pid ? `/product/${pid}` : "/product");
+    if (pid) {
+      const targetUrl = resolvedColor
+        ? `/product/${pid}?color=${encodeURIComponent(resolvedColor)}`
+        : `/product/${pid}`;
+      navigate(targetUrl);
+    } else {
+      navigate("/product");
+    }
   };
 
-  const isProductInCart = (product) => {
-    const pid = String(product.productId || product.product_id || product.id || '');
-    return cartItems?.some(
-      (item) => String(item.productId || item.product_id || item.id || '') === pid
-    );
-  };
-
-  const handleAddToCartClick = async (e, product) => {
+  const handleCardColorClick = (e, product, color) => {
     e.stopPropagation();
-    if (isProductInCart(product)) return;
+    const cardKey = product?.cardKey || String(product?.product_id || product?.productId || product?.id || "");
+    if (!cardKey) return;
+    setSelectedCardColors((prev) => ({
+      ...prev,
+      [cardKey]: color,
+    }));
+  };
+
+  const isProductInCart = (product, activeColor = null) => {
+    const pid = String(product.productId || product.product_id || product.id || '');
+    const normColor = String(activeColor || '').trim().toLowerCase();
+    return cartItems?.some((item) => {
+      const sameProduct = String(item.productId || item.product_id || item.id || '') === pid;
+      if (!sameProduct) return false;
+      if (normColor) {
+        return String(item.color || '').trim().toLowerCase() === normColor;
+      }
+      return true;
+    });
+  };
+
+  const handleAddToCartClick = async (e, product, activeColor = null, cardImgUrl = null) => {
+    e.stopPropagation();
+    const productColors = getProductColors(product);
+    const defaultColor = activeColor || product?.cardColor || productColors[0] || null;
+    if (isProductInCart(product, defaultColor)) return;
     try {
       const defaultSize = (product.sizes && product.sizes.length > 0) ? product.sizes[0] : (selectedSizes[0] || null);
-      await addToCart(product, 1, defaultSize);
+      const productForCart = cardImgUrl ? { ...product, img: cardImgUrl, image: cardImgUrl } : product;
+      await addToCart(productForCart, 1, defaultSize, defaultColor);
       showToast(`Added ${product.name} to cart!`, "success");
     } catch (err) {
       showToast("Failed to add to cart", "error");
@@ -565,78 +672,130 @@ export default function ProductPage({ category = "Trending" }) {
           ) : (
             <>
               <div className="trending-products-grid">
-                {currentItems.map(product => (
-                  <article
-                    key={product.id || product.product_id}
-                    onClick={() => handleProductCardClick(product)}
-                    className="trending-card"
-                  >
-                    <div className="trending-image-box">
-                      <img
-                        src={productService.getResizedImageUrl(product.img || product.image_url, 'card')}
-                        alt={product.name}
-                        className="trending-img"
-                        loading="lazy"
-                      />
-                      {(() => {
-                        const inCart = isProductInCart(product);
-                        return (
-                          <button
-                            type="button"
-                            onClick={(e) => handleAddToCartClick(e, product)}
-                            className={`trending-cart-pill-btn ${inCart ? 'in-cart' : ''}`}
-                            disabled={inCart}
-                            aria-label={inCart ? "Already in cart" : "Add to cart"}
-                            title={inCart ? "Already in cart" : "Add to cart"}
-                          >
-                            {inCart ? (
-                              <>
-                                <svg
-                                  viewBox="0 0 24 24"
-                                  fill="none"
-                                  width="14"
-                                  height="14"
-                                  stroke="currentColor"
-                                  strokeWidth="2.5"
-                                  strokeLinecap="round"
-                                  strokeLinejoin="round"
-                                  className="cart-svg-icon"
-                                >
-                                  <polyline points="20 6 9 17 4 12" />
-                                </svg>
-                                <span>Already in Cart</span>
-                              </>
-                            ) : (
-                              <>
-                                <svg
-                                  viewBox="0 0 24 24"
-                                  fill="none"
-                                  width="14"
-                                  height="14"
-                                  stroke="currentColor"
-                                  strokeWidth="2.2"
-                                  strokeLinecap="round"
-                                  strokeLinejoin="round"
-                                  className="cart-svg-icon"
-                                >
-                                  <circle cx="9" cy="21" r="1" />
-                                  <circle cx="20" cy="21" r="1" />
-                                  <path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6" />
-                                </svg>
-                                <span>Add To Cart</span>
-                              </>
-                            )}
-                          </button>
-                        );
-                      })()}
-                    </div>
+                {currentItems.map(product => {
+                  const pid = product.id || product.product_id;
+                  const cardKey = product.cardKey || String(pid);
+                  const productColors = getProductColors(product);
+                  const activeColor = selectedCardColors[cardKey] ?? product.cardColor ?? null;
+                  const activeColorName = activeColor ? (getColorName(activeColor) || activeColor) : "";
+                  const displayTitle = activeColorName ? `${activeColorName} - ${product.name}` : product.name;
+                  const colorVariantImg = activeColor && Array.isArray(product.product_variants)
+                    ? product.product_variants.find(
+                        (v) =>
+                          String(v.color || "").trim().toLowerCase() === activeColor.toLowerCase() &&
+                          Array.isArray(v.images) &&
+                          v.images.length > 0
+                      )?.images?.[0]
+                    : null;
+                  const cardImgUrl = colorVariantImg || product.img || product.image_url;
 
-                    <div className="trending-details-box">
-                      <h4 className="trending-product-name">{product.name}</h4>
-                      <div className="trending-product-price">₹{product.price}</div>
-                    </div>
-                  </article>
-                ))}
+                  return (
+                    <article
+                      key={cardKey}
+                      onClick={() => handleProductCardClick(product, activeColor, cardImgUrl)}
+                      className="trending-card"
+                    >
+                      <div className="trending-image-box">
+                        <img
+                          src={productService.getResizedImageUrl(cardImgUrl, 'card')}
+                          alt={displayTitle}
+                          className="trending-img"
+                          loading="lazy"
+                        />
+                        {(() => {
+                          const inCart = isProductInCart(product, activeColor);
+                          return (
+                            <button
+                              type="button"
+                              onClick={(e) => handleAddToCartClick(e, product, activeColor, cardImgUrl)}
+                              className={`trending-cart-pill-btn ${inCart ? 'in-cart' : ''}`}
+                              disabled={inCart}
+                              aria-label={inCart ? "Already in cart" : "Add to cart"}
+                              title={inCart ? "Already in cart" : "Add to cart"}
+                            >
+                              {inCart ? (
+                                <>
+                                  <svg
+                                    viewBox="0 0 24 24"
+                                    fill="none"
+                                    width="14"
+                                    height="14"
+                                    stroke="currentColor"
+                                    strokeWidth="2.5"
+                                    strokeLinecap="round"
+                                    strokeLinejoin="round"
+                                    className="cart-svg-icon"
+                                  >
+                                    <polyline points="20 6 9 17 4 12" />
+                                  </svg>
+                                  <span>Already in Cart</span>
+                                </>
+                              ) : (
+                                <>
+                                  <svg
+                                    viewBox="0 0 24 24"
+                                    fill="none"
+                                    width="14"
+                                    height="14"
+                                    stroke="currentColor"
+                                    strokeWidth="2.2"
+                                    strokeLinecap="round"
+                                    strokeLinejoin="round"
+                                    className="cart-svg-icon"
+                                  >
+                                    <circle cx="9" cy="21" r="1" />
+                                    <circle cx="20" cy="21" r="1" />
+                                    <path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6" />
+                                  </svg>
+                                  <span>Add To Cart</span>
+                                </>
+                              )}
+                            </button>
+                          );
+                        })()}
+                      </div>
+
+                      <div className="trending-details-box">
+                        <div className="trending-details-top-row">
+                          <h4 className="trending-product-name" title={displayTitle}>{displayTitle}</h4>
+                          {productColors.length > 0 && (
+                            <div className="trending-card-colors" aria-label="Available colors">
+                              {productColors.map((color) => {
+                                const bg = getColorStyle(color);
+                                const cName = getColorName(color) || color;
+                                const isWhite =
+                                  bg.toUpperCase() === "#FFFFFF" ||
+                                  bg.toLowerCase() === "white" ||
+                                  String(color).trim().toLowerCase() === "white" ||
+                                  String(color).trim().toUpperCase() === "#FFFFFF";
+                                const isActive =
+                                  activeColor &&
+                                  activeColor.toLowerCase() === String(color).trim().toLowerCase();
+
+                                return (
+                                  <button
+                                    key={color}
+                                    type="button"
+                                    className={`trending-color-swatch-btn${isActive ? " active" : ""}`}
+                                    onClick={(e) => handleCardColorClick(e, product, color)}
+                                    title={cName}
+                                    aria-label={`Color ${cName}`}
+                                  >
+                                    <span
+                                      className={`trending-color-dot${isWhite ? " trending-color-dot--white" : ""}`}
+                                      style={{ backgroundColor: bg }}
+                                    />
+                                  </button>
+                                );
+                              })}
+                            </div>
+                          )}
+                        </div>
+                        <div className="trending-product-price">₹{product.price}</div>
+                      </div>
+                    </article>
+                  );
+                })}
               </div>
 
               {/* ─── Pagination Bar ─── */}
