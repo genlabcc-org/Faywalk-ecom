@@ -1817,7 +1817,8 @@ const Dashboard = () => {
     loading: adminDataLoading,
     error: adminDataError,
     updateOrderStatus: updateOrderStatusRaw,
-    updateOrderInvoicePrinted
+    updateOrderInvoicePrinted,
+    refetch: refetchAdminData
   } = useAdminData();
 
   // Orders whose invoices are unprinted (excluding cancelled orders)
@@ -2841,7 +2842,7 @@ const Dashboard = () => {
             <Route path="/categories/add" element={<AddCategory initialData={editingCategory} onBack={() => { setEditingCategory(null); navigate("/admin/categories"); }} onPublish={handlePublishCategory} onSaveDraft={handleSaveDraftCategory} />} />
 
             {/* Orders */}
-            <Route path="/orders" element={<AllOrders orders={orders} products={products} categories={categories} loading={adminDataLoading} onViewDetail={handleViewOrderDetail} onInvoicePrinted={updateOrderInvoicePrinted} />} />
+            <Route path="/orders" element={<AllOrders orders={orders} products={products} categories={categories} loading={adminDataLoading} onViewDetail={handleViewOrderDetail} onInvoicePrinted={updateOrderInvoicePrinted} onRefresh={refetchAdminData} />} />
             <Route path="/orders/detail" element={<OrderDetails order={selectedOrderObj} onStatusChange={updateOrderStatus} onInvoicePrinted={updateOrderInvoicePrinted} onBack={() => navigate("/admin/orders")} />} />
 
             {/* Invoices (redirects to unified Orders & Invoices page) */}

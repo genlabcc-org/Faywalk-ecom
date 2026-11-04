@@ -668,7 +668,7 @@ const AddProduct = ({
     );
   };
 
-  // Image upload for a color variant (auto-syncs across all sizes sharing this color, max 2 images per color)
+  // Image upload for a color variant (auto-syncs across all sizes sharing this color, max 4 images per color)
   const handleColorImagesUpload = (sizeId, colorVariantId, fileList) => {
     if (!fileList || fileList.length === 0) return;
 
@@ -685,15 +685,15 @@ const AddProduct = ({
     }
 
     const currentCount = (targetCv?.images?.length || 0) + (targetCv?.media?.length || 0);
-    const remaining = 2 - currentCount;
+    const remaining = 4 - currentCount;
     if (remaining <= 0) {
-      alert("Maximum 2 images allowed per color.");
+      alert("Maximum 4 images allowed per color.");
       return;
     }
 
     const filesToAdd = Array.from(fileList).slice(0, remaining);
     if (fileList.length > remaining) {
-      alert(`Maximum 2 images allowed per color. Only ${remaining} image(s) were added.`);
+      alert(`Maximum 4 images allowed per color. Only ${remaining} image(s) were added.`);
     }
 
     const newMedia = filesToAdd.map((file) => ({
@@ -713,7 +713,7 @@ const AddProduct = ({
           if (!isMatch) return cv;
           return {
             ...cv,
-            media: [...(cv.media || []), ...newMedia].slice(0, 2 - (cv.images?.length || 0)),
+            media: [...(cv.media || []), ...newMedia].slice(0, 4 - (cv.images?.length || 0)),
           };
         }),
       }))
@@ -798,21 +798,21 @@ const AddProduct = ({
     });
   };
 
-  // Image & field updates for default variant (when no color is chosen, max 2 images, auto-syncs across sizes)
+  // Image & field updates for default variant (when no color is chosen, max 4 images, auto-syncs across sizes)
   const handleDefaultVariantImagesUpload = (sizeId, fileList) => {
     if (!fileList || fileList.length === 0) return;
     const currentSize = sizeRows.find((s) => s.id === sizeId);
     const def = currentSize?.defaultVariant || {};
     const currentCount = (def.images?.length || 0) + (def.media?.length || 0);
-    const remaining = 2 - currentCount;
+    const remaining = 4 - currentCount;
     if (remaining <= 0) {
-      alert("Maximum 2 images allowed per size variant.");
+      alert("Maximum 4 images allowed per size variant.");
       return;
     }
 
     const filesToAdd = Array.from(fileList).slice(0, remaining);
     if (fileList.length > remaining) {
-      alert(`Maximum 2 images allowed. Only ${remaining} image(s) were added.`);
+      alert(`Maximum 4 images allowed. Only ${remaining} image(s) were added.`);
     }
 
     const newMedia = filesToAdd.map((file) => ({
@@ -830,7 +830,7 @@ const AddProduct = ({
             ...s.defaultVariant,
             media: [...(s.defaultVariant?.media || []), ...newMedia].slice(
               0,
-              2 - (s.defaultVariant?.images?.length || 0)
+              4 - (s.defaultVariant?.images?.length || 0)
             ),
           },
         };
@@ -1565,8 +1565,8 @@ const AddProduct = ({
                       <thead>
                         <tr>
                           <th style={{ width: "160px" }}>Color</th>
-                          <th style={{ minWidth: "160px" }}>
-                            Images (Max 2) <span style={{ color: "#EF4444" }}>*</span>{" "}
+                          <th style={{ minWidth: "200px" }}>
+                            Images (Max 4) <span style={{ color: "#EF4444" }}>*</span>{" "}
                             <span className="cmp-sync-badge">Shared by color</span>
                           </th>
                           <th style={{ width: "95px" }}>
@@ -1629,7 +1629,7 @@ const AddProduct = ({
                                       </div>
                                     ))}
 
-                                    {((cv.images?.length || 0) + (cv.media?.length || 0)) < 2 && (
+                                    {((cv.images?.length || 0) + (cv.media?.length || 0)) < 4 && (
                                       <>
                                         <input
                                           id={`file-input-${sizeRow.id}-${cv.id}`}
@@ -1645,7 +1645,7 @@ const AddProduct = ({
                                         <label
                                           htmlFor={`file-input-${sizeRow.id}-${cv.id}`}
                                           className={`cmp-table-upload-btn${cvErrors.images ? " cmp-upload--error" : ""}`}
-                                          title="Upload images for this color (Max 2)"
+                                          title="Upload images for this color (Max 4)"
                                         >
                                           <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                                             <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
@@ -1771,7 +1771,7 @@ const AddProduct = ({
                                       </div>
                                     ))}
 
-                                    {((sizeRow.defaultVariant?.images?.length || 0) + (sizeRow.defaultVariant?.media?.length || 0)) < 2 && (
+                                    {((sizeRow.defaultVariant?.images?.length || 0) + (sizeRow.defaultVariant?.media?.length || 0)) < 4 && (
                                       <>
                                         <input
                                           id={`file-input-def-${sizeRow.id}`}
@@ -1787,7 +1787,7 @@ const AddProduct = ({
                                         <label
                                           htmlFor={`file-input-def-${sizeRow.id}`}
                                           className={`cmp-table-upload-btn${defErrors.images ? " cmp-upload--error" : ""}`}
-                                          title="Upload images for this size (Max 2)"
+                                          title="Upload images for this size (Max 4)"
                                         >
                                           <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                                             <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
