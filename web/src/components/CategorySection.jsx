@@ -53,14 +53,8 @@ export default function CategorySection({
         setCategories(activeCats);
 
         if (activeCats.length > 0) {
-          // Default to Men / Male if available, else first active category
-          const defaultCat =
-            activeCats.find(
-              (c) =>
-                (c.name || "").toLowerCase() === "male" ||
-                (c.name || "").toLowerCase() === "men"
-            ) || activeCats[0];
-          setActiveCategoryId(defaultCat.category_id);
+          // Default to the first active category based on admin sort order
+          setActiveCategoryId(activeCats[0].category_id);
         }
       } catch (err) {
         console.error("Failed to load category data:", err);

@@ -1,6 +1,8 @@
 import React, { useState, useEffect, useRef } from "react";
 import { createPortal } from "react-dom";
 import { useNavigate } from "react-router-dom";
+import { productService } from "../../services/productService";
+import { useStore } from "../../hooks/useStore";
 import "./categorylist.css";
 
 // ─── Placeholder when category has no image ──────────────────────────────────
@@ -39,6 +41,16 @@ const PlaceholderImage = () => (
 // ─── Category Card Component (Matches Mockup) ──────────────────────────────────
 const CategoryCard = ({
   cat,
+  index,
+  totalCount,
+  canReorder,
+  isDragging,
+  isDragOver,
+  onMoveCategory,
+  onDragStart,
+  onDragOver,
+  onDrop,
+  onDragEnd,
   openDropdownId,
   setOpenDropdownId,
   onOpen,
@@ -66,13 +78,58 @@ const CategoryCard = ({
   const subCount = cat.subcategories?.length ?? 0;
 
   return (
-    <div className="cat-card">
+    <div
+      className={`cat-card${isDragging ? " cat-card--dragging" : ""}${isDragOver ? " cat-card--drag-over" : ""}`}
+      draggable={canReorder}
+      onDragStart={(e) => canReorder && onDragStart?.(e, index)}
+      onDragOver={(e) => canReorder && onDragOver?.(e, index)}
+      onDrop={(e) => canReorder && onDrop?.(e, index)}
+      onDragEnd={() => canReorder && onDragEnd?.()}
+    >
       {/* ── Image ── */}
       <div
         className="cat-card-img-wrap"
         onClick={() => onOpen(cat)}
         title={`Open ${cat.name}`}
       >
+        {/* Order Badge & Arrange Controls */}
+        <div
+          className="cat-order-bar"
+          onClick={(e) => e.stopPropagation()}
+        >
+          <span className="cat-order-badge" title={`Display position #${index + 1} on Home Page`}>
+            #{index + 1}
+          </span>
+          {canReorder && totalCount > 1 && (
+            <div className="cat-order-btns">
+              <button
+                type="button"
+                className="cat-order-btn"
+                disabled={index === 0}
+                onClick={() => onMoveCategory(index, index - 1)}
+                title="Move earlier (show before previous category)"
+                aria-label={`Move ${cat.name} earlier`}
+              >
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                  <polyline points="15 18 9 12 15 6" />
+                </svg>
+              </button>
+              <button
+                type="button"
+                className="cat-order-btn"
+                disabled={index === totalCount - 1}
+                onClick={() => onMoveCategory(index, index + 1)}
+                title="Move later (show after next category)"
+                aria-label={`Move ${cat.name} later`}
+              >
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                  <polyline points="9 18 15 12 9 6" />
+                </svg>
+              </button>
+            </div>
+          )}
+        </div>
+
         {thumbnail ? (
           <img
             src={thumbnail}
@@ -137,6 +194,30 @@ const CategoryCard = ({
                 >
                   Edit
                 </button>
+                {canReorder && index > 0 && (
+                  <button
+                    type="button"
+                    className="cat-dropdown-item"
+                    onClick={() => {
+                      setOpenDropdownId(null);
+                      onMoveCategory(index, index - 1);
+                    }}
+                  >
+                    Move Left (#{index})
+                  </button>
+                )}
+                {canReorder && index < totalCount - 1 && (
+                  <button
+                    type="button"
+                    className="cat-dropdown-item"
+                    onClick={() => {
+                      setOpenDropdownId(null);
+                      onMoveCategory(index, index + 1);
+                    }}
+                  >
+                    Move Right (#{index + 2})
+                  </button>
+                )}
                 <button
                   type="button"
                   className="cat-dropdown-item"
@@ -198,6 +279,9 @@ const CategoryList = ({
   const [blockedCategory, setBlockedCategory] = useState(null);
   const [pendingDeleteCategory, setPendingDeleteCategory] = useState(null);
   const [isDeleting, setIsDeleting] = useState(false);
+  const [dragIndex, setDragIndex] = useState(null);
+  const [dragOverIndex, setDragOverIndex] = useState(null);
+  const [orderStatus, setOrderStatus] = useState("");
 
   // Compute live product counts if products provided
   const categoriesWithLiveCount = React.useMemo(() => {
@@ -213,6 +297,69 @@ const CategoryList = ({
       };
     });
   }, [categories, products]);
+
+  const canReorder = !search.trim() && categoriesWithLiveCount.length > 1;
+
+  const handleMoveCategory = async (fromIdx, toIdx) => {
+    if (
+      fromIdx === toIdx ||
+      fromIdx < 0 ||
+      toIdx < 0 ||
+      fromIdx >= categories.length ||
+      toIdx >= categories.length
+    ) {
+      return;
+    }
+
+    const reordered = [...categories];
+    const [moved] = reordered.splice(fromIdx, 1);
+    reordered.splice(toIdx, 0, moved);
+
+    const updatedWithSortOrder = reordered.map((c, idx) => ({
+      ...c,
+      sort_order: idx,
+    }));
+
+    setCategories?.(updatedWithSortOrder);
+    setOrderStatus("Saving order…");
+
+    try {
+      await productService.updateCategoriesOrder(updatedWithSortOrder);
+      await useStore.getState().fetchCategories?.(true);
+      setOrderStatus("Order saved");
+      setTimeout(() => setOrderStatus(""), 2000);
+    } catch (err) {
+      console.error("Failed to update category order:", err);
+      setOrderStatus("");
+    }
+  };
+
+  const handleDragStart = (e, index) => {
+    setDragIndex(index);
+    e.dataTransfer.effectAllowed = "move";
+  };
+
+  const handleDragOver = (e, index) => {
+    e.preventDefault();
+    e.dataTransfer.dropEffect = "move";
+    if (dragOverIndex !== index) {
+      setDragOverIndex(index);
+    }
+  };
+
+  const handleDrop = (e, index) => {
+    e.preventDefault();
+    if (dragIndex !== null && dragIndex !== index) {
+      handleMoveCategory(dragIndex, index);
+    }
+    setDragIndex(null);
+    setDragOverIndex(null);
+  };
+
+  const handleDragEnd = () => {
+    setDragIndex(null);
+    setDragOverIndex(null);
+  };
 
   // Filter categories by search input
   const filtered = React.useMemo(() => {
@@ -304,6 +451,21 @@ const CategoryList = ({
             />
           </div>
         </div>
+
+        {categories.length > 1 && (
+          <div className="cat-arrange-hint">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <polyline points="16 3 21 3 21 8" />
+              <line x1="4" y1="20" x2="21" y2="3" />
+              <polyline points="21 16 21 21 16 21" />
+              <line x1="15" y1="15" x2="21" y2="21" />
+              <line x1="4" y1="4" x2="9" y2="9" />
+            </svg>
+            <span>
+              {orderStatus || "Use arrows or drag cards to arrange display order (#1 shows first on Home Page)"}
+            </span>
+          </div>
+        )}
       </div>
 
       {/* ── Categories Grid ── */}
@@ -318,10 +480,20 @@ const CategoryList = ({
         </div>
       ) : (
         <div className="cat-grid">
-          {filtered.map((cat) => (
+          {filtered.map((cat, idx) => (
             <CategoryCard
               key={cat.category_id || cat.id}
               cat={cat}
+              index={idx}
+              totalCount={filtered.length}
+              canReorder={canReorder}
+              isDragging={dragIndex === idx}
+              isDragOver={dragOverIndex === idx && dragIndex !== idx}
+              onMoveCategory={handleMoveCategory}
+              onDragStart={handleDragStart}
+              onDragOver={handleDragOver}
+              onDrop={handleDrop}
+              onDragEnd={handleDragEnd}
               openDropdownId={openDropdownId}
               setOpenDropdownId={setOpenDropdownId}
               onOpen={handleOpen}

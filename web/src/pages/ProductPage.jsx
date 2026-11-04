@@ -54,7 +54,7 @@ const ProductSkeleton = () => <SkeletonProductCard />;
 
 export default function ProductPage({ category = "Trending" }) {
   const navigate = useNavigate();
-  const [searchParams] = useSearchParams();
+  const [searchParams, setSearchParams] = useSearchParams();
   const subcategoryParam = searchParams.get("sub") || "";
   const searchQueryParam = searchParams.get("search") || "";
 
@@ -108,9 +108,7 @@ export default function ProductPage({ category = "Trending" }) {
 
   // Sync subcategory param from URL
   useEffect(() => {
-    if (subcategoryParam.trim()) {
-      setSelectedSubcategories([subcategoryParam.trim()]);
-    }
+    setSelectedSubcategories(subcategoryParam.trim() ? [subcategoryParam.trim()] : []);
   }, [subcategoryParam]);
 
   // Reset filters when category changes
@@ -128,12 +126,12 @@ export default function ProductPage({ category = "Trending" }) {
     setToastType(type);
   };
 
-  const handleNavClick = (link) => {
-    if (link === category) {
+  const handleNavClick = (link, subName) => {
+    if (link === category && !subName && !subcategoryParam && selectedSubcategories.length === 0) {
       window.scrollTo({ top: 0, behavior: "smooth" });
       return;
     }
-    navigate(getNavPath(link, allCategories));
+    navigate(getNavPath(link, allCategories, subName));
   };
 
   const handlePriceSortToggle = (type) => {
@@ -149,9 +147,18 @@ export default function ProductPage({ category = "Trending" }) {
   };
 
   const handleSubcategoryToggle = (subName) => {
-    setSelectedSubcategories(prev =>
-      prev.includes(subName) ? prev.filter(s => s !== subName) : [...prev, subName]
-    );
+    setSelectedSubcategories(prev => {
+      const exists = prev.some(s => String(s).toLowerCase() === String(subName).toLowerCase());
+      const next = exists
+        ? prev.filter(s => String(s).toLowerCase() !== String(subName).toLowerCase())
+        : [...prev, subName];
+      if (next.length === 0 && searchParams.has("sub")) {
+        const nextParams = new URLSearchParams(searchParams);
+        nextParams.delete("sub");
+        setSearchParams(nextParams, { replace: true });
+      }
+      return next;
+    });
     setCurrentPage(1);
   };
 
@@ -176,6 +183,11 @@ export default function ProductPage({ category = "Trending" }) {
     setSelectedSizes([]);
     setSortBy("featured");
     setCurrentPage(1);
+    if (searchParams.has("sub")) {
+      const nextParams = new URLSearchParams(searchParams);
+      nextParams.delete("sub");
+      setSearchParams(nextParams, { replace: true });
+    }
   };
 
   // Active filter chips list for mobile and quick dismissal
@@ -227,6 +239,25 @@ export default function ProductPage({ category = "Trending" }) {
     return Array.from(catMap.entries()).map(([name, count]) => ({ id: name, name, count }));
   }, [allCategories, products]);
 
+  // Lookup maps between subcategory ID and name from allCategories
+  const subcategoryLookup = useMemo(() => {
+    const idToName = new Map();
+    const nameToIds = new Map();
+    (allCategories || []).forEach(c => {
+      (c.subcategories || []).forEach(s => {
+        const sId = s.subcategory_id ?? s.id;
+        const sName = (s.name || "").trim();
+        if (sId != null && sName) {
+          idToName.set(String(sId), sName);
+          const low = sName.toLowerCase();
+          if (!nameToIds.has(low)) nameToIds.set(low, []);
+          nameToIds.get(low).push(String(sId));
+        }
+      });
+    });
+    return { idToName, nameToIds };
+  }, [allCategories]);
+
   // Dynamically compute real subcategories from Supabase with live counts
   const availableSubcategories = useMemo(() => {
     const isAll = !category || category.toLowerCase() === "all products" || category.toLowerCase() === "all" || category.toLowerCase() === "trending";
@@ -244,22 +275,28 @@ export default function ProductPage({ category = "Trending" }) {
 
     const subMap = new Map();
     subList.forEach(s => {
-      if (s.name && !subMap.has(s.name.toLowerCase())) {
-        subMap.set(s.name.toLowerCase(), {
-          id: s.subcategory_id || s.name,
-          name: s.name,
+      const cleanName = (s.name || "").trim();
+      if (cleanName && !subMap.has(cleanName.toLowerCase())) {
+        subMap.set(cleanName.toLowerCase(), {
+          id: s.subcategory_id || cleanName,
+          name: cleanName,
           count: 0
         });
       }
     });
 
     products.forEach(p => {
-      if (p.subcategory) {
-        const low = p.subcategory.toLowerCase();
+      const resolvedSub = (
+        p.subcategory ||
+        (p.subcategory_id != null ? subcategoryLookup.idToName.get(String(p.subcategory_id)) : "") ||
+        ""
+      ).trim();
+      if (resolvedSub) {
+        const low = resolvedSub.toLowerCase();
         if (!subMap.has(low)) {
           subMap.set(low, {
-            id: p.subcategory_id || p.subcategory,
-            name: p.subcategory,
+            id: p.subcategory_id || resolvedSub,
+            name: resolvedSub,
             count: 0
           });
         }
@@ -267,14 +304,23 @@ export default function ProductPage({ category = "Trending" }) {
     });
 
     subMap.forEach((entry, low) => {
+      const matchingIds = subcategoryLookup.nameToIds.get(low) || [];
       entry.count = products.filter(p => {
-        const pSub = String(p.subcategory || "").toLowerCase();
-        return pSub === low || String(p.subcategory_id) === String(entry.id);
+        const pSub = String(
+          p.subcategory ||
+          (p.subcategory_id != null ? subcategoryLookup.idToName.get(String(p.subcategory_id)) : "") ||
+          ""
+        ).trim().toLowerCase();
+        const pSubId = p.subcategory_id != null ? String(p.subcategory_id) : "";
+        return (
+          pSub === low ||
+          (pSubId && (pSubId === String(entry.id) || matchingIds.includes(pSubId)))
+        );
       }).length;
     });
 
     return Array.from(subMap.values());
-  }, [allCategories, category, products]);
+  }, [allCategories, category, products, subcategoryLookup]);
 
   // Dynamically compute real fabrics/materials from Supabase with live counts
   const availableFabrics = useMemo(() => {
@@ -355,16 +401,23 @@ export default function ProductPage({ category = "Trending" }) {
 
       // Real subcategory filter
       if (selectedSubcategories.length > 0) {
-        const pSub = String(product.subcategory || "").toLowerCase();
+        const resolvedSub = String(
+          product.subcategory ||
+          (product.subcategory_id != null ? subcategoryLookup.idToName.get(String(product.subcategory_id)) : "") ||
+          ""
+        ).trim().toLowerCase();
+        const pSubId = product.subcategory_id != null ? String(product.subcategory_id) : "";
+
         const matchesSubcategory = selectedSubcategories.some(sub => {
-          const sLow = String(sub).toLowerCase();
-          return pSub === sLow || String(product.subcategory_id) === String(sub);
+          const sLow = String(sub || "").trim().toLowerCase();
+          if (!sLow) return false;
+          const matchingIds = subcategoryLookup.nameToIds.get(sLow) || [];
+          return (
+            resolvedSub === sLow ||
+            (pSubId && (pSubId === String(sub).trim() || matchingIds.includes(pSubId)))
+          );
         });
         if (!matchesSubcategory) return false;
-      } else if (subcategoryParam.trim()) {
-        const targetSub = subcategoryParam.trim().toLowerCase();
-        const pSub = String(product.subcategory || product.subcategory_id || "").trim().toLowerCase();
-        if (pSub !== targetSub) return false;
       }
 
       // Real fabric filter
@@ -441,7 +494,7 @@ export default function ProductPage({ category = "Trending" }) {
     }
 
     return expanded;
-  }, [products, subcategoryParam, searchQueryParam, selectedCategories, selectedSubcategories, selectedFabrics, selectedSizes, sortBy]);
+  }, [products, subcategoryParam, searchQueryParam, selectedCategories, selectedSubcategories, selectedFabrics, selectedSizes, sortBy, subcategoryLookup]);
 
   const totalPages = Math.max(1, Math.ceil(filteredProducts.length / itemsPerPage));
 
@@ -757,7 +810,10 @@ export default function ProductPage({ category = "Trending" }) {
 
                       <div className="trending-details-box">
                         <div className="trending-details-top-row">
-                          <h4 className="trending-product-name" title={displayTitle}>{displayTitle}</h4>
+                          <div className="trending-details-info">
+                            <h4 className="trending-product-name" title={displayTitle}>{displayTitle}</h4>
+                            <div className="trending-product-price">₹{product.price}</div>
+                          </div>
                           {productColors.length > 0 && (
                             <div className="trending-card-colors" aria-label="Available colors">
                               {productColors.map((color) => {
@@ -791,7 +847,6 @@ export default function ProductPage({ category = "Trending" }) {
                             </div>
                           )}
                         </div>
-                        <div className="trending-product-price">₹{product.price}</div>
                       </div>
                     </article>
                   );

@@ -430,6 +430,47 @@ const AddProduct = ({
         setShowOnStore(!!product.is_active);
         setFeaturedProduct(!!product.is_featured);
 
+        // Helper to find the most common (mode) value across variants (e.g. common per-variant stock/price)
+        const getMostCommonVariantValue = (list, field, fallback) => {
+          if (!Array.isArray(list) || list.length === 0) return fallback;
+          const counts = new Map();
+          let bestVal = null;
+          let bestCount = 0;
+          list.forEach((v) => {
+            const val = v?.[field];
+            if (val == null || val === "") return;
+            const key = String(val);
+            const nextCount = (counts.get(key) || 0) + 1;
+            counts.set(key, nextCount);
+            if (nextCount > bestCount) {
+              bestCount = nextCount;
+              bestVal = key;
+            }
+          });
+          return bestVal != null ? bestVal : fallback;
+        };
+
+        const resolvedCommonStock =
+          existingVariants.length > 0
+            ? getMostCommonVariantValue(existingVariants, "stock", String(existingVariants[0]?.stock ?? "0"))
+            : product.stock != null
+            ? String(product.stock)
+            : "";
+
+        const resolvedCommonOrigPrice =
+          existingVariants.length > 0
+            ? getMostCommonVariantValue(existingVariants, "compare_price", product.compare_price != null ? String(product.compare_price) : "")
+            : product.compare_price != null
+            ? String(product.compare_price)
+            : "";
+
+        const resolvedCommonOfferPrice =
+          existingVariants.length > 0
+            ? getMostCommonVariantValue(existingVariants, "price", product.price != null ? String(product.price) : "")
+            : product.price != null
+            ? String(product.price)
+            : "";
+
         if (existingVariants.length > 0) {
           // Group variants by size
           const sizeMap = new Map();
@@ -472,9 +513,9 @@ const AddProduct = ({
               defaultVariant: defVar || {
                 id: `def-${Date.now()}-${variantSeq++}`,
                 color: null,
-                quantity: String(product.stock ?? "0"),
-                originalPrice: String(product.compare_price ?? ""),
-                offerPrice: String(product.price ?? ""),
+                quantity: resolvedCommonStock || "0",
+                originalPrice: resolvedCommonOrigPrice,
+                offerPrice: resolvedCommonOfferPrice,
                 sku: generateVariantSKU(),
                 images: [],
                 media: [],
@@ -512,9 +553,9 @@ const AddProduct = ({
           ]);
         }
 
-        if (product.compare_price) setGlobalOriginalPrice(String(product.compare_price));
-        if (product.price) setGlobalOfferPrice(String(product.price));
-        if (product.stock != null) setGlobalStock(String(product.stock));
+        if (resolvedCommonOrigPrice !== "") setGlobalOriginalPrice(resolvedCommonOrigPrice);
+        if (resolvedCommonOfferPrice !== "") setGlobalOfferPrice(resolvedCommonOfferPrice);
+        if (resolvedCommonStock !== "") setGlobalStock(resolvedCommonStock);
 
       } catch (err) {
         if (!isCurrent) return;
@@ -1338,6 +1379,32 @@ const AddProduct = ({
     return <main className="dashboard-content cmp-page"><p style={{ padding: 24 }}>Loading product…</p></main>;
   }
 
+  // Live total stock across all size & color variants (read-only display)
+  let computedTotalStock = 0;
+  let computedVariantCount = 0;
+  if (sizeRows.length === 0) {
+    computedTotalStock = parseInt(globalStock, 10) || 0;
+  } else {
+    for (const s of sizeRows) {
+      if (s.colors && s.colors.length > 0) {
+        for (const cv of s.colors) {
+          const q = cv.quantity !== undefined && cv.quantity !== null && cv.quantity !== "" ? cv.quantity : globalStock;
+          computedTotalStock += parseInt(q, 10) || 0;
+          computedVariantCount += 1;
+        }
+      } else {
+        const defQ =
+          s.defaultVariant?.quantity !== undefined &&
+          s.defaultVariant?.quantity !== null &&
+          s.defaultVariant?.quantity !== ""
+            ? s.defaultVariant.quantity
+            : globalStock;
+        computedTotalStock += parseInt(defQ, 10) || 0;
+        computedVariantCount += 1;
+      }
+    }
+  }
+
   return (
     <main className="ap-page cmp-page">
       {sizeToDelete && (
@@ -1570,6 +1637,9 @@ const AddProduct = ({
             <label className="cmp-field">
               <span className="cmp-label">
                 Common Stock <span style={{ color: "#EF4444" }}>*</span>
+                <span className="ap-total-stock-badge" title="Total stock across all variants (non-editable)">
+                  Total: {computedTotalStock}
+                </span>
               </span>
               <input
                 type="text"
@@ -1583,6 +1653,10 @@ const AddProduct = ({
                   clearTopError("globalStock");
                 }}
               />
+              <span className="cmp-hint">
+                Total Stock: <strong style={{ color: "#4b5563", fontWeight: 600 }}>{computedTotalStock}</strong>
+                {computedVariantCount > 0 ? ` (${computedVariantCount} variant${computedVariantCount > 1 ? "s" : ""})` : ""}
+              </span>
               {errors.globalStock?.map((msg) => (
                 <FieldError key={msg}>{msg}</FieldError>
               ))}

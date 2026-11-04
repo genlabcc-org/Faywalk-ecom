@@ -31,15 +31,15 @@ export default function HomePage() {
     navigate(pid ? `/product/${pid}` : '/product');
   };
 
-  const handleCategoryClick = (name) => {
-    navigate(getNavPath(name, categories));
+  const handleCategoryClick = (name, subName) => {
+    navigate(getNavPath(name, categories, subName));
   };
 
-  const handleNavClick = (link) => {
+  const handleNavClick = (link, subName) => {
     if (link === 'Home') {
       window.scrollTo({ top: 0, behavior: "smooth" });
     } else {
-      navigate(getNavPath(link, categories));
+      navigate(getNavPath(link, categories, subName));
     }
   };
 

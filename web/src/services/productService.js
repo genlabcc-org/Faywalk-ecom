@@ -12,17 +12,47 @@ export const productService = {
    * @returns {Promise<any[]>}
    */
   async getCategories() {
+    const sortByOrder = (list) => {
+      if (!Array.isArray(list)) return [];
+      let savedOrderIds = [];
+      try {
+        const raw = localStorage.getItem('faywalk_category_order');
+        if (raw) savedOrderIds = JSON.parse(raw).map(String);
+      } catch {}
+
+      return [...list].sort((a, b) => {
+        const orderA = a.sort_order != null ? Number(a.sort_order) : null;
+        const orderB = b.sort_order != null ? Number(b.sort_order) : null;
+        if (orderA !== null && orderB !== null && orderA !== orderB) {
+          return orderA - orderB;
+        }
+        if (savedOrderIds.length > 0) {
+          const idxA = savedOrderIds.indexOf(String(a.category_id ?? a.id));
+          const idxB = savedOrderIds.indexOf(String(b.category_id ?? b.id));
+          if (idxA !== -1 || idxB !== -1) {
+            if (idxA === -1) return 1;
+            if (idxB === -1) return -1;
+            return idxA - idxB;
+          }
+        }
+        return Number(a.category_id ?? a.id ?? 0) - Number(b.category_id ?? b.id ?? 0);
+      });
+    };
+
     try {
       const { data, error } = await supabase
         .from('categories')
         .select('*, subcategories(*), products(count)')
-        .order('sort_order', { ascending: true });
+        .order('sort_order', { ascending: true })
+        .order('category_id', { ascending: true });
       if (!error && data) {
-        return data.map(c => ({
-          ...c,
-          productCount: c.products?.[0]?.count ?? 0,
-          subcategories: c.subcategories || []
-        }));
+        return sortByOrder(
+          data.map(c => ({
+            ...c,
+            productCount: c.products?.[0]?.count ?? 0,
+            subcategories: c.subcategories || []
+          }))
+        );
       }
     } catch (e) {
       console.warn('Foreign key subcategories join fallback:', e);
@@ -31,7 +61,8 @@ export const productService = {
     const { data: cats, error: catErr } = await supabase
       .from('categories')
       .select('*, products(count)')
-      .order('sort_order', { ascending: true });
+      .order('sort_order', { ascending: true })
+      .order('category_id', { ascending: true });
     if (catErr) throw catErr;
 
     const { data: subs } = await supabase
@@ -47,11 +78,41 @@ export const productService = {
       }
     });
 
-    return (cats || []).map(c => ({
-      ...c,
-      productCount: c.products?.[0]?.count ?? 0,
-      subcategories: subsByParent[c.category_id] || subsByParent[c.id] || []
-    }));
+    return sortByOrder(
+      (cats || []).map(c => ({
+        ...c,
+        productCount: c.products?.[0]?.count ?? 0,
+        subcategories: subsByParent[c.category_id] || subsByParent[c.id] || []
+      }))
+    );
+  },
+
+  /**
+   * Updates sort_order for all categories in the provided order.
+   * @param {any[]} orderedCategories
+   */
+  async updateCategoriesOrder(orderedCategories = []) {
+    const ids = orderedCategories.map(c => String(c.category_id ?? c.id)).filter(Boolean);
+    try {
+      localStorage.setItem('faywalk_category_order', JSON.stringify(ids));
+    } catch {}
+
+    await Promise.all(
+      orderedCategories.map(async (cat, index) => {
+        const catId = cat.category_id ?? cat.id;
+        if (catId == null) return;
+        const { error } = await supabase
+          .from('categories')
+          .update({ sort_order: index })
+          .eq('category_id', catId);
+        if (error) {
+          await supabase
+            .from('categories')
+            .update({ sort_order: index })
+            .eq('id', catId);
+        }
+      })
+    );
   },
 
   getResizedImageUrl(url, sizeKey = 'card', quality = 75) {
@@ -68,12 +129,58 @@ export const productService = {
    * @returns {Promise<any[]>}
    */
   async getProducts() {
-    const { data, error } = await supabase
-      .from('products')
-      .select('*, categories(name), subcategories(name), product_variants(variant_id, price, compare_price, stock, sku, color, size, images)')
-      .order('created_at', { ascending: false });
-    if (error) throw error;
-    return data;
+    let rows = null;
+    try {
+      const { data, error } = await supabase
+        .from('products')
+        .select('*, categories(name), subcategories(name), product_variants(variant_id, price, compare_price, stock, sku, color, size, images)')
+        .order('created_at', { ascending: false });
+      if (!error && data) {
+        rows = data;
+      }
+    } catch (e) {
+      console.warn('getProducts subcategories join fallback:', e);
+    }
+
+    if (!rows) {
+      const { data, error } = await supabase
+        .from('products')
+        .select('*, categories(name), product_variants(variant_id, price, compare_price, stock, sku, color, size, images)')
+        .order('created_at', { ascending: false });
+      if (error) throw error;
+      rows = data || [];
+    }
+
+    const missingSubIds = [
+      ...new Set(
+        rows
+          .filter(p => p.subcategory_id && !(p.subcategories?.name || (Array.isArray(p.subcategories) && p.subcategories[0]?.name)))
+          .map(p => p.subcategory_id)
+      )
+    ];
+
+    let subMap = {};
+    if (missingSubIds.length > 0) {
+      try {
+        const { data: subRows } = await supabase
+          .from('subcategories')
+          .select('subcategory_id, name')
+          .in('subcategory_id', missingSubIds);
+        (subRows || []).forEach(s => {
+          subMap[String(s.subcategory_id)] = s.name;
+        });
+      } catch {}
+    }
+
+    return rows.map(p => {
+      const joinedSubName = p.subcategories?.name || (Array.isArray(p.subcategories) ? p.subcategories[0]?.name : null);
+      const resolvedSubName = joinedSubName || p.subcategory || (p.subcategory_id ? subMap[String(p.subcategory_id)] : null) || null;
+      return {
+        ...p,
+        subcategory: resolvedSubName,
+        subcategories: resolvedSubName ? { name: resolvedSubName } : p.subcategories
+      };
+    });
   },
 
   /**
@@ -568,13 +675,16 @@ export const productService = {
 
       const { data, error } = await query;
       if (!error && data) {
-        queryData = data.map(p => ({
-          ...p,
-          category: p.categories?.name || p.category || (catData ? categoryName : null),
-          subcategory: p.subcategories?.name || p.subcategory || null,
-          material: p.material || p.fabric || '',
-          fabric: p.material || p.fabric || ''
-        }));
+        queryData = data.map(p => {
+          const joinedSub = p.subcategories?.name || (Array.isArray(p.subcategories) ? p.subcategories[0]?.name : null);
+          return {
+            ...p,
+            category: p.categories?.name || p.category || (catData ? categoryName : null),
+            subcategory: joinedSub || p.subcategory || null,
+            material: p.material || p.fabric || '',
+            fabric: p.material || p.fabric || ''
+          };
+        });
       }
     } catch (e) {
       console.warn('Subcategories join fallback in getProductsByCategoryName:', e);
@@ -583,7 +693,7 @@ export const productService = {
     if (!queryData) {
       let query = supabase
         .from('products')
-        .select('product_id, name, description, price, compare_price, stock, image_url, images, sizes, colors, material, category_id, categories(name), has_variants, subcategory_id, subcategories(name), product_variants(variant_id, price, compare_price, stock, images, color, size)')
+        .select('product_id, name, description, price, compare_price, stock, image_url, images, sizes, colors, material, category_id, categories(name), has_variants, subcategory_id, product_variants(variant_id, price, compare_price, stock, images, color, size)')
         .eq('is_active', true)
         .order('created_at', { ascending: false });
 
@@ -594,26 +704,42 @@ export const productService = {
       const { data, error } = await query;
       if (error) throw error;
 
-      const subIds = (data || []).map(p => p.subcategory_id).filter(Boolean);
-      let subMap = {};
-      if (subIds.length > 0) {
-        const { data: subRows } = await supabase
-          .from('subcategories')
-          .select('subcategory_id, name')
-          .in('subcategory_id', subIds);
-
-        (subRows || []).forEach(s => {
-          subMap[s.subcategory_id] = s.name;
-        });
-      }
-
       queryData = (data || []).map(p => ({
         ...p,
         category: p.categories?.name || p.category || (catData ? categoryName : null),
-        subcategory: subMap[p.subcategory_id] || p.subcategory || null,
+        subcategory: p.subcategory || null,
         material: p.material || p.fabric || '',
         fabric: p.material || p.fabric || ''
       }));
+    }
+
+    const unresolvedSubIds = [
+      ...new Set(
+        (queryData || [])
+          .filter(p => p.subcategory_id && !p.subcategory)
+          .map(p => p.subcategory_id)
+      )
+    ];
+
+    if (unresolvedSubIds.length > 0) {
+      try {
+        const { data: subRows } = await supabase
+          .from('subcategories')
+          .select('subcategory_id, name')
+          .in('subcategory_id', unresolvedSubIds);
+
+        const subMap = {};
+        (subRows || []).forEach(s => {
+          subMap[String(s.subcategory_id)] = s.name;
+        });
+
+        queryData = queryData.map(p => ({
+          ...p,
+          subcategory: p.subcategory || (p.subcategory_id ? subMap[String(p.subcategory_id)] : null) || null
+        }));
+      } catch (e) {
+        console.warn('Could not resolve subcategory names by id:', e);
+      }
     }
 
     return queryData;

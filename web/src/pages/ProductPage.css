@@ -263,10 +263,18 @@
 
 .trending-details-top-row {
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   justify-content: space-between;
   gap: 8px;
   width: 100%;
+  min-width: 0;
+}
+
+.trending-details-info {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  flex: 1;
   min-width: 0;
 }
 
@@ -279,7 +287,7 @@
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-  flex: 1;
+  width: 100%;
   min-width: 0;
 }
 
@@ -288,16 +296,18 @@
   font-weight: 700;
   color: #000000;
   margin: 0;
+  line-height: 1.35;
 }
 
 .trending-card-colors {
   display: flex;
   align-items: center;
   justify-content: flex-end;
-  flex-wrap: nowrap;
-  gap: 5px;
+  flex-wrap: wrap;
+  gap: 4px 5px;
   flex-shrink: 0;
   margin-left: auto;
+  max-width: 105px;
 }
 
 .trending-color-swatch-btn {
@@ -636,7 +646,11 @@
 
   .trending-details-top-row {
     gap: 5px;
-    align-items: center;
+    align-items: flex-start;
+  }
+
+  .trending-details-info {
+    gap: 2px;
   }
 
   .trending-product-name {

@@ -8,7 +8,7 @@
  * @param {Array<{name: string, slug: string}>} categories - categories from the store
  * @returns {string} the path to navigate to
  */
-export function getNavPath(link, categories = []) {
+export function getNavPath(link, categories = [], subcategory = null) {
   if (!link) return "/";
   if (link === "Home") return "/";
 
@@ -17,18 +17,23 @@ export function getNavPath(link, categories = []) {
     (c) => (c.name || "").toLowerCase() === link.toLowerCase()
   );
 
+  let basePath;
   if (match?.slug) {
-    return `/category/${match.slug}`;
-    
+    basePath = `/category/${match.slug}`;
+  } else {
+    // Fallback: slugify the name on the fly if no slug field was found,
+    // so navigation doesn't silently break even if data is incomplete
+    const fallbackSlug = link
+      .toLowerCase()
+      .trim()
+      .replace(/\s+/g, "-")
+      .replace(/[^a-z0-9-]/g, "");
+    basePath = `/category/${fallbackSlug}`;
   }
 
-  // Fallback: slugify the name on the fly if no slug field was found,
-  // so navigation doesn't silently break even if data is incomplete
-  const fallbackSlug = link
-    .toLowerCase()
-    .trim()
-    .replace(/\s+/g, "-")
-    .replace(/[^a-z0-9-]/g, "");
+  if (subcategory && String(subcategory).trim()) {
+    return `${basePath}?sub=${encodeURIComponent(String(subcategory).trim())}`;
+  }
 
-  return `/category/${fallbackSlug}`;
+  return basePath;
 }

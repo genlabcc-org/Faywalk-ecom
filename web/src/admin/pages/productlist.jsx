@@ -1,5 +1,6 @@
 import React, { useMemo, useState, useEffect, useRef, useCallback } from "react";
 import { createPortal } from "react-dom";
+import { useSearchParams } from "react-router-dom";
 import "./productlist.css";
 import searchEmpty from "../../assets/admin/search.png";
 import editIcon from "../../assets/admin/Edit.png";
@@ -159,6 +160,10 @@ const MobileProductCard = ({ product, onEdit, onDelete, expandedRows, toggleExpa
 };
 
 const ProductList = ({ onAddProduct, onEditProduct, onDeleteProduct, products = [], categories = [], loading = false, onBack }) => {
+  const [searchParams, setSearchParams] = useSearchParams();
+  const urlSubParam = searchParams.get("subcategory") || searchParams.get("sub") || "";
+  const urlCatParam = searchParams.get("category") || "";
+
   const [visibleCount, setVisibleCount] = useState(10);
   const [searchInput, setSearchInput] = useState("");
   const [searchQuery, setSearchQuery] = useState("");
@@ -183,6 +188,66 @@ const ProductList = ({ onAddProduct, onEditProduct, onDeleteProduct, products = 
   const [isDeleting, setIsDeleting] = useState(false);
   const [expandedRows, setExpandedRows] = useState([]);
 
+  // Map subcategory IDs <-> names from categories & products
+  const subcategoryLookup = useMemo(() => {
+    const idToName = new Map();
+    const nameToIds = new Map();
+    const idToParentName = new Map();
+
+    (categories || []).forEach((c) => {
+      const catName = typeof c === "string" ? c : c?.name || c?.title || "";
+      (c?.subcategories || []).forEach((s) => {
+        const sId = s.subcategory_id ?? s.id;
+        const sName = (s.name || "").trim();
+        if (sId != null && sName) {
+          idToName.set(String(sId), sName);
+          if (catName) idToParentName.set(String(sId), catName);
+          const low = sName.toLowerCase();
+          if (!nameToIds.has(low)) nameToIds.set(low, []);
+          nameToIds.get(low).push(String(sId));
+        }
+      });
+    });
+
+    (products || []).forEach((p) => {
+      if (p.subcategory_id != null && p.subcategory) {
+        const sId = String(p.subcategory_id);
+        const sName = String(p.subcategory).trim();
+        if (!idToName.has(sId)) idToName.set(sId, sName);
+        if (p.category && !idToParentName.has(sId)) idToParentName.set(sId, p.category);
+        const low = sName.toLowerCase();
+        if (!nameToIds.has(low)) nameToIds.set(low, []);
+        if (!nameToIds.get(low).includes(sId)) nameToIds.get(low).push(sId);
+      }
+    });
+
+    return { idToName, nameToIds, idToParentName };
+  }, [categories, products]);
+
+  // Sync URL ?subcategory= / ?category= parameters into filter state
+  useEffect(() => {
+    if (urlCatParam.trim()) {
+      const matchedCat = (categories || []).find(
+        (c) =>
+          String(c.category_id ?? c.id) === urlCatParam.trim() ||
+          String(c.name || "").toLowerCase() === urlCatParam.trim().toLowerCase()
+      );
+      if (matchedCat?.name) {
+        setSelectedCategory(matchedCat.name);
+      }
+    }
+
+    if (urlSubParam.trim()) {
+      const raw = urlSubParam.trim();
+      const resolvedName = subcategoryLookup.idToName.get(raw) || raw;
+      const parentCatName = subcategoryLookup.idToParentName.get(raw);
+      if (parentCatName && !urlCatParam.trim()) {
+        setSelectedCategory(parentCatName);
+      }
+      setSelectedSubcategory(resolvedName);
+    }
+  }, [urlSubParam, urlCatParam, subcategoryLookup, categories]);
+
   const SORTS = [
     { label: "Default Sort", value: "default" },
     { label: "Price: Low to High", value: "price-asc" },
@@ -205,9 +270,15 @@ const ProductList = ({ onAddProduct, onEditProduct, onDeleteProduct, products = 
 
   const SUBCATEGORIES = useMemo(() => {
     const relevantProducts = selectedCategory === "All" ? products : products.filter((p) => p.category === selectedCategory);
-    const subs = relevantProducts.map((p) => p.subcategory).filter(Boolean);
-    return ["All", ...Array.from(new Set(subs))];
-  }, [products, selectedCategory]);
+    const fromProds = relevantProducts
+      .map((p) => p.subcategory || (p.subcategory_id != null ? subcategoryLookup.idToName.get(String(p.subcategory_id)) : null))
+      .filter(Boolean);
+    const fromCats = (categories || [])
+      .filter((c) => selectedCategory === "All" || (c?.name || c?.title) === selectedCategory)
+      .flatMap((c) => (c?.subcategories || []).map((s) => s?.name))
+      .filter(Boolean);
+    return ["All", ...Array.from(new Set([...fromCats, ...fromProds]))];
+  }, [products, categories, selectedCategory, subcategoryLookup]);
 
   const toggleExpand = (id) => {
     setExpandedRows((prev) => prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id]);
@@ -258,7 +329,19 @@ const ProductList = ({ onAddProduct, onEditProduct, onDeleteProduct, products = 
         matchVariant;
 
       const matchCategory = selectedCategory === "All" || p.category === selectedCategory;
-      const matchSubcategory = selectedSubcategory === "All" || p.subcategory === selectedSubcategory;
+      const resolvedProdSubName = String(
+        p.subcategory ||
+        (p.subcategory_id != null ? subcategoryLookup.idToName.get(String(p.subcategory_id)) : "") ||
+        ""
+      ).trim();
+      const targetSubLow = String(selectedSubcategory || "").trim().toLowerCase();
+      const targetSubIds = subcategoryLookup.nameToIds.get(targetSubLow) || [];
+      const matchSubcategory =
+        selectedSubcategory === "All" ||
+        resolvedProdSubName.toLowerCase() === targetSubLow ||
+        (p.subcategory_id != null &&
+          (String(p.subcategory_id) === String(selectedSubcategory).trim() ||
+            targetSubIds.includes(String(p.subcategory_id))));
       const matchStatus = selectedStatus === "All" || p.status === selectedStatus;
       const matchStock = selectedStock === "All" ||
         (selectedStock === "In Stock" && p.stock > 5) ||
@@ -280,7 +363,7 @@ const ProductList = ({ onAddProduct, onEditProduct, onDeleteProduct, products = 
     if (selectedSort === "stock-desc") result.sort((a, b) => (Number(b.stock) || 0) - (Number(a.stock) || 0));
 
     return result;
-  }, [products, searchQuery, selectedCategory, selectedSubcategory, selectedStatus, selectedStock, priceFrom, priceTo, selectedSort]);
+  }, [products, searchQuery, selectedCategory, selectedSubcategory, selectedStatus, selectedStock, priceFrom, priceTo, selectedSort, subcategoryLookup]);
 
   // Auto-expand variant rows when search matches a variant SKU / ID
   useEffect(() => {
@@ -447,7 +530,18 @@ const ProductList = ({ onAddProduct, onEditProduct, onDeleteProduct, products = 
               <div className="pl-dropdown-menu">
                 {CATEGORIES.map(c => (
                   <div key={c} className={`pl-dropdown-item ${selectedCategory === c ? 'active' : ''}`}
-                    onClick={() => { setSelectedCategory(c); setCategoryOpen(false); setCurrentPage(1); setSelectedSubcategory("All"); }}>
+                    onClick={() => {
+                      setSelectedCategory(c);
+                      setCategoryOpen(false);
+                      setVisibleCount(10);
+                      setSelectedSubcategory("All");
+                      if (searchParams.has("subcategory") || searchParams.has("sub")) {
+                        const next = new URLSearchParams(searchParams);
+                        next.delete("subcategory");
+                        next.delete("sub");
+                        setSearchParams(next, { replace: true });
+                      }
+                    }}>
                     {c}
                   </div>
                 ))}
@@ -468,7 +562,17 @@ const ProductList = ({ onAddProduct, onEditProduct, onDeleteProduct, products = 
               <div className="pl-dropdown-menu">
                 {SUBCATEGORIES.map(s => (
                   <div key={s} className={`pl-dropdown-item ${selectedSubcategory === s ? 'active' : ''}`}
-                    onClick={() => { setSelectedSubcategory(s); setSubcategoryOpen(false); setCurrentPage(1); }}>
+                    onClick={() => {
+                      setSelectedSubcategory(s);
+                      setSubcategoryOpen(false);
+                      setVisibleCount(10);
+                      if (s === "All" && (searchParams.has("subcategory") || searchParams.has("sub"))) {
+                        const next = new URLSearchParams(searchParams);
+                        next.delete("subcategory");
+                        next.delete("sub");
+                        setSearchParams(next, { replace: true });
+                      }
+                    }}>
                     {s}
                   </div>
                 ))}
@@ -487,7 +591,7 @@ const ProductList = ({ onAddProduct, onEditProduct, onDeleteProduct, products = 
               <div className="pl-dropdown-menu">
                 {STATUSES.map(s => (
                   <div key={s} className={`pl-dropdown-item ${selectedStatus === s ? 'active' : ''}`}
-                    onClick={() => { setSelectedStatus(s); setStatusOpen(false); setCurrentPage(1); }}>
+                    onClick={() => { setSelectedStatus(s); setStatusOpen(false); setVisibleCount(10); }}>
                     {s}
                   </div>
                 ))}
@@ -515,7 +619,7 @@ const ProductList = ({ onAddProduct, onEditProduct, onDeleteProduct, products = 
                         min="0"
                         placeholder="Min"
                         value={priceFrom}
-                        onChange={(e) => { setPriceFrom(e.target.value); setCurrentPage(1); }}
+                        onChange={(e) => { setPriceFrom(e.target.value); setVisibleCount(10); }}
                         className="pl-price-input"
                       />
                     </div>
@@ -526,7 +630,7 @@ const ProductList = ({ onAddProduct, onEditProduct, onDeleteProduct, products = 
                         min="0"
                         placeholder="Max"
                         value={priceTo}
-                        onChange={(e) => { setPriceTo(e.target.value); setCurrentPage(1); }}
+                        onChange={(e) => { setPriceTo(e.target.value); setVisibleCount(10); }}
                         className="pl-price-input"
                       />
                     </div>
@@ -535,7 +639,7 @@ const ProductList = ({ onAddProduct, onEditProduct, onDeleteProduct, products = 
                     <button
                       type="button"
                       className="pl-price-clear-btn"
-                      onClick={() => { setPriceFrom(""); setPriceTo(""); setCurrentPage(1); }}
+                      onClick={() => { setPriceFrom(""); setPriceTo(""); setVisibleCount(10); }}
                     >
                       Clear Price
                     </button>
@@ -558,7 +662,7 @@ const ProductList = ({ onAddProduct, onEditProduct, onDeleteProduct, products = 
               <div className="pl-dropdown-menu">
                 {SORTS.map(s => (
                   <div key={s.value} className={`pl-dropdown-item ${selectedSort === s.value ? 'active' : ''}`}
-                    onClick={() => { setSelectedSort(s.value); setSortOpen(false); setCurrentPage(1); }}>
+                    onClick={() => { setSelectedSort(s.value); setSortOpen(false); setVisibleCount(10); }}>
                     {s.label}
                   </div>
                 ))}
@@ -584,7 +688,7 @@ const ProductList = ({ onAddProduct, onEditProduct, onDeleteProduct, products = 
           {searchInput && (
             <button
               className="pl-search-clear"
-              onClick={() => { setSearchInput(""); setSearchQuery(""); setCurrentPage(1); }}
+              onClick={() => { setSearchInput(""); setSearchQuery(""); setVisibleCount(10); }}
               aria-label="Clear search"
             >
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">

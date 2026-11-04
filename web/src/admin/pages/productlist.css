@@ -641,8 +641,10 @@
 
 .pl-color-dots {
   display: flex;
+  flex-wrap: wrap;
   gap: 4px;
   margin-top: 4px;
+  max-width: 90px;
 }
 
 .pl-color-dot {
