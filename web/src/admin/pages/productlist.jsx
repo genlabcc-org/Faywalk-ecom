@@ -6,6 +6,42 @@ import searchEmpty from "../../assets/admin/search.png";
 import editIcon from "../../assets/admin/Edit.png";
 import trashIcon from "../../assets/admin/Trash.png";
 import { SkeletonTable } from "../../components/ui/Skeleton";
+import { getColorName } from "../../utils/colorUtils";
+
+const normalizeSearchText = (val) =>
+  val == null ? "" : String(val).toLowerCase().trim();
+
+const stripSearchSymbols = (val) =>
+  normalizeSearchText(val).replace(/[\s\-_./'"#]+/g, "");
+
+const doesVariantMatchQuery = (v, rawQuery) => {
+  if (!v) return false;
+  const q = normalizeSearchText(rawQuery);
+  if (!q) return false;
+  const qCompact = stripSearchSymbols(q);
+
+  const colorRaw = v.color != null ? String(v.color) : "";
+  const colorName = colorRaw ? getColorName(colorRaw) : "";
+
+  const fields = [
+    v.sku,
+    v.variant_id,
+    v.id,
+    v.sku_id,
+    v.barcode,
+    colorRaw,
+    colorName,
+    v.size,
+  ]
+    .map(normalizeSearchText)
+    .filter(Boolean);
+
+  return fields.some(
+    (field) =>
+      field.includes(q) ||
+      (qCompact && stripSearchSymbols(field).includes(qCompact))
+  );
+};
 
 const getFinalPrice = (product) => {
   return parseFloat(product.price) || 0;
@@ -109,15 +145,7 @@ const MobileProductCard = ({ product, onEdit, onDelete, expandedRows, toggleExpa
           {isExpanded && (
             <div className="pl-mobile-variant-list">
               {product.variants.map(v => {
-                const q = (searchQuery || "").toLowerCase().trim();
-                const isVariantMatch = Boolean(
-                  q && (
-                    (v.sku && String(v.sku).toLowerCase().includes(q)) ||
-                    (v.variant_id != null && String(v.variant_id).toLowerCase().includes(q)) ||
-                    (v.id != null && String(v.id).toLowerCase().includes(q)) ||
-                    (v.sku_id && String(v.sku_id).toLowerCase().includes(q))
-                  )
-                );
+                const isVariantMatch = doesVariantMatchQuery(v, searchQuery);
                 return (
                   <div
                     key={v.variant_id || `${v.color}-${v.size}-${v.sku}`}
@@ -372,39 +400,66 @@ const ProductList = ({ onAddProduct, onEditProduct, onDeleteProduct, products = 
 
   const filteredProducts = useMemo(() => {
     let result = products.filter((p) => {
-      const q = searchQuery.toLowerCase().trim();
+      const q = normalizeSearchText(searchQuery);
+      const qCompact = stripSearchSymbols(q);
+      const qTokens = q ? q.split(/\s+/).filter(Boolean) : [];
 
-      const pName = p.name ? String(p.name).toLowerCase() : "";
-      const pSku = p.sku ? String(p.sku).toLowerCase() : "";
-      const pId = p.id != null ? String(p.id).toLowerCase() : "";
-      const pProductId = p.product_id != null ? String(p.product_id).toLowerCase() : "";
+      const resolvedProdSubName = String(
+        p.subcategory ||
+        p.subcategories?.name ||
+        (p.subcategory_id != null ? subcategoryLookup.idToName.get(String(p.subcategory_id)) : "") ||
+        ""
+      ).trim();
 
-      const matchVariant = Array.isArray(p.variants) && p.variants.some((v) => {
-        if (!v) return false;
-        const vSku = v.sku != null ? String(v.sku).toLowerCase() : "";
-        const vVariantId = v.variant_id != null ? String(v.variant_id).toLowerCase() : "";
-        const vId = v.id != null ? String(v.id).toLowerCase() : "";
-        const vSkuId = v.sku_id != null ? String(v.sku_id).toLowerCase() : "";
-        const vBarcode = v.barcode != null ? String(v.barcode).toLowerCase() : "";
-        const vColor = v.color != null ? String(v.color).toLowerCase() : "";
-        const vSize = v.size != null ? String(v.size).toLowerCase() : "";
-        return (
-          vSku.includes(q) ||
-          vVariantId.includes(q) ||
-          vId.includes(q) ||
-          vSkuId.includes(q) ||
-          vBarcode.includes(q) ||
-          vColor.includes(q) ||
-          vSize.includes(q)
-        );
-      });
+      const productColors = getProductColors(p);
+      const productColorNames = productColors.map((c) => getColorName(c)).filter(Boolean);
+      const variantsList = Array.isArray(p.variants)
+        ? p.variants
+        : Array.isArray(p.product_variants)
+        ? p.product_variants
+        : [];
 
-      const matchSearch = !q ||
-        pName.includes(q) ||
-        pSku.includes(q) ||
-        pId.includes(q) ||
-        pProductId.includes(q) ||
-        matchVariant;
+      const searchableFields = [
+        p.name,
+        p.title,
+        p.sku,
+        p.id,
+        p.product_id,
+        p.category,
+        p.categories?.name,
+        resolvedProdSubName,
+        p.material,
+        p.fabric,
+        p.description,
+        p.status,
+        ...productColors,
+        ...productColorNames,
+        ...(Array.isArray(p.sizes) ? p.sizes : [p.sizes]),
+      ]
+        .map(normalizeSearchText)
+        .filter(Boolean);
+
+      const combinedProductText = searchableFields.join(" ");
+      const combinedProductCompact = stripSearchSymbols(combinedProductText);
+
+      const matchVariant = variantsList.some((v) => doesVariantMatchQuery(v, q));
+
+      const matchDirect =
+        !q ||
+        searchableFields.some(
+          (field) =>
+            field.includes(q) ||
+            (qCompact && stripSearchSymbols(field).includes(qCompact))
+        ) ||
+        (qCompact && combinedProductCompact.includes(qCompact)) ||
+        (qTokens.length > 1 &&
+          qTokens.every(
+            (token) =>
+              combinedProductText.includes(token) ||
+              variantsList.some((v) => doesVariantMatchQuery(v, token))
+          ));
+
+      const matchSearch = !q || matchDirect || matchVariant;
 
       const isCatFiltered = selectedCategory !== "All" || Boolean(selectedCategoryId);
       const pCatNameLow = String(p.category || p.categories?.name || "").trim().toLowerCase();
@@ -424,12 +479,6 @@ const ProductList = ({ onAddProduct, onEditProduct, onDeleteProduct, products = 
         Boolean(targetCatId && p.category_id != null && String(p.category_id) === String(targetCatId));
 
       const isSubFiltered = selectedSubcategory !== "All" || Boolean(selectedSubcategoryId);
-      const resolvedProdSubName = String(
-        p.subcategory ||
-        p.subcategories?.name ||
-        (p.subcategory_id != null ? subcategoryLookup.idToName.get(String(p.subcategory_id)) : "") ||
-        ""
-      ).trim();
       const pSubNameLow = resolvedProdSubName.toLowerCase();
       const targetSubLow =
         selectedSubcategory !== "All" ? String(selectedSubcategory || "").trim().toLowerCase() : "";
@@ -501,22 +550,20 @@ const ProductList = ({ onAddProduct, onEditProduct, onDeleteProduct, products = 
     subcategoryLookup,
   ]);
 
-  // Auto-expand variant rows when search matches a variant SKU / ID
+  // Auto-expand variant rows when search matches a variant SKU / ID / color / size
   useEffect(() => {
-    const q = searchQuery.toLowerCase().trim();
+    const q = normalizeSearchText(searchQuery);
     if (!q) return;
 
     const matchingIds = products
       .filter((p) => {
-        if (!p.has_variants || !Array.isArray(p.variants)) return false;
-        return p.variants.some((v) => {
-          if (!v) return false;
-          const vSku = v.sku != null ? String(v.sku).toLowerCase() : "";
-          const vVariantId = v.variant_id != null ? String(v.variant_id).toLowerCase() : "";
-          const vId = v.id != null ? String(v.id).toLowerCase() : "";
-          const vSkuId = v.sku_id != null ? String(v.sku_id).toLowerCase() : "";
-          return vSku.includes(q) || vVariantId.includes(q) || vId.includes(q) || vSkuId.includes(q);
-        });
+        const variantsList = Array.isArray(p.variants)
+          ? p.variants
+          : Array.isArray(p.product_variants)
+          ? p.product_variants
+          : [];
+        if (!p.has_variants || variantsList.length === 0) return false;
+        return variantsList.some((v) => doesVariantMatchQuery(v, q));
       })
       .map((p) => p.id);
 
@@ -1056,15 +1103,7 @@ const ProductList = ({ onAddProduct, onEditProduct, onDeleteProduct, products = 
                             </thead>
                             <tbody>
                               {product.variants.map(v => {
-                                const q = searchQuery.toLowerCase().trim();
-                                const isVariantMatch = Boolean(
-                                  q && (
-                                    (v.sku && String(v.sku).toLowerCase().includes(q)) ||
-                                    (v.variant_id != null && String(v.variant_id).toLowerCase().includes(q)) ||
-                                    (v.id != null && String(v.id).toLowerCase().includes(q)) ||
-                                    (v.sku_id && String(v.sku_id).toLowerCase().includes(q))
-                                  )
-                                );
+                                const isVariantMatch = doesVariantMatchQuery(v, searchQuery);
                                 return (
                                   <tr
                                     key={v.variant_id || `${v.color}-${v.size}-${v.sku}`}

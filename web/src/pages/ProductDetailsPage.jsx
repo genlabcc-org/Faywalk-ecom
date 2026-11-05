@@ -71,6 +71,9 @@ const ProductGallery = memo(({ activeThumb, setActiveThumb, displayImage, displa
             />
           )}
         </div>
+        <p className="dp-image-disclaimer">
+          *Disclaimer: Product image is for illustration purposes only. Actual product may vary slightly.
+        </p>
       </div>
 
       {/* Fullscreen Zoom Lightbox */}

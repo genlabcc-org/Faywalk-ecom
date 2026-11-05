@@ -11,6 +11,7 @@ export default function LoginPage() {
   const [email, setEmail] = useState("");
   const [loading, setLoading] = useState(false);
   const [googleLoading, setGoogleLoading] = useState(false);
+  const [errorMsg, setErrorMsg] = useState("");
 
   const [toast, setToast] = useState({ message: "", type: "" });
   const navigate = useNavigate();
@@ -40,26 +41,39 @@ export default function LoginPage() {
 
   const handleSendOTP = async () => {
     if (loading || googleLoading) return;
-    if (!email) {
+    if (!email.trim()) {
       showToast("Please enter your email.", "error");
       return;
     }
 
+    setErrorMsg("");
     setLoading(true);
 
     try {
-      // Step 1 — try to send OTP only if user exists
+      const existingUser = await authService.checkUserExists(email);
+      if (!existingUser) {
+        const msg = "No user found with this email. Please sign up first.";
+        setErrorMsg(msg);
+        showToast(msg, "error");
+        setLoading(false);
+        return;
+      }
+
+      // Send OTP only if user exists
       await authService.signInWithOtp(email, {
         shouldCreateUser: false,
       });
 
-      // Step 3 — user exists → OTP sent → redirect to verify
+      // User exists → OTP sent → redirect to verify
       showToast("OTP sent to email!", "success");
-      setTimeout(() => navigate("/account/otp-verify", { state: { email } }), 1200);
+      setTimeout(() => navigate("/account/otp-verify", { state: { email: email.trim() } }), 1200);
     } catch (error) {
-      // Step 2 — user doesn't exist → redirect to signup
-      showToast("Email not found! Please sign up first.", "error");
-      setTimeout(() => navigate("/account/signup"), 1500);
+      const isUserNotFound = /signups not allowed|user not found|not found/i.test(error?.message || "");
+      const msg = isUserNotFound
+        ? "No user found with this email. Please sign up first."
+        : (error?.message || "Failed to send OTP. Please try again.");
+      setErrorMsg(msg);
+      showToast(msg, "error");
       setLoading(false);
       return;
     }
@@ -97,9 +111,12 @@ export default function LoginPage() {
           <input
             id="email"
             type="email"
-            className="jewelry-input"
+            className={`jewelry-input${errorMsg ? " jewelry-input-error" : ""}`}
             value={email}
-            onChange={(e) => setEmail(e.target.value)}
+            onChange={(e) => {
+              setEmail(e.target.value);
+              if (errorMsg) setErrorMsg("");
+            }}
             onKeyDown={(e) => {
               if (e.key === "Enter" && !loading) {
                 handleSendOTP();
@@ -109,6 +126,16 @@ export default function LoginPage() {
             maxLength={64}
             disabled={loading || googleLoading}
           />
+          {errorMsg && (
+            <p className="jewelry-error-text">
+              {errorMsg}{" "}
+              {errorMsg.includes("sign up") && (
+                <Link to="/account/signup" state={{ email: email.trim() }} className="jewelry-error-link">
+                  Sign Up
+                </Link>
+              )}
+            </p>
+          )}
 
           <button
             type="button"
@@ -152,7 +179,7 @@ export default function LoginPage() {
           {/* Sign up link */}
           <p className="jewelry-signup-text">
             Don't have an account?{" "}
-            <a href="/account/signup">Sign Up</a>
+            <Link to="/account/signup" state={{ email: email.trim() }}>Sign Up</Link>
           </p>
 
         </div>

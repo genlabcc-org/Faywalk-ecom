@@ -248,6 +248,10 @@ otp_expiry = 3600
 # subject = "You have been invited"
 # content_path = "./supabase/templates/invite.html"
 
+[auth.email.template.confirmation]
+subject = "Confirm Your Signup - Faywalk"
+content_path = "./supabase/templates/magic_link.html"
+
 [auth.email.template.magic_link]
 subject = "Confirm Your Login - Faywalk"
 content_path = "./supabase/templates/magic_link.html"

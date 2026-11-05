@@ -1,8 +1,17 @@
-import React, { useState } from "react";
+import React, { useState, useEffect, useCallback, useMemo, useRef } from "react";
+import { supabase } from "../../lib/supabase";
 import AdminModal from "../components/AdminModal";
 import "./Allcustomers.css";
 
-const ROWS_PER_PAGE = 6;
+const PAGE_SIZE = 10;
+
+const SpinnerIcon = ({ size = 14 }) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
+    <path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83">
+      <animateTransform attributeName="transform" type="rotate" from="0 12 12" to="360 12 12" dur="0.8s" repeatCount="indefinite" />
+    </path>
+  </svg>
+);
 
 const ChevronDown = () => (
   <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
@@ -228,45 +237,133 @@ const AllCustomers = ({ customers = [], loading, onViewDetail }) => {
   const [selectedIds, setSelectedIds] = useState([]);
   const [amountFilter, setAmountFilter] = useState("All Amounts");
   const [searchQuery, setSearchQuery] = useState("");
-  const [currentPage, setCurrentPage] = useState(1);
+  const [visibleCount, setVisibleCount] = useState(PAGE_SIZE);
+  const [loadingMore, setLoadingMore] = useState(false);
+  const [hasMoreDb, setHasMoreDb] = useState(true);
+  const sentinelRef = useRef(null);
   const [showModal, setShowModal] = useState(false);
   const [localCustomers, setLocalCustomers] = useState([]);
 
   // Merge local added customers (if any) with database customers
-  const allCustomers = [...customers, ...localCustomers];
+  const allCustomers = useMemo(() => {
+    const map = new Map();
+    customers.forEach((c) => {
+      if (c && c.id != null) map.set(c.id, c);
+    });
+    localCustomers.forEach((c) => {
+      if (c && c.id != null && !map.has(c.id)) map.set(c.id, c);
+    });
+    return Array.from(map.values());
+  }, [customers, localCustomers]);
 
   const handleAddCustomer = (newCustomer) => {
     setLocalCustomers((prev) => [...prev, newCustomer]);
   };
 
   /* Filtering */
-  const filtered = allCustomers.filter((c) => {
-    const q = searchQuery.toLowerCase().trim();
-    const matchSearch = !q ||
-      (c.name || "").toLowerCase().includes(q) ||
-      (c.email || "").toLowerCase().includes(q) ||
-      (c.phone || c.phone_number || c.mobile || "").includes(q);
+  const filtered = useMemo(() => {
+    return allCustomers.filter((c) => {
+      const q = searchQuery.toLowerCase().trim();
+      const matchSearch =
+        !q ||
+        (c.name || "").toLowerCase().includes(q) ||
+        (c.email || "").toLowerCase().includes(q) ||
+        String(c.phone || c.phone_number || c.mobile || "").toLowerCase().includes(q);
 
-    if (!matchSearch) return false;
+      if (!matchSearch) return false;
 
-    // Amount Filter (Total Spent)
-    const spent = Number(c.totalSpent || 0);
-    if (amountFilter === "High Spenders") {
-      if (spent < 5000) return false;
-    } else if (amountFilter === "1000-5000") {
-      if (spent < 1000 || spent > 5000) return false;
-    } else if (amountFilter === "Under-1000") {
-      if (spent >= 1000 || spent <= 0) return false;
-    } else if (amountFilter === "No-Orders") {
-      if (spent > 0) return false;
+      // Amount Filter (Total Spent)
+      const spent = Number(c.totalSpent || 0);
+      if (amountFilter === "High Spenders") {
+        if (spent < 5000) return false;
+      } else if (amountFilter === "1000-5000") {
+        if (spent < 1000 || spent > 5000) return false;
+      } else if (amountFilter === "Under-1000") {
+        if (spent >= 1000 || spent <= 0) return false;
+      } else if (amountFilter === "No-Orders") {
+        if (spent > 0) return false;
+      }
+
+      return true;
+    });
+  }, [allCustomers, searchQuery, amountFilter]);
+
+  /* ── Infinite Scroll / Lazy Load (10 at a time, same as AllOrders) ── */
+  const paginated = useMemo(() => {
+    return filtered.slice(0, visibleCount);
+  }, [filtered, visibleCount]);
+
+  // Load next 10 customers from Supabase DB when user scrolls
+  const loadMoreCustomersFromDb = useCallback(async () => {
+    if (loadingMore || !hasMoreDb) return;
+    setLoadingMore(true);
+    try {
+      const currentCount = allCustomers.length;
+      const { data: newUsers, error: fetchErr } = await supabase
+        .from("users")
+        .select("*")
+        .order("updated_at", { ascending: false })
+        .range(currentCount, currentCount + PAGE_SIZE - 1);
+
+      if (fetchErr || !newUsers || newUsers.length === 0) {
+        setHasMoreDb(false);
+        return;
+      }
+
+      if (newUsers.length < PAGE_SIZE) {
+        setHasMoreDb(false);
+      }
+
+      setLocalCustomers((prev) => {
+        const existingIds = new Set([
+          ...customers.map((c) => c.id),
+          ...prev.map((c) => c.id),
+        ]);
+        const filteredNew = newUsers
+          .filter((u) => !existingIds.has(u.id))
+          .map((u) => ({
+            ...u,
+            name: u.name || u.full_name || (u.email ? u.email.split("@")[0] : "Unknown Customer"),
+            email: u.email || "",
+            phone: u.phone || u.phone_number || u.mobile || u.phoneNumber || "",
+            orderCount: u.orderCount ?? 0,
+            totalSpent: u.totalSpent ?? 0,
+          }));
+        return [...prev, ...filteredNew];
+      });
+
+      setVisibleCount((prev) => prev + PAGE_SIZE);
+    } catch (err) {
+      console.warn("Failed to load more customers:", err);
+    } finally {
+      setLoadingMore(false);
     }
+  }, [loadingMore, hasMoreDb, allCustomers.length, customers]);
 
-    return true;
-  });
+  // Observer to trigger next 10 when user scrolls down
+  useEffect(() => {
+    const sentinel = sentinelRef.current;
+    if (!sentinel) return;
 
-  const totalPages = Math.max(1, Math.ceil(filtered.length / ROWS_PER_PAGE));
-  const safePage = Math.min(currentPage, totalPages);
-  const paginated = filtered.slice((safePage - 1) * ROWS_PER_PAGE, safePage * ROWS_PER_PAGE);
+    const observer = new IntersectionObserver(
+      (entries) => {
+        const [entry] = entries;
+        if (entry.isIntersecting) {
+          if (visibleCount < filtered.length) {
+            setVisibleCount((prev) => prev + PAGE_SIZE);
+          } else if (hasMoreDb && !loadingMore && !loading) {
+            loadMoreCustomersFromDb();
+          }
+        }
+      },
+      { root: null, rootMargin: "300px", threshold: 0.1 }
+    );
+
+    observer.observe(sentinel);
+    return () => {
+      observer.disconnect();
+    };
+  }, [visibleCount, filtered.length, hasMoreDb, loadingMore, loading, loadMoreCustomersFromDb]);
 
   /* Select logic */
   const allChecked = paginated.length > 0 && paginated.every((c) => selectedIds.includes(c.id));
@@ -297,17 +394,9 @@ const AllCustomers = ({ customers = [], loading, onViewDetail }) => {
     ? Math.round(totalSpentSum / totalOrdersCount)
     : (totalCustomers > 0 ? Math.round(totalSpentSum / totalCustomers) : 0);
 
-  /* Pagination numbers */
-  const getPageNumbers = () => {
-    if (totalPages <= 5) return Array.from({ length: totalPages }, (_, i) => i + 1);
-    if (safePage <= 3) return [1, 2, 3, "...", totalPages];
-    if (safePage >= totalPages - 2) return [1, "...", totalPages - 2, totalPages - 1, totalPages];
-    return [1, "...", safePage, "...", totalPages];
-  };
-
   const renderTableBody = () => {
     if (loading) {
-      return Array.from({ length: ROWS_PER_PAGE }).map((_, i) => <SkeletonCustomerRow key={i} />);
+      return Array.from({ length: PAGE_SIZE }).map((_, i) => <SkeletonCustomerRow key={i} />);
     }
 
     if (allCustomers.length === 0) {
@@ -421,7 +510,7 @@ const AllCustomers = ({ customers = [], loading, onViewDetail }) => {
             <select
               className="ac__select-pill"
               value={amountFilter}
-              onChange={(e) => { setAmountFilter(e.target.value); setCurrentPage(1); }}
+              onChange={(e) => { setAmountFilter(e.target.value); setVisibleCount(PAGE_SIZE); }}
             >
               <option value="All Amounts">All Amounts</option>
               <option value="High Spenders">High Spenders (₹5k+)</option>
@@ -455,7 +544,7 @@ const AllCustomers = ({ customers = [], loading, onViewDetail }) => {
               className="ac__search-input"
               placeholder="Search name, email, contact..."
               value={searchQuery}
-              onChange={(e) => { setSearchQuery(e.target.value); setCurrentPage(1); }}
+              onChange={(e) => { setSearchQuery(e.target.value); setVisibleCount(PAGE_SIZE); }}
             />
           </div>
         </div>
@@ -494,7 +583,7 @@ const AllCustomers = ({ customers = [], loading, onViewDetail }) => {
       {/* ── Mobile Cards (Phone View) ── */}
       <div className="ac__mobile-cards-list">
         {loading ? (
-          Array.from({ length: ROWS_PER_PAGE }).map((_, i) => <CustomerCard key={i} loading={true} />)
+          Array.from({ length: PAGE_SIZE }).map((_, i) => <CustomerCard key={i} loading={true} />)
         ) : (
           paginated.map((customer) => (
             <CustomerCard
@@ -508,45 +597,34 @@ const AllCustomers = ({ customers = [], loading, onViewDetail }) => {
         )}
       </div>
 
-      {/* ── Pagination Footer ── */}
-      {!loading && allCustomers.length > 0 && (
-        <div className="ac__pagination-row">
-          <span className="ac__showing-text">
-            Showing {(safePage - 1) * ROWS_PER_PAGE + 1}–{Math.min(safePage * ROWS_PER_PAGE, filtered.length)} of {filtered.length} Customers
-          </span>
-          <div className="ac__pagination-controls">
-            <button
-              className="ac__page-arrow"
-              disabled={safePage === 1}
-              onClick={() => setCurrentPage((p) => p - 1)}
-              aria-label="Previous page"
-            >
-              ‹
-            </button>
-            {getPageNumbers().map((p, i) =>
-              p === "..." ? (
-                <span key={`ellip-${i}`} className="ac__page-ellipsis">…</span>
-              ) : (
-                <button
-                  key={p}
-                  className={`ac__page-number${safePage === p ? " ac__page-number--active" : ""}`}
-                  onClick={() => setCurrentPage(p)}
-                >
-                  {p}
-                </button>
-              )
-            )}
-            <button
-              className="ac__page-arrow"
-              disabled={safePage === totalPages}
-              onClick={() => setCurrentPage((p) => p + 1)}
-              aria-label="Next page"
-            >
-              ›
-            </button>
+      {/* ── Footer / Infinite Scroll Indicator (Same as Orders List) ── */}
+      <div className="ao__footer ac__footer">
+        <span className="ao__showing ac__showing-text">
+          {loading ? (
+            <span style={{ display: "inline-flex", alignItems: "center", gap: 6 }}>
+              <SpinnerIcon /> Loading customers…
+            </span>
+          ) : filtered.length === 0 ? (
+            "No customers to show"
+          ) : (
+            `Showing ${Math.min(visibleCount, filtered.length)} of ${filtered.length} customers`
+          )}
+        </span>
+
+        {loadingMore && (
+          <div className="ao__infinite-loader ac__infinite-loader">
+            <SpinnerIcon />
+            <span>Loading next 10 customers…</span>
           </div>
-        </div>
-      )}
+        )}
+
+        {!loading && !loadingMore && filtered.length > 0 && visibleCount >= filtered.length && (
+          <span className="ao__all-loaded-text ac__all-loaded-text">All customers loaded</span>
+        )}
+      </div>
+
+      {/* ── Infinite scroll trigger sentinel ── */}
+      <div ref={sentinelRef} className="ao__infinite-sentinel ac__infinite-sentinel" />
 
       {/* ── Add Customer Modal ── */}
       {showModal && (

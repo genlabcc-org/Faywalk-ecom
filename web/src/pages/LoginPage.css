@@ -99,6 +99,24 @@
   border-color: var(--blue-primary);
 }
 
+.jewelry-input-error {
+  border-color: #d93025;
+  margin-bottom: 8px;
+}
+
+.jewelry-error-text {
+  font-size: 13px;
+  color: #d93025;
+  margin-bottom: 16px;
+  line-height: 1.4;
+}
+
+.jewelry-error-link {
+  color: var(--blue-primary);
+  font-weight: 600;
+  text-decoration: underline;
+}
+
 /* OTP Button */
 .jewelry-btn-otp {
   width: 100%;

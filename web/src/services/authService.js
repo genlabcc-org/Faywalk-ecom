@@ -147,7 +147,30 @@ export const authService = {
    * @returns {Promise<void>}
    */
   async signInWithOtp(email, options = {}) {
-    const { error } = await supabase.auth.signInWithOtp({ email, options });
+    const cleanEmail = String(email || "").trim().toLowerCase();
+
+    // When creating a new user (shouldCreateUser: true), first create the user record
+    // silently via google-auth-sync (which uses admin.generateLink and sends NO email).
+    // That way, when supabase.auth.signInWithOtp runs right after, the user already
+    // exists in auth.users — so Supabase uses the Magic Link (6-digit OTP) email
+    // template on the very first attempt, identical to clicking "Resend".
+    if (options.shouldCreateUser === true) {
+      try {
+        await supabase.functions.invoke("google-auth-sync", {
+          body: { email: cleanEmail },
+        });
+      } catch (e) {
+        console.warn("Pre-create user before OTP warning:", e);
+      }
+    }
+
+    const { error } = await supabase.auth.signInWithOtp({
+      email: cleanEmail,
+      options: {
+        ...options,
+        shouldCreateUser: options.shouldCreateUser ?? true,
+      },
+    });
     if (error) throw error;
   },
 
@@ -164,6 +187,14 @@ export const authService = {
       token,
       type
     });
+    if (error && type === 'email') {
+      const { data: signupData, error: signupError } = await supabase.auth.verifyOtp({
+        email,
+        token,
+        type: 'signup',
+      });
+      if (!signupError) return signupData;
+    }
     if (error) throw error;
     return data;
   },
@@ -211,8 +242,9 @@ export const authService = {
    * @returns {Promise<boolean>}
    */
   async checkUserExists(email) {
+    const cleanEmail = String(email || "").trim().toLowerCase();
     const { data, error } = await supabase.rpc("check_user_exists", {
-      email_to_check: email,
+      email_to_check: cleanEmail,
     });
     if (error) throw error;
     return data;

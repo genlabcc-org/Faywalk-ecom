@@ -39,6 +39,9 @@ export default function SignupPage() {
   };
 
   useEffect(() => {
+    if (location.state?.email) {
+      setEmail(location.state.email);
+    }
     if (location.state?.message) {
       showToast(location.state.message, location.state.type || "info");
     }
