@@ -148,6 +148,9 @@ export const authService = {
    */
   async signInWithOtp(email, options = {}) {
     const cleanEmail = String(email || "").trim().toLowerCase();
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(cleanEmail)) {
+      throw new Error("Please enter a valid email");
+    }
 
     // When creating a new user (shouldCreateUser: true), first create the user record
     // silently via google-auth-sync (which uses admin.generateLink and sends NO email).
@@ -171,7 +174,12 @@ export const authService = {
         shouldCreateUser: options.shouldCreateUser ?? true,
       },
     });
-    if (error) throw error;
+    if (error) {
+      if (/unable to validate email|invalid format|invalid email/i.test(error.message || "")) {
+        throw new Error("Please enter a valid email");
+      }
+      throw error;
+    }
   },
 
   /**

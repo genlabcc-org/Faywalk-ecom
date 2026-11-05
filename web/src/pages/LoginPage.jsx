@@ -41,8 +41,15 @@ export default function LoginPage() {
 
   const handleSendOTP = async () => {
     if (loading || googleLoading) return;
-    if (!email.trim()) {
+    const trimmedEmail = email.trim();
+    if (!trimmedEmail) {
       showToast("Please enter your email.", "error");
+      return;
+    }
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(trimmedEmail)) {
+      const msg = "Please enter a valid email";
+      setErrorMsg(msg);
+      showToast(msg, "error");
       return;
     }
 
@@ -50,7 +57,7 @@ export default function LoginPage() {
     setLoading(true);
 
     try {
-      const existingUser = await authService.checkUserExists(email);
+      const existingUser = await authService.checkUserExists(trimmedEmail);
       if (!existingUser) {
         const msg = "No user found with this email. Please sign up first.";
         setErrorMsg(msg);
@@ -60,18 +67,22 @@ export default function LoginPage() {
       }
 
       // Send OTP only if user exists
-      await authService.signInWithOtp(email, {
+      await authService.signInWithOtp(trimmedEmail, {
         shouldCreateUser: false,
       });
 
       // User exists → OTP sent → redirect to verify
       showToast("OTP sent to email!", "success");
-      setTimeout(() => navigate("/account/otp-verify", { state: { email: email.trim() } }), 1200);
+      setTimeout(() => navigate("/account/otp-verify", { state: { email: trimmedEmail } }), 1200);
     } catch (error) {
-      const isUserNotFound = /signups not allowed|user not found|not found/i.test(error?.message || "");
-      const msg = isUserNotFound
-        ? "No user found with this email. Please sign up first."
-        : (error?.message || "Failed to send OTP. Please try again.");
+      const rawMsg = error?.message || "";
+      const isInvalidEmail = /unable to validate email|invalid format|invalid email|valid email/i.test(rawMsg);
+      const isUserNotFound = /signups not allowed|user not found|not found/i.test(rawMsg);
+      const msg = isInvalidEmail
+        ? "Please enter a valid email"
+        : isUserNotFound
+          ? "No user found with this email. Please sign up first."
+          : (rawMsg || "Failed to send OTP. Please try again.");
       setErrorMsg(msg);
       showToast(msg, "error");
       setLoading(false);

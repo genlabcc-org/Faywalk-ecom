@@ -49,29 +49,38 @@ export default function SignupPage() {
 
   const handleSendOTP = async () => {
     if (loading || googleLoading) return;
-    if (!email) {
+    const trimmedEmail = email.trim();
+    if (!trimmedEmail) {
       showToast("Please enter your email.", "error");
+      return;
+    }
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(trimmedEmail)) {
+      showToast("Please enter a valid email", "error");
       return;
     }
 
     setLoading(true);
 
     try {
-      const existingUser = await authService.checkUserExists(email);
+      const existingUser = await authService.checkUserExists(trimmedEmail);
 
       if (existingUser) {
         // Existing user → send OTP directly
-        await authService.signInWithOtp(email);
+        await authService.signInWithOtp(trimmedEmail);
         showToast("OTP sent! Check your email.", "success");
-        setTimeout(() => navigate("/account/otp-verify", { state: { email } }), 1200);
+        setTimeout(() => navigate("/account/otp-verify", { state: { email: trimmedEmail } }), 1200);
       } else {
         // New user → send OTP with create
-        await authService.signInWithOtp(email, { shouldCreateUser: true });
+        await authService.signInWithOtp(trimmedEmail, { shouldCreateUser: true });
         showToast("OTP sent to email!", "success");
-        setTimeout(() => navigate("/account/otp-verify", { state: { email } }), 1200);
+        setTimeout(() => navigate("/account/otp-verify", { state: { email: trimmedEmail } }), 1200);
       }
     } catch (error) {
-      showToast(error.message, "error");
+      const rawMsg = error?.message || "";
+      const friendlyMsg = /unable to validate email|invalid format|invalid email|valid email/i.test(rawMsg)
+        ? "Please enter a valid email"
+        : (rawMsg || "Please enter a valid email");
+      showToast(friendlyMsg, "error");
       setLoading(false);
     }
   };
