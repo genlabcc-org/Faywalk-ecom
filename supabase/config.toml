@@ -455,3 +455,19 @@ enabled = true
 verify_jwt = false
 entrypoint = "./functions/razorpay-webhook/index.ts"
 
+[functions.google-auth-sync]
+enabled = true
+verify_jwt = false
+entrypoint = "./functions/google-auth-sync/index.ts"
+
+[functions.send-contact-email]
+enabled = true
+verify_jwt = false
+entrypoint = "./functions/send-contact-email/index.ts"
+
+[functions.send-order-email]
+enabled = true
+verify_jwt = false
+entrypoint = "./functions/send-order-email/index.ts"
+
+
