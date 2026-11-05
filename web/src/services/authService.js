@@ -195,7 +195,12 @@ export const authService = {
       });
       if (!signupError) return signupData;
     }
-    if (error) throw error;
+    if (error) {
+      if (/token|otp|expired|invalid/i.test(error.message || "")) {
+        throw new Error("Invalid OTP. Please check and try again.");
+      }
+      throw error;
+    }
     return data;
   },
 

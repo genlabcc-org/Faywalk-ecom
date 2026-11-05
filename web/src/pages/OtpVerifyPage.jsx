@@ -65,7 +65,11 @@ export default function OtpVerifyPage() {
       showToast("Login successful!", "success");
       setTimeout(() => navigate("/"), 1200);
     } catch (error) {
-      showToast(error.message, "error");
+      const rawMsg = error?.message || "";
+      const friendlyMsg = /token|otp|expired|invalid/i.test(rawMsg)
+        ? "Invalid OTP. Please check and try again."
+        : (rawMsg || "Invalid OTP. Please try again.");
+      showToast(friendlyMsg, "error");
       setLoading(false);
     }
   };
