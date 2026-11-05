@@ -74,9 +74,7 @@
 
 .header-logo-img {
   height: 42px;
-  width: auto;
-  max-width: 175px;
-  object-fit: contain;
+  width: 135px;
   display: block;
   border-radius: 0 !important;
 }
@@ -773,9 +771,7 @@ body.menu-open {
 
   .header-logo-img {
     height: 32px;
-    max-width: 140px;
-    width: auto;
-    object-fit: contain;
+    width: 105px;
     display: block;
   }
 
@@ -899,7 +895,7 @@ body.menu-open {
 
   .header-logo-img {
     height: 28px;
-    max-width: 115px;
+    width: 92px;
   }
 
   .header-actions {
@@ -964,7 +960,7 @@ body.menu-open {
 
   .header-logo-img {
     height: 25px;
-    max-width: 100px;
+    width: 82px;
   }
 
   .header-actions {

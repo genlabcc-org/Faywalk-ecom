@@ -395,6 +395,8 @@ export default function ProductDetailsPage({ onBack = () => window.history.back(
   const [toastType, setToastType] = useState("success");
   const [selectedSize, setSelectedSize] = useState("");
   const [sizeGuideOpen, setSizeGuideOpen] = useState(false);
+  const [careOpen, setCareOpen] = useState(false);
+  const [specsOpen, setSpecsOpen] = useState(false);
   const [size, setSize] = useState(() => {
     const rawSizes = selectedProduct?.sizes;
     if (rawSizes) {
@@ -489,6 +491,7 @@ export default function ProductDetailsPage({ onBack = () => window.history.back(
           name: data.name,
           desc: data.description,
           description: data.description,
+          care_instructions: data.care_instructions || '',
           price: data.price,
           compare_price: data.compare_price || data.price,
           original: `₹${data.compare_price || data.price}.00`,
@@ -1232,7 +1235,8 @@ export default function ProductDetailsPage({ onBack = () => window.history.back(
               <div className="dp-desc-section">
                 <h4 className="dp-desc-title">Description</h4>
                 <div className="dp-short-desc">
-                  {selectedProduct.desc || selectedProduct.description}
+                  {productService.normalizeProductCare(selectedProduct)?.description ||
+                    productService.normalizeProductCare(selectedProduct)?.desc}
                 </div>
               </div>
             )}
@@ -1411,22 +1415,120 @@ export default function ProductDetailsPage({ onBack = () => window.history.back(
             </div>
           </div>
 
-          {/* Product Specifications Table/List */}
-          <div className="dp-specs-section">
-            <h3 className="dp-specs-heading">Product Specifications</h3>
-            <div className="dp-specs-table">
-              <div className="dp-specs-row">
-                <span className="dp-specs-label">Product Type :</span>
-                <span className="dp-specs-value">{selectedProduct?.type || selectedProduct?.subcategory || cat || "Brief"}</span>
+          {/* Care Instructions & Product Specifications Dropdowns */}
+          <div className="dp-info-accordions">
+            {(productService.normalizeProductCare(selectedProduct)?.care_instructions ||
+              selectedProduct?.care_instructions ||
+              selectedProduct?.careInstructions) && (
+              <div className={`dp-sizeguide-dropdown dp-info-dropdown ${careOpen ? "open" : ""}`}>
+                <button
+                  type="button"
+                  className="dp-sizeguide-toggle"
+                  onClick={() => setCareOpen((prev) => !prev)}
+                  aria-expanded={careOpen}
+                >
+                  <span className="dp-sizeguide-label">
+                    <svg
+                      width="17"
+                      height="17"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="1.9"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      aria-hidden="true"
+                    >
+                      <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
+                    </svg>
+                    <span>Care Instructions</span>
+                  </span>
+                  <svg
+                    className="dp-sizeguide-chevron"
+                    width="18"
+                    height="18"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    aria-hidden="true"
+                  >
+                    <polyline points="6 9 12 15 18 9" />
+                  </svg>
+                </button>
+                {careOpen && (
+                  <div className="dp-sizeguide-body dp-info-dropdown-body">
+                    <div className="dp-short-desc">
+                      {productService.normalizeProductCare(selectedProduct)?.care_instructions ||
+                        selectedProduct?.care_instructions ||
+                        selectedProduct?.careInstructions}
+                    </div>
+                  </div>
+                )}
               </div>
-              <div className="dp-specs-row">
-                <span className="dp-specs-label">Product Material :</span>
-                <span className="dp-specs-value">{selectedProduct?.fabric || selectedProduct?.material || "Cotton"}</span>
-              </div>
-              <div className="dp-specs-row">
-                <span className="dp-specs-label">Category :</span>
-                <span className="dp-specs-value">{selectedProduct?.gender || selectedProduct?.category || "Male"}</span>
-              </div>
+            )}
+
+            <div className={`dp-sizeguide-dropdown dp-info-dropdown ${specsOpen ? "open" : ""}`}>
+              <button
+                type="button"
+                className="dp-sizeguide-toggle"
+                onClick={() => setSpecsOpen((prev) => !prev)}
+                aria-expanded={specsOpen}
+              >
+                <span className="dp-sizeguide-label">
+                  <svg
+                    width="17"
+                    height="17"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="1.9"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    aria-hidden="true"
+                  >
+                    <rect x="3" y="4" width="18" height="16" rx="2" />
+                    <line x1="7" y1="8" x2="17" y2="8" />
+                    <line x1="7" y1="12" x2="17" y2="12" />
+                    <line x1="7" y1="16" x2="13" y2="16" />
+                  </svg>
+                  <span>Product Specifications</span>
+                </span>
+                <svg
+                  className="dp-sizeguide-chevron"
+                  width="18"
+                  height="18"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  aria-hidden="true"
+                >
+                  <polyline points="6 9 12 15 18 9" />
+                </svg>
+              </button>
+              {specsOpen && (
+                <div className="dp-sizeguide-body dp-info-dropdown-body">
+                  <div className="dp-specs-table">
+                    <div className="dp-specs-row">
+                      <span className="dp-specs-label">Product Type :</span>
+                      <span className="dp-specs-value">{selectedProduct?.type || selectedProduct?.subcategory || cat || "Brief"}</span>
+                    </div>
+                    <div className="dp-specs-row">
+                      <span className="dp-specs-label">Product Material :</span>
+                      <span className="dp-specs-value">{selectedProduct?.fabric || selectedProduct?.material || "Cotton"}</span>
+                    </div>
+                    <div className="dp-specs-row">
+                      <span className="dp-specs-label">Category :</span>
+                      <span className="dp-specs-value">{selectedProduct?.gender || selectedProduct?.category || "Male"}</span>
+                    </div>
+                  </div>
+                </div>
+              )}
             </div>
           </div>
         </div>

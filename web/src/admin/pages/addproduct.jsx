@@ -218,6 +218,7 @@ const AddProduct = ({
 
   const [title, setTitle] = useState(() => initialDraft?.title || "");
   const [description, setDescription] = useState(() => initialDraft?.description || "");
+  const [careInstructions, setCareInstructions] = useState(() => initialDraft?.careInstructions || "");
   const [sku, setSku] = useState(() => initialDraft?.sku || generateVariantSKU());
   const [material, setMaterial] = useState(() => initialDraft?.material || "");
   const [category, setCategory] = useState(() => initialDraft?.category || "");
@@ -341,6 +342,7 @@ const AddProduct = ({
       const draftData = {
         title,
         description,
+        careInstructions,
         sku,
         material,
         category,
@@ -370,6 +372,7 @@ const AddProduct = ({
   }, [
     title,
     description,
+    careInstructions,
     sku,
     material,
     category,
@@ -423,6 +426,7 @@ const AddProduct = ({
 
         setTitle(product.name || "");
         setDescription(product.description || "");
+        setCareInstructions(product.care_instructions || product.careInstructions || "");
         setSku(product.sku || generateVariantSKU());
         setMaterial(product.material || "");
         setCategory(product.category_id != null ? String(product.category_id) : "");
@@ -1165,6 +1169,7 @@ const AddProduct = ({
     clearDraftMediaFromIDB(draftKey);
     setTitle("");
     setDescription("");
+    setCareInstructions("");
     setSku(generateVariantSKU());
     setMaterial("");
     setCategory("");
@@ -1338,6 +1343,7 @@ const AddProduct = ({
     const productData = {
       name: title,
       description,
+      care_instructions: careInstructions.trim() || null,
       sku: sku || undefined,
       material: material.trim() || null,
       category_id: parseInt(category) || null,
@@ -1358,7 +1364,7 @@ const AddProduct = ({
         ? await variantService.updateProductWithVariants(editingProductId, productData, variants, deletedVariantIds)
         : await variantService.createProductWithVariants({ ...productData, has_variants: true }, variants);
       savedSuccessRef.current = true;
-      if (isEditing) useStore.getState().invalidateProductDetails(editingProductId);
+      useStore.getState().invalidateProductDetails(result?.product?.product_id || editingProductId);
       try {
         sessionStorage.removeItem(draftKey);
         sessionStorage.removeItem("faywalk_variant_draft_new");
@@ -1443,7 +1449,7 @@ const AddProduct = ({
           <span className="cmp-label">Description</span>
           <textarea
             className={`cmp-textarea${errors.description ? " cmp-input--error" : ""}`}
-            placeholder="Describe the fabric, breathability, fit, and care instructions..."
+            placeholder="Describe the fabric, breathability, and fit..."
             value={description}
             onChange={(e) => {
               setDescription(e.target.value);
@@ -1453,6 +1459,18 @@ const AddProduct = ({
           {errors.description?.map((msg) => (
             <FieldError key={msg}>{msg}</FieldError>
           ))}
+        </label>
+
+        <label className="cmp-field">
+          <span className="cmp-label">
+            Care Instructions <span className="scc-optional-tag">optional</span>
+          </span>
+          <textarea
+            className="cmp-textarea"
+            placeholder="e.g. Machine wash cold, do not bleach, tumble dry low..."
+            value={careInstructions}
+            onChange={(e) => setCareInstructions(e.target.value)}
+          />
         </label>
 
         <div className="cmp-row">

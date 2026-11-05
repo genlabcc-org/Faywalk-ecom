@@ -421,17 +421,18 @@
 /* ── Size Guide Dropdown ── */
 .dp-sizeguide-dropdown {
   width: 100%;
-  margin-bottom: 20px;
-  border: 1px solid #e5e7eb;
+  margin-bottom: 16px;
+  border: none;
   border-radius: 8px;
-  background: #ffffff;
+  background: #f8fafc;
   overflow: hidden;
-  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+  transition: background 0.15s ease;
 }
 
 .dp-sizeguide-dropdown:hover,
 .dp-sizeguide-dropdown.open {
-  border-color: #cbd5e1;
+  border: none;
+  background: #f8fafc;
 }
 
 .dp-sizeguide-toggle {
@@ -440,7 +441,7 @@
   align-items: center;
   justify-content: space-between;
   padding: 11px 14px;
-  background: #f9fafb;
+  background: transparent;
   border: none;
   cursor: pointer;
   font-family: inherit;
@@ -451,7 +452,7 @@
 }
 
 .dp-sizeguide-toggle:hover {
-  background: #f3f4f6;
+  background: #f1f5f9;
 }
 
 .dp-sizeguide-label {
@@ -472,9 +473,9 @@
 }
 
 .dp-sizeguide-body {
-  padding: 10px;
-  border-top: 1px solid #e5e7eb;
-  background: #ffffff;
+  padding: 4px 14px 14px 14px;
+  border-top: none;
+  background: transparent;
 }
 
 .dp-sizeguide-img {
@@ -570,7 +571,41 @@
   text-decoration: underline;
 }
 
-/* ── Product Specifications ── */
+/* ── Care Instructions & Product Specifications Dropdowns ── */
+.dp-info-accordions {
+  margin-top: 22px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  width: 100%;
+}
+
+.dp-info-dropdown,
+.dp-info-dropdown:hover,
+.dp-info-dropdown.open {
+  margin-bottom: 0;
+  border: none;
+  box-shadow: none;
+  background: #f8fafc;
+  border-radius: 8px;
+}
+
+.dp-info-dropdown .dp-sizeguide-toggle {
+  background: transparent;
+  padding: 11px 14px;
+  border: none;
+}
+
+.dp-info-dropdown .dp-sizeguide-toggle:hover {
+  background: #f1f5f9;
+}
+
+.dp-info-dropdown-body {
+  padding: 4px 14px 14px 14px;
+  border-top: none;
+  background: transparent;
+}
+
 .dp-specs-section {
   margin-top: 32px;
   padding-top: 24px;

@@ -109,8 +109,13 @@ export const variantService = {
     const coverImages = firstWithImages ? firstWithImages.images : (productData.images || []);
     const coverImageUrl = coverImages[0] || productData.image_url || null;
 
+    const cleanDescription = String(productData.description || '').split('\n<!--CARE_INSTRUCTIONS-->\n')[0];
+    const cleanCare = String(productData.care_instructions || '').trim() || null;
+
     const payload = {
       ...productData,
+      description: cleanDescription,
+      care_instructions: cleanCare,
       sku: baseSku,
       price: productData.price != null && !isNaN(parseFloat(productData.price)) ? parseFloat(productData.price) : fallbackPrice,
       compare_price: productData.compare_price != null && !isNaN(parseFloat(productData.compare_price)) ? parseFloat(productData.compare_price) : fallbackComparePrice,
@@ -120,12 +125,14 @@ export const variantService = {
       has_variants: true,
     };
 
-    const { data: product, error: productError } = await supabase
+    let { data: product, error: productError } = await supabase
       .from('products')
       .insert([payload])
       .select()
       .single();
+
     if (productError) throw productError;
+    product = productService.normalizeProductCare(product);
 
     try {
       const variantRows = preparedVariants.map((row) => ({
@@ -175,7 +182,7 @@ export const variantService = {
     if (productError) throw productError;
 
     const variants = await this.getVariantsByProductId(productId);
-    return { product, variants };
+    return { product: productService.normalizeProductCare(product), variants };
   },
 
   /**
@@ -190,22 +197,29 @@ export const variantService = {
     const fallbackComparePrice = validComparePrices.length > 0 ? Math.max(...validComparePrices) : null;
     const totalStock = (variants || []).reduce((sum, v) => sum + (parseInt(v.stockQuantity ?? v.stock) || 0), 0);
 
+    const cleanDescription = String(productData.description || '').split('\n<!--CARE_INSTRUCTIONS-->\n')[0];
+    const cleanCare = String(productData.care_instructions || '').trim() || null;
+
     const updatePayload = {
       ...productData,
+      description: cleanDescription,
+      care_instructions: cleanCare,
       price: productData.price != null && !isNaN(parseFloat(productData.price)) ? parseFloat(productData.price) : fallbackPrice,
       compare_price: productData.compare_price != null && !isNaN(parseFloat(productData.compare_price)) ? parseFloat(productData.compare_price) : fallbackComparePrice,
       stock: productData.stock != null && !isNaN(parseInt(productData.stock)) ? parseInt(productData.stock) : totalStock,
       updated_at: new Date().toISOString(),
     };
 
-    const { data: product, error: productError } = await supabase
+    let { data: product, error: productError } = await supabase
       .from('products')
       // Bump updated_at so storefront image caches know to refresh
       .update(updatePayload)
       .eq('product_id', productId)
       .select()
       .single();
+
     if (productError) throw productError;
+    product = productService.normalizeProductCare(product);
 
     const { data: existingDbVariants } = await supabase
       .from('product_variants')
@@ -365,7 +379,7 @@ export const variantService = {
     // Images replaced or removed in this edit (incl. deleted variants) are deleted from R2
     await productService.deleteRemovedProductImages(productId, oldImageUrls);
 
-    return { product: finalProduct, variants: savedVariants };
+    return { product: productService.normalizeProductCare(finalProduct), variants: savedVariants };
   },
 
   /**

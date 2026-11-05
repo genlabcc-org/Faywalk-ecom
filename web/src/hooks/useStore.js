@@ -115,7 +115,7 @@ export const useStore = create((set, get) => ({
   selectedProduct: (() => {
     const saved = localStorage.getItem('anika_selected_product');
     try {
-      return saved ? JSON.parse(saved) : null;
+      return saved ? productService.normalizeProductCare(JSON.parse(saved)) : null;
     } catch {
       return null;
     }
@@ -354,6 +354,8 @@ export const useStore = create((set, get) => ({
           images: Array.isArray(p.images) && p.images.length > 0 ? p.images : (p.image_url ? [p.image_url] : []),
           name: p.name,
           desc: p.description,
+          description: p.description,
+          care_instructions: p.care_instructions || '',
           price: sellingPrice,
           compare_price: mrp,
           sizes: combinedSizes,
@@ -457,13 +459,26 @@ export const useStore = create((set, get) => ({
     if (changed) set({ productDetails: updatedCache });
   },
 
-  // After an admin edit: drop this product's cached details so the next view refetches
+  // After an admin edit/create: drop cached details and category lists so the next view refetches fresh data
   invalidateProductDetails: (productId) => {
-    if (!productId) return;
     const updatedCache = { ...get().productDetails };
-    delete updatedCache[productId];
-    set({ productDetails: updatedCache });
-    evictPdEntry(productId);
+    if (productId) {
+      delete updatedCache[productId];
+      evictPdEntry(productId);
+    }
+    const currSelected = get().selectedProduct;
+    const isSameSelected =
+      productId &&
+      currSelected &&
+      String(currSelected.productId || currSelected.product_id || currSelected.id) === String(productId);
+    if (isSameSelected) {
+      localStorage.removeItem('anika_selected_product');
+    }
+    set({
+      productDetails: updatedCache,
+      products: {},
+      ...(isSameSelected ? { selectedProduct: null } : {}),
+    });
   },
 
   // Caching Orders
@@ -486,9 +501,10 @@ export const useStore = create((set, get) => ({
 
   // --- Selected Product Actions ---
   setSelectedProduct: (product) => {
-    set({ selectedProduct: product });
-    if (product) {
-      localStorage.setItem('anika_selected_product', JSON.stringify(product));
+    const normalized = product ? productService.normalizeProductCare(product) : product;
+    set({ selectedProduct: normalized });
+    if (normalized) {
+      localStorage.setItem('anika_selected_product', JSON.stringify(normalized));
     } else {
       localStorage.removeItem('anika_selected_product');
     }

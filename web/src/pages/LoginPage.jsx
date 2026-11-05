@@ -83,7 +83,7 @@ export default function LoginPage() {
       <div className="jewelry-right">
         <Link to="/">
           <div className="jewelry-logo">
-            <img src="/logo.png" alt="Faywalk Logo" style={{ borderRadius: 0, height: 42, objectFit: "contain" }} />
+            <img src="/logo.png" alt="Faywalk Logo" style={{ borderRadius: 0, height: 42, width: 135 }} />
           </div>
         </Link>
         <div className="jewelry-form-wrapper">

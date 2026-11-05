@@ -42,8 +42,7 @@
 
 .fw-logo-img {
   height: 42px;
-  width: auto;
-  object-fit: contain;
+  width: 135px;
   display: block;
 }
 

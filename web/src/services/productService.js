@@ -6,7 +6,43 @@ import { compressImage } from '../utils/imageCompression';
 //   detail: { width: 800, height: 800 },
 // };
 
+const CARE_DELIMITER = '\n<!--CARE_INSTRUCTIONS-->\n';
+
 export const productService = {
+  /**
+   * Packs description + care_instructions into `products.description` so care instructions
+   * are stored in Supabase `products` even without a separate `care_instructions` column.
+   */
+  encodeDescriptionWithCare(description, careInstructions) {
+    const cleanDesc = String(description || '').split(CARE_DELIMITER)[0];
+    const cleanCare = String(careInstructions || '').trim();
+    return cleanCare ? `${cleanDesc}${CARE_DELIMITER}${cleanCare}` : cleanDesc;
+  },
+
+  /**
+   * Unpacks description and care_instructions from a product row.
+   */
+  normalizeProductCare(row) {
+    if (!row || typeof row !== 'object') return row;
+    const rawDesc = typeof row.description === 'string'
+      ? row.description
+      : (typeof row.desc === 'string' ? row.desc : '');
+    let cleanDescription = row.description;
+    let extractedCare = '';
+    if (rawDesc.includes(CARE_DELIMITER)) {
+      const [descPart, ...careParts] = rawDesc.split(CARE_DELIMITER);
+      cleanDescription = descPart;
+      extractedCare = careParts.join(CARE_DELIMITER).trim();
+    }
+    const care = String(row.care_instructions || row.careInstructions || extractedCare || '').trim();
+    return {
+      ...row,
+      ...(row.description !== undefined || rawDesc ? { description: cleanDescription } : {}),
+      ...(row.desc !== undefined ? { desc: cleanDescription } : {}),
+      care_instructions: care,
+    };
+  },
+
   /**
    * Sorts a list of subcategories by sort_order (and localStorage fallback).
    * @param {any[]} list
@@ -281,11 +317,11 @@ export const productService = {
     return rows.map(p => {
       const joinedSubName = p.subcategories?.name || (Array.isArray(p.subcategories) ? p.subcategories[0]?.name : null);
       const resolvedSubName = joinedSubName || p.subcategory || (p.subcategory_id ? subMap[String(p.subcategory_id)] : null) || null;
-      return {
+      return this.normalizeProductCare({
         ...p,
         subcategory: resolvedSubName,
         subcategories: resolvedSubName ? { name: resolvedSubName } : p.subcategories
-      };
+      });
     });
   },
 
@@ -305,7 +341,7 @@ export const productService = {
         .eq('product_id', cleanId)
         .maybeSingle();
 
-      if (!error && data) return data;
+      if (!error && data) return this.normalizeProductCare(data);
     } catch (e) {
       console.warn('getProductById lookup by product_id failed:', e);
     }
@@ -317,7 +353,7 @@ export const productService = {
         .eq('id', cleanId)
         .maybeSingle();
 
-      if (!error && data) return data;
+      if (!error && data) return this.normalizeProductCare(data);
     } catch (e) {
       console.warn('getProductById lookup by id fallback failed:', e);
     }
@@ -554,6 +590,13 @@ export const productService = {
     if (!productData) return {};
     const payload = { ...productData };
 
+    if (typeof payload.description === 'string') {
+      payload.description = payload.description.split(CARE_DELIMITER)[0];
+    }
+    if (payload.care_instructions !== undefined) {
+      payload.care_instructions = String(payload.care_instructions || '').trim() || null;
+    }
+
     if (payload.colors !== undefined && payload.colors !== null) {
       if (typeof payload.colors === 'string') {
         payload.colors = payload.colors.split(',').map(c => c.trim()).filter(Boolean);
@@ -593,7 +636,7 @@ export const productService = {
       .insert([formatted])
       .select();
     if (error) throw error;
-    return data;
+    return (data || []).map(p => this.normalizeProductCare(p));
   },
 
   /**
@@ -677,7 +720,7 @@ export const productService = {
 
     // Images replaced or removed in this edit are deleted from R2
     await this.deleteRemovedProductImages(productId, oldImageUrls);
-    return data;
+    return (data || []).map(p => this.normalizeProductCare(p));
   },
 
   /**
@@ -771,7 +814,7 @@ export const productService = {
     try {
       let query = supabase
         .from('products')
-        .select('product_id, name, description, price, compare_price, stock, image_url, images, sizes, colors, material, category_id, categories(name), has_variants, subcategory_id, subcategories(name), product_variants(variant_id, price, compare_price, stock, images, color, size)')
+        .select('product_id, name, description, care_instructions, price, compare_price, stock, image_url, images, sizes, colors, material, category_id, categories(name), has_variants, subcategory_id, subcategories(name), product_variants(variant_id, price, compare_price, stock, images, color, size)')
         .eq('is_active', true)
         .order('created_at', { ascending: false });
 
@@ -799,7 +842,7 @@ export const productService = {
     if (!queryData) {
       let query = supabase
         .from('products')
-        .select('product_id, name, description, price, compare_price, stock, image_url, images, sizes, colors, material, category_id, categories(name), has_variants, subcategory_id, product_variants(variant_id, price, compare_price, stock, images, color, size)')
+        .select('product_id, name, description, care_instructions, price, compare_price, stock, image_url, images, sizes, colors, material, category_id, categories(name), has_variants, subcategory_id, product_variants(variant_id, price, compare_price, stock, images, color, size)')
         .eq('is_active', true)
         .order('created_at', { ascending: false });
 
@@ -848,7 +891,7 @@ export const productService = {
       }
     }
 
-    return queryData;
+    return (queryData || []).map(p => this.normalizeProductCare(p));
   },
 
   /**
@@ -886,7 +929,7 @@ export const productService = {
       .limit(limit);
 
     if (error) throw error;
-    return data || [];
+    return (data || []).map(p => this.normalizeProductCare(p));
   },
 
   async uploadSubcategoryImage(filePath, file, cacheControl = '31536000') {
