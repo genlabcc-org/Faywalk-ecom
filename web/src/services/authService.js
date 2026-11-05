@@ -182,18 +182,28 @@ export const authService = {
    * @returns {Promise<any>}
    */
   async verifyOtp(email, token, type = 'email') {
+    const cleanEmail = String(email || "").trim().toLowerCase();
+    const cleanToken = String(token || "").trim();
+
     const { data, error } = await supabase.auth.verifyOtp({
-      email,
-      token,
+      email: cleanEmail,
+      token: cleanToken,
       type
     });
     if (error && type === 'email') {
       const { data: signupData, error: signupError } = await supabase.auth.verifyOtp({
-        email,
-        token,
+        email: cleanEmail,
+        token: cleanToken,
         type: 'signup',
       });
       if (!signupError) return signupData;
+
+      const { data: magicData, error: magicError } = await supabase.auth.verifyOtp({
+        email: cleanEmail,
+        token: cleanToken,
+        type: 'magiclink',
+      });
+      if (!magicError) return magicData;
     }
     if (error) {
       if (/token|otp|expired|invalid/i.test(error.message || "")) {

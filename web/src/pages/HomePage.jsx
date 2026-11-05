@@ -12,7 +12,6 @@ import { getNavPath } from "../services/categoryRoute";
 const CategorySection = lazy(() => import('../components/CategorySection'));
 const NewArrivals = lazy(() => import('../components/NewArrivals'));
 const BestSellers = lazy(() => import('../components/BestSellers'));
-const CollectionsSection = lazy(() => import('../components/CollectionsSection'));
 const CustomerExperiences = lazy(() => import('../components/CustomerExperiences'));
 const SiteFooter = lazy(() => import('../components/SiteFooter'));
 
