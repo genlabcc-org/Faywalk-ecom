@@ -4,6 +4,7 @@ import { Link } from "react-router-dom";
 import { authService } from "../services/authService";
 import "./LoginPage.css";
 import Toast from "../components/Toast";
+import SEO from "../components/SEO";
 import loginImg from "../assets/sign/welcome.png";
 
 export default function LoginPage() {
@@ -66,6 +67,11 @@ export default function LoginPage() {
 
   return (
     <div className="jewelry-page">
+      <SEO
+        title="Sign In | FAYWALK"
+        description="Sign in to your FAYWALK account to track orders and manage your profile."
+        robots="noindex, follow"
+      />
       <div className="jewelry-left">
         <img
           src={loginImg}

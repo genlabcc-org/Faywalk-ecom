@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import './Policy.css';
 import SiteHeader from '../components/SiteHeader';
 import TopBar from '../components/TopBar';
+import SEO from '../components/SEO';
 
 const SiteFooter = lazy(() => import('../components/SiteFooter'));
 
@@ -23,6 +24,15 @@ export default function Terms() {
 
   return (
     <div className="policy-root">
+      <SEO
+        title="Terms of Service | FAYWALK"
+        description="Read the terms and conditions for using the FAYWALK website and purchasing products."
+        canonical="https://www.faywalk.com/terms"
+        breadcrumbs={[
+          { name: 'Home', path: '/' },
+          { name: 'Terms of Service', path: '/terms' },
+        ]}
+      />
       <TopBar />
       <SiteHeader activeLink="" onLinkClick={handleHeaderLinkClick} />
 

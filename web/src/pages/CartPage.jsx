@@ -3,6 +3,7 @@ import "./CartPage.css";
 import Navbar from "../components/SiteHeader";
 import TopBar from "../components/TopBar";
 import Footer from "../components/SiteFooter";
+import SEO from "../components/SEO";
 import { useNavigate } from "react-router-dom";
 import { useStore } from "../hooks/useStore";
 import { getOriginalImageUrl } from '../utils/imageUtils';
@@ -96,6 +97,11 @@ export default function CartPage() {
 
   return (
     <>
+      <SEO
+        title="Your Shopping Bag | FAYWALK"
+        description="Review items in your shopping bag and proceed to checkout."
+        robots="noindex, follow"
+      />
       <TopBar />
       <Navbar activeLink="" onLinkClick={handleNavClick} />
       <div className="cart-page-wrapper">

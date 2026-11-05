@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import './Policy.css';
 import SiteHeader from '../components/SiteHeader';
 import TopBar from '../components/TopBar';
+import SEO from '../components/SEO';
 
 const SiteFooter = lazy(() => import('../components/SiteFooter'));
 
@@ -23,6 +24,15 @@ export default function Privacy() {
 
   return (
     <div className="policy-root">
+      <SEO
+        title="Privacy Policy | FAYWALK"
+        description="Learn how FAYWALK protects and handles your personal information, privacy, and secure transactions."
+        canonical="https://www.faywalk.com/privacy"
+        breadcrumbs={[
+          { name: 'Home', path: '/' },
+          { name: 'Privacy Policy', path: '/privacy' },
+        ]}
+      />
       <TopBar />
       <SiteHeader activeLink="" onLinkClick={handleHeaderLinkClick} />
 

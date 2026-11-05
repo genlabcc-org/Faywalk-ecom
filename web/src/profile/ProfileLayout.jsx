@@ -6,6 +6,7 @@ import { getUserInitials } from "../utils/avatarUtils";
 import Navbar from "../components/SiteHeader";
 import Footer from "../components/SiteFooter";
 import TopBar from "../components/TopBar";
+import SEO from "../components/SEO";
 import "./ProfileLayout.css";
 
 const TABS = [
@@ -67,6 +68,11 @@ export default function ProfileLayout({ children }) {
 
   return (
     <>
+      <SEO
+        title="My Account | FAYWALK"
+        description="Manage your FAYWALK profile, saved addresses, and order history."
+        robots="noindex, nofollow"
+      />
       <TopBar />
       <Navbar onLinkClick={handleNavClick} />
       <div className="pl-root">

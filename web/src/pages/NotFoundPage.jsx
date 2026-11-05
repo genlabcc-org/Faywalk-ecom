@@ -2,6 +2,7 @@ import React, { lazy, Suspense } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import TopBar from '../components/TopBar';
 import SiteHeader from '../components/SiteHeader';
+import SEO from '../components/SEO';
 import './NotFoundPage.css';
 
 const SiteFooter = lazy(() => import('../components/SiteFooter'));
@@ -19,6 +20,11 @@ export default function NotFoundPage() {
 
   return (
     <div className="not-found-page">
+      <SEO
+        title="Page Not Found (404) | FAYWALK"
+        description="The page you requested could not be found."
+        robots="noindex, follow"
+      />
       <TopBar />
       <SiteHeader activeLink="" onLinkClick={handleHeaderLinkClick} />
 

@@ -5,6 +5,7 @@ import { orderService } from "../services/orderService";
 import { useStore } from "../hooks/useStore";
 import Navbar from "../components/SiteHeader";
 import Footer from "../components/SiteFooter";
+import SEO from "../components/SEO";
 import { getColorName } from "../utils/colorUtils";
 import "./OrderTracking.css";
 
@@ -392,6 +393,10 @@ export default function OrderTracking() {
 
   return (
     <>
+      <SEO
+        title={`Track Order #${orderId || ''} | FAYWALK`}
+        robots="noindex, nofollow"
+      />
       <Navbar />
       <div className="track-page-root">
         <div className="track-container">

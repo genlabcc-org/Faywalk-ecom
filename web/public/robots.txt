@@ -1,3 +1,23 @@
-# https://www.robotstxt.org/robotstxt.html
+# Robots.txt for FAYWALK (https://www.faywalk.com)
 User-agent: *
-Disallow:
+Allow: /
+Allow: /all-products
+Allow: /products
+Allow: /category/
+Allow: /product/
+Allow: /contact
+Allow: /terms
+Allow: /privacy
+
+# Disallow private user flows, checkout, and admin backend
+Disallow: /admin
+Disallow: /admin/*
+Disallow: /account/
+Disallow: /profile/
+Disallow: /checkout
+Disallow: /cart
+Disallow: /payment
+Disallow: /track-order/
+
+# Sitemap location
+Sitemap: https://www.faywalk.com/sitemap.xml

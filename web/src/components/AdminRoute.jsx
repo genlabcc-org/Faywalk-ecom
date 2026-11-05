@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { Navigate } from "react-router-dom";
 import { authService } from "../services/authService";
+import SEO from "./SEO";
 import "./AdminRoute.css";
 
 export default function AdminRoute({ children }) {
@@ -41,5 +42,10 @@ export default function AdminRoute({ children }) {
     return <Navigate to="/" replace />;
   }
 
-  return children;
+  return (
+    <>
+      <SEO title="Admin Console | FAYWALK" robots="noindex, nofollow" />
+      {children}
+    </>
+  );
 }

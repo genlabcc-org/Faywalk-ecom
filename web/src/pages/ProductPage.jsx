@@ -3,8 +3,9 @@ import { useNavigate, useSearchParams } from "react-router-dom";
 import { useStore } from "../hooks/useStore";
 import SiteHeader from "../components/SiteHeader";
 import TopBar from "../components/TopBar";
-  import SiteFooter from "../components/SiteFooter";
+import SiteFooter from "../components/SiteFooter";
 import Toast from "../components/Toast";
+import SEO from "../components/SEO";
 import { SkeletonProductCard } from "../components/ui/Skeleton";
 import { productService } from "../services/productService";
 import { getNavPath } from "../services/categoryRoute";
@@ -588,8 +589,46 @@ export default function ProductPage({ category = "Trending" }) {
     return pages;
   }, [totalPages]);
 
+  const pageTitle = useMemo(() => {
+    if (searchQueryParam) return `Search: "${searchQueryParam}" | FAYWALK`;
+    if (subcategoryParam) return `${subcategoryParam} - ${category} | FAYWALK`;
+    return `${category} Collection | FAYWALK`;
+  }, [searchQueryParam, subcategoryParam, category]);
+
+  const pageDescription = useMemo(() => {
+    if (searchQueryParam) return `Browse search results for "${searchQueryParam}" on FAYWALK. Shop premium innerwear and comfortable clothing with superior fit.`;
+    return `Discover the finest ${subcategoryParam ? `${subcategoryParam} in ` : ''}${category} at FAYWALK. Breathable fabrics, ultimate comfort, and modern fit designed for daily wear.`;
+  }, [searchQueryParam, subcategoryParam, category]);
+
+  const pageBreadcrumbs = useMemo(() => {
+    const list = [
+      { name: 'Home', path: '/' },
+      { name: category, path: `/category/${category.toLowerCase().replace(/\s+/g, '-')}` },
+    ];
+    if (subcategoryParam) {
+      list.push({
+        name: subcategoryParam,
+        path: `/category/${category.toLowerCase().replace(/\s+/g, '-')}?sub=${encodeURIComponent(subcategoryParam)}`,
+      });
+    }
+    return list;
+  }, [category, subcategoryParam]);
+
   return (
     <div className="trending-page-root">
+      <SEO
+        title={pageTitle}
+        description={pageDescription}
+        breadcrumbs={pageBreadcrumbs}
+        keywords={[
+          category,
+          subcategoryParam,
+          'FAYWALK',
+          'innerwear',
+          'premium clothing',
+          'buy innerwear online',
+        ].filter(Boolean)}
+      />
       <TopBar />
       <SiteHeader activeLink={category} onLinkClick={handleNavClick} />
 

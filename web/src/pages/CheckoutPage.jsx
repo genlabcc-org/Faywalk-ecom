@@ -13,6 +13,7 @@ import Navbar from "../components/SiteHeader";
 import TopBar from "../components/TopBar";
 import Footer from "../components/SiteFooter";
 import Toast from "../components/Toast";
+import SEO from "../components/SEO";
 import UpiIcon from "../assets/upi.svg";
 import VisaIcon from "../assets/visa.svg";
 import MastercardIcon from "../assets/mastercard.svg";
@@ -1001,6 +1002,11 @@ export default function CheckoutPage() {
 
   return (
     <>
+      <SEO
+        title="Secure Checkout | FAYWALK"
+        description="Complete your order securely on FAYWALK."
+        robots="noindex, nofollow"
+      />
       <TopBar />
       <Navbar onLinkClick={handleNavClick} />
       <div className="checkout-page-container">

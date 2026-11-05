@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import TopBar from '../components/TopBar';
 import SiteHeader from '../components/SiteHeader';
 import Hero from '../components/Hero';
+import SEO from '../components/SEO';
 import './HomePage.css';
 import { useStore } from '../hooks/useStore';
 import { getNavPath } from "../services/categoryRoute";
@@ -45,6 +46,24 @@ export default function HomePage() {
 
   return (
     <div className="homepage">
+      <SEO
+        title="FAYWALK | Premium Innerwear & Comfortable Clothing"
+        description="Discover premium innerwear and everyday comfortable clothing for Men and Women at FAYWALK. High-quality cotton trunks, briefs, vests, camisoles and loungewear crafted for superior fit and lasting comfort."
+        canonical="https://www.faywalk.com"
+        keywords={[
+          'FAYWALK',
+          'premium innerwear',
+          'men innerwear',
+          'women innerwear',
+          'cotton trunks',
+          'briefs',
+          'boxer briefs',
+          'vests',
+          'camisoles',
+          'loungewear',
+          'comfortable innerwear India'
+        ]}
+      />
       <TopBar />
       <SiteHeader activeLink="Home" onLinkClick={handleNavClick} />
       <Hero />

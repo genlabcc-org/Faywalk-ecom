@@ -11,6 +11,7 @@ import './ProductDetailsPage.css';
 import SiteHeader from '../components/SiteHeader';
 import TopBar from '../components/TopBar';
 import Toast from '../components/Toast';
+import SEO from '../components/SEO';
 import { useStore } from '../hooks/useStore';
 
 // Lazy load Footer
@@ -896,57 +897,48 @@ export default function ProductDetailsPage({ onBack = () => window.history.back(
     return window.location.href.split('?')[0].replace(/\/+$/, '');
   }, [productId, selectedProduct]);
 
-  // Dynamically update document title, Open Graph, and Twitter Card meta tags for Instagram link previews
-  useEffect(() => {
-    if (!selectedProduct) return;
-
-    const prodName = selectedProduct.name || displayName || 'Product';
-    document.title = `${prodName} | FAYWALK`;
-
-    const desc = selectedProduct.description || selectedProduct.desc || 'Discover premium innerwear and comfortable inner clothing on FAYWALK.';
+  // SEO & Social Open Graph metadata
+  const seoData = useMemo(() => {
+    if (productNotFound) {
+      return {
+        title: "Product Not Found | FAYWALK",
+        robots: "noindex, follow",
+      };
+    }
+    const prodName = displayName || selectedProduct?.name || 'Product';
+    const desc = selectedProduct?.description || selectedProduct?.desc || 'Discover premium innerwear and comfortable inner clothing on FAYWALK.';
     const cleanDesc = desc.replace(/<[^>]*>?/gm, '').slice(0, 200);
-    const productImg = selectedProduct.img || selectedProduct.image_url || selectedProduct.images?.[0] || '';
-    const fullImgUrl = productImg.startsWith('http') ? productImg : (productImg ? `${window.location.origin}${productImg}` : 'https://www.faywalk.com/logo.png');
+    const productImg = selectedProduct?.img || selectedProduct?.image_url || selectedProduct?.images?.[0] || '';
+    const fullImgUrl = productImg.startsWith('http')
+      ? productImg
+      : (productImg ? `${window.location.origin}${productImg}` : 'https://www.faywalk.com/logo.png');
     const shareUrl = getShareUrl();
 
-    const setMetaTag = (attr, key, content) => {
-      if (!content) return;
-      let el = document.querySelector(`meta[${attr}="${key}"]`);
-      if (!el) {
-        el = document.createElement('meta');
-        el.setAttribute(attr, key);
-        document.head.appendChild(el);
-      }
-      el.setAttribute('content', content);
+    return {
+      title: `${prodName} | FAYWALK`,
+      description: cleanDesc,
+      canonical: shareUrl,
+      ogType: 'product',
+      ogImage: fullImgUrl,
+      ogImageAlt: prodName,
+      productData: {
+        id: cleanId(productId) || selectedProduct?.productId || selectedProduct?.id || selectedProduct?.product_id,
+        name: prodName,
+        sku: displaySku || selectedProduct?.sku || selectedProduct?.product_id,
+        price: payPrice,
+        currency: 'INR',
+        description: cleanDesc,
+        brand: 'FAYWALK',
+        inStock: canAddToCart,
+        images: dynamicThumbs?.length > 0 ? dynamicThumbs.map(t => t.img).filter(Boolean) : [fullImgUrl],
+      },
+      breadcrumbs: [
+        { name: 'Home', path: '/' },
+        ...(cat ? [{ name: cat, path: `/category/${cat.toLowerCase().replace(/\s+/g, '-')}` }] : []),
+        { name: prodName, path: `/product/${cleanId(productId) || selectedProduct?.product_id || ''}` },
+      ],
     };
-
-    setMetaTag('property', 'og:title', `${prodName} - FAYWALK`);
-    setMetaTag('property', 'og:description', cleanDesc);
-    setMetaTag('property', 'og:image', fullImgUrl);
-    setMetaTag('property', 'og:image:secure_url', fullImgUrl);
-    setMetaTag('property', 'og:url', shareUrl);
-    setMetaTag('property', 'og:type', 'product');
-    setMetaTag('property', 'product:price:amount', String(payPrice || ''));
-    setMetaTag('property', 'product:price:currency', 'INR');
-
-    setMetaTag('name', 'twitter:card', 'summary_large_image');
-    setMetaTag('name', 'twitter:title', `${prodName} - FAYWALK`);
-    setMetaTag('name', 'twitter:description', cleanDesc);
-    setMetaTag('name', 'twitter:image', fullImgUrl);
-
-    // Canonical link
-    let canonical = document.querySelector('link[rel="canonical"]');
-    if (!canonical) {
-      canonical = document.createElement('link');
-      canonical.setAttribute('rel', 'canonical');
-      document.head.appendChild(canonical);
-    }
-    canonical.setAttribute('href', shareUrl);
-
-    return () => {
-      document.title = 'FAYWALK | Premium Innerwear & Clothing';
-    };
-  }, [selectedProduct, displayName, payPrice, getShareUrl]);
+  }, [productNotFound, displayName, selectedProduct, getShareUrl, productId, displaySku, payPrice, canAddToCart, dynamicThumbs, cat]);
 
   // Reliable clipboard copy supporting Instagram In-App Browser and iOS WebViews
   const copyToClipboard = async (text) => {
@@ -1137,6 +1129,7 @@ export default function ProductDetailsPage({ onBack = () => window.history.back(
 
   return (
     <div className="dp-page-root">
+      {seoData && <SEO {...seoData} />}
       <TopBar />
       {/* ── HEADER ── */}
       <SiteHeader activeLink="" onLinkClick={handleHeaderLinkClick} />

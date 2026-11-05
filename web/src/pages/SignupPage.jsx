@@ -4,6 +4,7 @@ import { Link } from "react-router-dom";
 import { authService } from "../services/authService";
 import "./SignupPage.css";
 import Toast from "../components/Toast";
+import SEO from "../components/SEO";
 import signupImg from "../assets/sign/welcome.png";
 
 export default function SignupPage() {
@@ -74,6 +75,11 @@ export default function SignupPage() {
 
   return (
     <div className="jewelry-page">
+      <SEO
+        title="Create Account | FAYWALK"
+        description="Join FAYWALK to enjoy seamless shopping, order tracking, and exclusive innerwear offers."
+        robots="noindex, follow"
+      />
       <div className="jewelry-left">
         <img src={signupImg} alt="sign up Image" />
       </div>
