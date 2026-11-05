@@ -8,6 +8,49 @@ import { compressImage } from '../utils/imageCompression';
 
 export const productService = {
   /**
+   * Sorts a list of subcategories by sort_order (and localStorage fallback).
+   * @param {any[]} list
+   * @param {string|number|null} parentId
+   * @returns {any[]}
+   */
+  sortSubcategoriesByOrder(list = [], parentId = null) {
+    if (!Array.isArray(list)) return [];
+    let savedOrderIds = [];
+    try {
+      const pKey = parentId != null ? String(parentId) : null;
+      if (pKey) {
+        const raw = localStorage.getItem(`faywalk_subcategory_order_${pKey}`);
+        if (raw) savedOrderIds = JSON.parse(raw).map(String);
+      }
+      if (savedOrderIds.length === 0) {
+        const firstParent = list[0]?.parent_id ?? list[0]?.category_id;
+        if (firstParent != null) {
+          const raw = localStorage.getItem(`faywalk_subcategory_order_${firstParent}`);
+          if (raw) savedOrderIds = JSON.parse(raw).map(String);
+        }
+      }
+    } catch {}
+
+    return [...list].sort((a, b) => {
+      const orderA = a.sort_order != null ? Number(a.sort_order) : null;
+      const orderB = b.sort_order != null ? Number(b.sort_order) : null;
+      if (orderA !== null && orderB !== null && orderA !== orderB) {
+        return orderA - orderB;
+      }
+      if (savedOrderIds.length > 0) {
+        const idxA = savedOrderIds.indexOf(String(a.subcategory_id ?? a.id));
+        const idxB = savedOrderIds.indexOf(String(b.subcategory_id ?? b.id));
+        if (idxA !== -1 || idxB !== -1) {
+          if (idxA === -1) return 1;
+          if (idxB === -1) return -1;
+          return idxA - idxB;
+        }
+      }
+      return Number(a.subcategory_id ?? a.id ?? 0) - Number(b.subcategory_id ?? b.id ?? 0);
+    });
+  },
+
+  /**
    * Retrieves all categories.
    * @returns {Promise<any[]>}
    */
@@ -62,10 +105,25 @@ export const productService = {
       cats = data || [];
     }
 
-    const { data: subs } = await supabase
-      .from('subcategories')
-      .select('*')
-      .order('created_at', { ascending: false });
+    let subs = null;
+    try {
+      const { data, error } = await supabase
+        .from('subcategories')
+        .select('*')
+        .order('sort_order', { ascending: true })
+        .order('subcategory_id', { ascending: true });
+      if (!error && data) {
+        subs = data;
+      }
+    } catch {}
+
+    if (!subs) {
+      const { data } = await supabase
+        .from('subcategories')
+        .select('*')
+        .order('created_at', { ascending: false });
+      subs = data || [];
+    }
 
     const subsByParent = {};
     (subs || []).forEach(s => {
@@ -91,8 +149,46 @@ export const productService = {
         return {
           ...c,
           productCount: c.products?.[0]?.count ?? 0,
-          subcategories: Array.from(mergedMap.values())
+          subcategories: this.sortSubcategoriesByOrder(Array.from(mergedMap.values()), catKey)
         };
+      })
+    );
+  },
+
+  /**
+   * Updates sort_order for all subcategories in the provided order.
+   * @param {any[]} orderedSubcategories
+   * @param {string|number|null} parentId
+   */
+  async updateSubcategoriesOrder(orderedSubcategories = [], parentId = null) {
+    const resolvedParentId =
+      parentId ??
+      orderedSubcategories[0]?.parent_id ??
+      orderedSubcategories[0]?.category_id ??
+      null;
+    const ids = orderedSubcategories
+      .map(s => String(s.subcategory_id ?? s.id))
+      .filter(Boolean);
+    if (resolvedParentId != null) {
+      try {
+        localStorage.setItem(`faywalk_subcategory_order_${resolvedParentId}`, JSON.stringify(ids));
+      } catch {}
+    }
+
+    await Promise.all(
+      orderedSubcategories.map(async (sub, index) => {
+        const subId = sub.subcategory_id ?? sub.id;
+        if (subId == null) return;
+        const { error } = await supabase
+          .from('subcategories')
+          .update({ sort_order: index })
+          .eq('subcategory_id', subId);
+        if (error) {
+          await supabase
+            .from('subcategories')
+            .update({ sort_order: index })
+            .eq('id', subId);
+        }
       })
     );
   },
@@ -827,7 +923,7 @@ export const productService = {
   async getSubCategories(parentId = null) {
     let query = supabase
       .from("subcategories")
-      .select("subcategory_id, name, image_url, parent_id, is_active")
+      .select("*")
       .order("created_at", { ascending: false });
 
     if (parentId !== null && parentId !== undefined) {
@@ -837,7 +933,7 @@ export const productService = {
     const { data, error } = await query;
 
     if (error) throw error;
-    return data || [];
+    return this.sortSubcategoriesByOrder(data || [], parentId);
   },
 
   /**

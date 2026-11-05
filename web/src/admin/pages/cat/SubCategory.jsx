@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from "react";
 import { createPortal } from "react-dom";
 import { useNavigate } from "react-router-dom";
 import { productService } from "../../../services/productService";
+import { useStore } from "../../../hooks/useStore";
 import "../categorylist.css";
 import "./SubCategory.css";
 
@@ -41,6 +42,16 @@ const PlaceholderImage = () => (
 // ─── Single Subcategory Card (Matches Mockup) ──────────────────────────────────
 const SubcategoryCard = ({
   sub,
+  index,
+  totalCount,
+  canReorder,
+  isDragging,
+  isDragOver,
+  onMoveSubcategory,
+  onDragStart,
+  onDragOver,
+  onDrop,
+  onDragEnd,
   productCount,
   openDropdownId,
   setOpenDropdownId,
@@ -68,7 +79,12 @@ const SubcategoryCard = ({
 
   return (
     <div
-      className="cat-card"
+      className={`cat-card${isDragging ? " cat-card--dragging" : ""}${isDragOver ? " cat-card--drag-over" : ""}`}
+      draggable={canReorder}
+      onDragStart={(e) => canReorder && onDragStart?.(e, index)}
+      onDragOver={(e) => canReorder && onDragOver?.(e, index)}
+      onDrop={(e) => canReorder && onDrop?.(e, index)}
+      onDragEnd={() => canReorder && onDragEnd?.()}
       onClick={() => onOpen(sub)}
       style={{ cursor: "pointer" }}
     >
@@ -77,6 +93,44 @@ const SubcategoryCard = ({
         className="cat-card-img-wrap"
         title={`Open ${sub.name}`}
       >
+        {/* Order Badge & Arrange Controls */}
+        <div
+          className="cat-order-bar"
+          onClick={(e) => e.stopPropagation()}
+        >
+          <span className="cat-order-badge" title={`Display position #${index + 1} on Home Page`}>
+            #{index + 1}
+          </span>
+          {canReorder && totalCount > 1 && (
+            <div className="cat-order-btns">
+              <button
+                type="button"
+                className="cat-order-btn"
+                disabled={index === 0}
+                onClick={() => onMoveSubcategory(index, index - 1)}
+                title="Move earlier (show before previous subcategory)"
+                aria-label={`Move ${sub.name} earlier`}
+              >
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                  <polyline points="15 18 9 12 15 6" />
+                </svg>
+              </button>
+              <button
+                type="button"
+                className="cat-order-btn"
+                disabled={index === totalCount - 1}
+                onClick={() => onMoveSubcategory(index, index + 1)}
+                title="Move later (show after next subcategory)"
+                aria-label={`Move ${sub.name} later`}
+              >
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                  <polyline points="9 18 15 12 9 6" />
+                </svg>
+              </button>
+            </div>
+          )}
+        </div>
+
         {thumbnail ? (
           <img
             src={thumbnail}
@@ -143,6 +197,30 @@ const SubcategoryCard = ({
                 >
                   Edit
                 </button>
+                {canReorder && index > 0 && (
+                  <button
+                    type="button"
+                    className="cat-dropdown-item"
+                    onClick={() => {
+                      setOpenDropdownId(null);
+                      onMoveSubcategory(index, index - 1);
+                    }}
+                  >
+                    Move Left (#{index})
+                  </button>
+                )}
+                {canReorder && index < totalCount - 1 && (
+                  <button
+                    type="button"
+                    className="cat-dropdown-item"
+                    onClick={() => {
+                      setOpenDropdownId(null);
+                      onMoveSubcategory(index, index + 1);
+                    }}
+                  >
+                    Move Right (#{index + 2})
+                  </button>
+                )}
                 <button
                   type="button"
                   className="cat-dropdown-item cat-dropdown-item--delete"
@@ -193,6 +271,7 @@ const SubcategoryCards = ({
   products = [],
   onFetchSubcategories,
   onDeleteSubcategory,
+  onReorderSubcategories,
   onBack,
   onAddSubcategory,
 }) => {
@@ -205,6 +284,9 @@ const SubcategoryCards = ({
   const [pendingDeleteSub, setPendingDeleteSub] = useState(null);
   const [isDeleting, setIsDeleting] = useState(false);
   const [blockedSub, setBlockedSub] = useState(null);
+  const [dragIndex, setDragIndex] = useState(null);
+  const [dragOverIndex, setDragOverIndex] = useState(null);
+  const [orderStatus, setOrderStatus] = useState("");
   const parentId = parentCategory?.category_id || parentCategory?.id;
 
   useEffect(() => {
@@ -235,6 +317,69 @@ const SubcategoryCards = ({
   }, [parentId, propSubcategories, onFetchSubcategories]);
 
   const list = localSubcategories || [];
+  const canReorder = list.length > 1;
+
+  const handleMoveSubcategory = async (fromIdx, toIdx) => {
+    if (
+      fromIdx === toIdx ||
+      fromIdx < 0 ||
+      toIdx < 0 ||
+      fromIdx >= list.length ||
+      toIdx >= list.length
+    ) {
+      return;
+    }
+
+    const reordered = [...list];
+    const [moved] = reordered.splice(fromIdx, 1);
+    reordered.splice(toIdx, 0, moved);
+
+    const updatedWithSortOrder = reordered.map((s, idx) => ({
+      ...s,
+      sort_order: idx,
+    }));
+
+    setLocalSubcategories(updatedWithSortOrder);
+    onReorderSubcategories?.(updatedWithSortOrder, parentId);
+    setOrderStatus("Saving order…");
+
+    try {
+      await productService.updateSubcategoriesOrder(updatedWithSortOrder, parentId);
+      await useStore.getState().fetchCategories?.(true);
+      setOrderStatus("Order saved");
+      setTimeout(() => setOrderStatus(""), 2000);
+    } catch (err) {
+      console.error("Failed to update subcategory order:", err);
+      setOrderStatus("");
+    }
+  };
+
+  const handleDragStart = (e, index) => {
+    setDragIndex(index);
+    e.dataTransfer.effectAllowed = "move";
+  };
+
+  const handleDragOver = (e, index) => {
+    e.preventDefault();
+    e.dataTransfer.dropEffect = "move";
+    if (dragOverIndex !== index) {
+      setDragOverIndex(index);
+    }
+  };
+
+  const handleDrop = (e, index) => {
+    e.preventDefault();
+    if (dragIndex !== null && dragIndex !== index) {
+      handleMoveSubcategory(dragIndex, index);
+    }
+    setDragIndex(null);
+    setDragOverIndex(null);
+  };
+
+  const handleDragEnd = () => {
+    setDragIndex(null);
+    setDragOverIndex(null);
+  };
 
   const productCountBySubcategory = React.useMemo(() => {
     const counts = {};
@@ -320,11 +465,25 @@ const SubcategoryCards = ({
 
   return (
     <div className="cat-page">
-      <div className="subcat-topbar">
+      <div className="subcat-topbar" style={{ flexWrap: "wrap" }}>
         <h1 className="subcat-title">
           {parentCategory?.name || "Category"}{" "}
           <span className="subcat-title-sub">Subcategories</span>
         </h1>
+        {list.length > 1 && (
+          <div className="cat-arrange-hint">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <polyline points="16 3 21 3 21 8" />
+              <line x1="4" y1="20" x2="21" y2="3" />
+              <polyline points="21 16 21 21 16 21" />
+              <line x1="15" y1="15" x2="21" y2="21" />
+              <line x1="4" y1="4" x2="9" y2="9" />
+            </svg>
+            <span>
+              {orderStatus || "Use arrows or drag cards to arrange display order (#1 shows first on Home Page)"}
+            </span>
+          </div>
+        )}
       </div>
 
       {loading ? (
@@ -340,10 +499,20 @@ const SubcategoryCards = ({
         </div>
       ) : (
         <div className="cat-grid">
-          {list.map((sub) => (
+          {list.map((sub, idx) => (
             <SubcategoryCard
               key={sub.subcategory_id ?? sub.id}
               sub={sub}
+              index={idx}
+              totalCount={list.length}
+              canReorder={canReorder}
+              isDragging={dragIndex === idx}
+              isDragOver={dragOverIndex === idx && dragIndex !== idx}
+              onMoveSubcategory={handleMoveSubcategory}
+              onDragStart={handleDragStart}
+              onDragOver={handleDragOver}
+              onDrop={handleDrop}
+              onDragEnd={handleDragEnd}
               productCount={productCountBySubcategory[String(sub.subcategory_id ?? sub.id)] || 0}
               openDropdownId={openDropdownId}
               setOpenDropdownId={setOpenDropdownId}

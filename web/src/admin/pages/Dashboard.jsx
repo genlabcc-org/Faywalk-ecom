@@ -1731,6 +1731,7 @@ function SubcategoryCard({
   subcategoriesCache,
   fetchSubcategoriesForParent,
   onDeleteSubcategory,
+  onReorderSubcategories,
 }) {
   const [searchParams] = useSearchParams();
   const parentId = searchParams.get("parentId");
@@ -1744,6 +1745,7 @@ function SubcategoryCard({
       products={products}
       onFetchSubcategories={fetchSubcategoriesForParent}
       onDeleteSubcategory={onDeleteSubcategory}
+      onReorderSubcategories={onReorderSubcategories}
       onBack={() => navigate("/admin/categories")}
       onAddSubcategory={() => navigate(`/admin/subcategories/new?parentId=${parentId}`)}
     />
@@ -2333,6 +2335,26 @@ const Dashboard = () => {
     navigate(`/admin/subcategories?parentId=${data.parent_id}`);
   };
 
+  const handleReorderSubcategories = (orderedList, parentId) => {
+    if (parentId == null) return;
+    setSubcategoriesCache((prev) => ({
+      ...prev,
+      [parentId]: orderedList,
+    }));
+
+    setCategories((prev) =>
+      prev.map((c) => {
+        if (String(c.category_id ?? c.id) === String(parentId)) {
+          return {
+            ...c,
+            subcategories: orderedList,
+          };
+        }
+        return c;
+      })
+    );
+  };
+
   const handleDeleteSubcategory = (subcategoryId, parentId) => {
     setSubcategoriesCache((prev) => ({
       ...prev,
@@ -2880,6 +2902,7 @@ const Dashboard = () => {
                   subcategoriesCache={subcategoriesCache}
                   fetchSubcategoriesForParent={fetchSubcategoriesForParent}
                   onDeleteSubcategory={handleDeleteSubcategory}
+                  onReorderSubcategories={handleReorderSubcategories}
                 />
               }
             />
