@@ -13,7 +13,7 @@ const STATIC_NAV_ITEMS = [
   { name: "All Products", hasDropdown: false, path: "/all-products" },
   { name: "New Arrivals", hasDropdown: false, path: "/#new-arrivals", isAnchor: true },
   { name: "Best Sellers", hasDropdown: false, path: "/#best-sellers", isAnchor: true },
-  { name: "About", hasDropdown: false, path: "/#about", isAnchor: true },
+  { name: "About", hasDropdown: false, path: "/about" },
   { name: "Contact Us", hasDropdown: false, path: "/contact" },
 ];
 

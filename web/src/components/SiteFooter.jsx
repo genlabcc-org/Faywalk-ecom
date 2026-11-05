@@ -49,7 +49,7 @@ const SiteFooter = () => {
           <div className="fw-col fw-nav-col">
             <h4 className="fw-col-title">About</h4>
             <ul className="fw-link-list">
-              <li><a href="/#about">About Us</a></li>
+              <li><Link to="/about">About Us</Link></li>
               <li><Link to="/contact">Contact Us</Link></li>
               <li><Link to="/terms">Terms of Service</Link></li>
             </ul>

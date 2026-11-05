@@ -19,6 +19,7 @@ import ProductDetailsPage from "./pages/ProductDetailsPage";
 import TermsPage from './pages/TermsPage';
 import PrivacyPage from './pages/PrivacyPage';
 import ContactPage from './pages/ContactPage';
+import AboutPage from './pages/AboutPage';
 import NotFoundPage from './pages/NotFoundPage';
 
 import AdminRoute from "./components/AdminRoute";
@@ -172,6 +173,7 @@ function App() {
         <Route path="/terms" element={<TermsPage />} />
         <Route path="/privacy" element={<PrivacyPage />} />
         <Route path="/contact" element={<ContactPage />} />
+        <Route path="/about" element={<AboutPage />} />
 
         <Route path="/cart" element={<CartPage />} />
 

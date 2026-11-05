@@ -48,8 +48,8 @@ export default function Terms() {
 
           <p className="policy-p">
             By accessing or using the website{' '}
-            <a href="https://www.faywalk.in" className="policy-link" target="_blank" rel="noopener noreferrer">
-              www.faywalk.in
+            <a href="https://www.faywalk.com" className="policy-link" target="_blank" rel="noopener noreferrer">
+              www.faywalk.com
             </a>{' '}
             ("Website"), you agree to carefully read, understand, and comply with these Terms of Use ("Terms").
             These Terms apply whenever you access, browse, register, or make a purchase through the Website
@@ -227,8 +227,8 @@ export default function Terms() {
               through the contact details provided on the Website.
               <br />
               Website:{' '}
-              <a href="https://www.faywalk.in" className="policy-link" target="_blank" rel="noopener noreferrer">
-                www.faywalk.in
+              <a href="https://www.faywalk.com" className="policy-link" target="_blank" rel="noopener noreferrer">
+                www.faywalk.com
               </a>
             </p>
           </div>
