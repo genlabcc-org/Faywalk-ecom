@@ -61,7 +61,7 @@ const SiteFooter = () => {
             <ul className="fw-link-list">
               <li><a href="https://instagram.com" target="_blank" rel="noopener noreferrer">Instagram</a></li>
               <li><a href="https://facebook.com" target="_blank" rel="noopener noreferrer">Facebook</a></li>
-              <li><a href="https://twitter.com" target="_blank" rel="noopener noreferrer">X / Twitter</a></li>
+              <li><a href="https://wa.me/916379838682" target="_blank" rel="noopener noreferrer">WhatsApp</a></li>
             </ul>
           </div>
 
