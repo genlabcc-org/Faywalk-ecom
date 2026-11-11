@@ -87,6 +87,7 @@ export default function ProductPage({ category = "Trending" }) {
   const [toastMessage, setToastMessage] = useState("");
   const [toastType, setToastType] = useState("success");
   const [selectedCardColors, setSelectedCardColors] = useState({});
+  const [expandedCardColors, setExpandedCardColors] = useState({});
 
   // Zustand Store Hooks
   const products = useStore(state => state.products[category] || EMPTY_PRODUCTS);
@@ -769,6 +770,17 @@ export default function ProductPage({ category = "Trending" }) {
                   const cardKey = product.cardKey || String(pid);
                   const productColors = getProductColors(product);
                   const activeColor = selectedCardColors[cardKey] ?? product.cardColor ?? null;
+                  const isCardColorsExpanded = expandedCardColors[cardKey] || false;
+                  const visibleCardColors = isCardColorsExpanded
+                    ? productColors
+                    : productColors.slice(0, 3);
+                  const activeColorIsVisible = visibleCardColors.some(
+                    (color) => String(color).trim().toLowerCase() === String(activeColor || "").trim().toLowerCase()
+                  );
+                  if (!isCardColorsExpanded && activeColor && !activeColorIsVisible && productColors.length > 3) {
+                    visibleCardColors[2] = activeColor;
+                  }
+                  const remainingColorCount = productColors.length - 3;
                   const activeColorName = activeColor ? (getColorName(activeColor) || activeColor) : "";
                   const displayTitle = activeColorName ? `${activeColorName} - ${product.name}` : product.name;
                   const colorVariantImg = activeColor && Array.isArray(product.product_variants)
@@ -855,7 +867,7 @@ export default function ProductPage({ category = "Trending" }) {
                           </div>
                           {productColors.length > 0 && (
                             <div className="trending-card-colors" aria-label="Available colors">
-                              {productColors.map((color) => {
+                              {visibleCardColors.map((color) => {
                                 const bg = getColorStyle(color);
                                 const cName = getColorName(color) || color;
                                 const isWhite =
@@ -883,6 +895,23 @@ export default function ProductPage({ category = "Trending" }) {
                                   </button>
                                 );
                               })}
+                              {remainingColorCount > 0 && (
+                                <button
+                                  type="button"
+                                  className="trending-color-more-btn"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    setExpandedCardColors((prev) => ({
+                                      ...prev,
+                                      [cardKey]: !isCardColorsExpanded,
+                                    }));
+                                  }}
+                                  aria-label={isCardColorsExpanded ? "Show fewer colors" : `Show ${remainingColorCount} more colors`}
+                                  aria-expanded={isCardColorsExpanded}
+                                >
+                                  {isCardColorsExpanded ? "−" : `+${remainingColorCount}`}
+                                </button>
+                              )}
                             </div>
                           )}
                         </div>

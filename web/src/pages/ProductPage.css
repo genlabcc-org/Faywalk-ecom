@@ -346,6 +346,23 @@
   border: 1.5px solid #cbd5e1;
 }
 
+.trending-color-more-btn {
+  border: 0;
+  padding: 0 2px;
+  background: none;
+  color: #64748b;
+  font: inherit;
+  font-size: 12px;
+  line-height: 1;
+  white-space: nowrap;
+  cursor: pointer;
+  flex-shrink: 0;
+}
+
+.trending-color-more-btn:hover {
+  color: #111827;
+}
+
 /* ─── Pagination Bar ─── */
 .trending-pagination-container {
   display: flex;
@@ -729,4 +746,3 @@
     height: 12px;
   }
 }
-
